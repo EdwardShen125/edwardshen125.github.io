@@ -170,11 +170,25 @@
 
       
         
-          <p>最近在学习web，知识点太多，想写blog记录整理学习过程，github作为业内男性交友网站，提供了免费的github pages造福广大同胞。那么问题来了：静态blog框架哪家强。<br>hexo在github上搭建发布过程</p>
-<h3 id="1、node-js官网下载windows安装包，一键安装">1、node.js官网下载windows安装包，一键安装</h3><h3 id="2、git同样，一键安装，配置用户名、邮箱，连接github">2、git同样，一键安装，配置用户名、邮箱，连接github</h3><h3 id="3、打开git_bash，进入文件夹，&gt;npm_install_hexo_-g">3、打开git bash，进入文件夹，&gt;npm install hexo -g</h3><h3 id="4、&gt;hexo_init_xxx_后缀填写指定文件夹">4、&gt;hexo init xxx 后缀填写指定文件夹</h3><h3 id="5、下载主题，我使用的是hexo-theme-next_github可下载">5、下载主题，我使用的是hexo-theme-next github可下载</h3><h3 id="6、修改_config-yml中的theme">6、修改_config.yml中的theme</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">theme: hexo-theme-next</span><br></pre></td></tr></table></figure>
-<pre><code>配置deploy 
-</code></pre><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">deploy:</span><br><span class="line">    <span class="built_in">type</span>: git</span><br><span class="line">    repo: git@github.com:HaywardShen/shem.github.io.git</span><br><span class="line">    branch: master</span><br></pre></td></tr></table></figure>
-<h3 id="7、&gt;hexo_generate_静态化">7、&gt;hexo generate 静态化</h3><h3 id="8、&gt;hexo_deploy_没反应，检查了">8、&gt;hexo deploy 没反应，检查了</h3>
+          <p>最近在学习web，知识点太多，想记录整理学习过程。<a href="https://github.com" target="_blank" rel="external">github</a>作为业内男性交友网站，提供了免费的<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>造福广大同胞。空间有了，再来个blog框架就完美了，github自带支持jekyll。然而我选择了hexo，酷炫的本地调试，一条命令即可发布！</p>
+<h2 id="hexo在本地搭建github发布过程">hexo在本地搭建github发布过程</h2><h3 id="安装node-js">安装node.js</h3><p>选择环境下载<a href="https://nodejs.org/download/" target="_blank" rel="external">node.js安装包</a>，我的主机是windows，下好一键安装即可</p>
+<h3 id="安装git">安装git</h3><p>选择<a href="http://git-scm.com/download/" target="_blank" rel="external">git安装包</a>，windows一键安装，进入git bash命令行界面</p>
+<p>配置git的用户名和邮箱：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git config --global user.name <span class="string">"HaywardShem"</span></span><br><span class="line">$ git config --global user.email <span class="string">"495430312@qq.com"</span></span><br></pre></td></tr></table></figure></p>
+<p>生成密钥：<br><code>$ ssh-keygen -t rsa -C &quot;495430312@qq.com&quot;</code></p>
+<p>进入~/.ssh，里面的id_rsa为自己保存，id_rsa.pub为公钥，打开并复制其内容，进入<a href="https://github.com/settings/ssh" target="_blank" rel="external">github ssh设置页面</a>，add ssh key后把刚刚复制的内容拷进去。</p>
+<h3 id="安装hexo">安装hexo</h3><p>打开git bash，安装hexo包<br><code>$ npm install -g hexo</code></p>
+<p>新建一个文件夹做本地hexo的部署，git bash里打开该文件夹，进行初始化<br><code>$ hexo init</code><br>执行后，hexo会将框架和发布文件都部署在目标文件夹下<br>按照提示，接着执行如下命令安装node_modules<br><code>$ npm install</code></p>
+<h3 id="安装主题">安装主题</h3><p>找一个炫酷的主题，在这里推荐<a href="https://github.com/iissnan/hexo-theme-next" target="_blank" rel="external">NexT</a></p>
+<p>打开git bash，进入hexo主目录<br><code>$ git clone https://github.com/iissnan/hexo-theme-next themes/next</code></p>
+<p>更改hexo目录下<code>_config.yml</code>中的<code>theme</code>字段为<code>next</code><br><code>theme: next</code></p>
+<h3 id="新建一篇文章">新建一篇文章</h3><p>一种方式 打开git bash 进入hexo主目录<br><code>$ hexo new [layout] &quot;postName&quot; #新建文章</code></p>
+<p>另一种方式 直接在<code>hexo\source\_posts</code>里新建一个md文件</p>
+<h3 id="发布到github">发布到github</h3><p>参考<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>建立符合规范的仓库名<br><code>username.github.io</code></p>
+<p>更改<code>_config.yml</code>中关于<code>deploy</code>的配置：<br><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">deploy</span>:</span><br><span class="line">    <span class="attribute">type</span>: git</span><br><span class="line">    <span class="attribute">repo</span>: git<span class="variable">@github</span>.<span class="attribute">com</span>:HaywardShen/HaywardShen.github.io.git</span><br><span class="line">    <span class="attribute">branch</span>: master</span><br></pre></td></tr></table></figure></p>
+<p>这里有个坑！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>重要的事情说三遍！ 不加空格，<code>hexo d</code>时会没有反应！什么动静都没有！</p>
+<h3 id="hexo基本操作">hexo基本操作</h3><p>启动本地服务器，默认地址<a href="http://localhost:4000" target="_blank" rel="external">http://localhost:4000</a><br><code>$ hexo server</code></p>
+<p>静态化网站内容并发布<br><code>$ hexo deploy -g</code></p>
+
         
       
     </div>
@@ -308,7 +322,7 @@
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">0</span>
+              <span class="site-state-item-count">3</span>
               <span class="site-state-item-name">標籤</span>
               </a>
           </div>
