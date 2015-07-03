@@ -22,7 +22,7 @@
 
 
 
-  <meta name="keywords" content="git,github,hexo," />
+  <meta name="keywords" content="centos6.5,php5.6,yum," />
 
 
 
@@ -45,7 +45,7 @@
 
 
 
-  <title> hexo-on-github // 沈厚桦的博客 </title>
+  <title> PHP 5.6 on CentOS6.5 via Yum // 沈厚桦的博客 </title>
 </head>
 
 <body>
@@ -140,7 +140,7 @@
           
           
             
-              hexo-on-github
+              PHP 5.6 on CentOS6.5 via Yum
             
           
         </h1>
@@ -148,7 +148,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          發表於 2015-06-26
+          發表於 2015-07-03
         </span>
 
         
@@ -165,25 +165,9 @@
       
 
       
-        <p>最近在学习web，知识点太多，想记录整理学习过程。<a href="https://github.com" target="_blank" rel="external">github</a>作为业内男性交友网站，提供了免费的<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>造福广大同胞。空间有了，再来个blog框架就完美了，github自带支持jekyll。然而我选择了hexo，酷炫的本地调试，一条命令即可发布！</p>
-<h2 id="hexo在本地搭建github发布过程">hexo在本地搭建github发布过程</h2><h3 id="安装node-js">安装node.js</h3><p>选择环境下载<a href="https://nodejs.org/download/" target="_blank" rel="external">node.js安装包</a>，我的主机是windows，下好一键安装即可</p>
-<h3 id="安装git">安装git</h3><p>选择<a href="http://git-scm.com/download/" target="_blank" rel="external">git安装包</a>，windows一键安装，进入git bash命令行界面</p>
-<p>配置git的用户名和邮箱：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git config --global user.name <span class="string">"HaywardShem"</span></span><br><span class="line">$ git config --global user.email <span class="string">"495430312@qq.com"</span></span><br></pre></td></tr></table></figure></p>
-<p>生成密钥：<br><code>$ ssh-keygen -t rsa -C &quot;495430312@qq.com&quot;</code></p>
-<p>进入~/.ssh，里面的id_rsa为自己保存，id_rsa.pub为公钥，打开并复制其内容，进入<a href="https://github.com/settings/ssh" target="_blank" rel="external">github ssh设置页面</a>，add ssh key后把刚刚复制的内容拷进去。</p>
-<h3 id="安装hexo">安装hexo</h3><p>打开git bash，安装hexo包<br><code>$ npm install -g hexo</code></p>
-<p>新建一个文件夹做本地hexo的部署，git bash里打开该文件夹，进行初始化<br><code>$ hexo init</code><br>执行后，hexo会将框架和发布文件都部署在目标文件夹下<br>按照提示，接着执行如下命令安装node_modules<br><code>$ npm install</code></p>
-<h3 id="安装主题">安装主题</h3><p>找一个炫酷的主题，在这里推荐<a href="https://github.com/iissnan/hexo-theme-next" target="_blank" rel="external">NexT</a></p>
-<p>打开git bash，进入hexo主目录<br><code>$ git clone https://github.com/iissnan/hexo-theme-next themes/next</code></p>
-<p>更改hexo目录下<code>_config.yml</code>中的<code>theme</code>字段为<code>next</code><br><code>theme: next</code></p>
-<h3 id="新建一篇文章">新建一篇文章</h3><p>一种方式 打开git bash 进入hexo主目录<br><code>$ hexo new [layout] &quot;postName&quot; #新建文章</code></p>
-<p>另一种方式 直接在<code>hexo\source\_posts</code>里新建一个md文件</p>
-<h3 id="本地预览">本地预览</h3><p>启动本地服务器，默认地址<a href="http://localhost:4000" target="_blank" rel="external">http://localhost:4000</a><br><code>$ hexo server</code></p>
-<h3 id="发布到github">发布到github</h3><p>参考<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>建立符合规范的仓库名<br><code>username.github.io</code></p>
-<p>更改<code>_config.yml</code>中关于<code>deploy</code>的配置：<br><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">deploy</span>:</span><br><span class="line">    <span class="attribute">type</span>: git</span><br><span class="line">    <span class="attribute">repo</span>: git<span class="variable">@github</span>.<span class="attribute">com</span>:HaywardShen/HaywardShen.github.io.git</span><br><span class="line">    <span class="attribute">branch</span>: master</span><br></pre></td></tr></table></figure></p>
-<p>这里有个坑！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>重要的事情说三遍！ 不加空格，<code>hexo d</code>时会没有反应！什么动静都没有！</p>
-<p>保存好配置后一条命令即可发布到github<br><code>$ hexo d -g</code></p>
-<p>进入自己的github page查看效果，地址就是仓库名</p>
+        <p>参考<a href="https://webtatic.com/packages/php56/" target="_blank" rel="external">Webtatic.com</a><br>CentOS6.5下安装PHP5.6的方法<br>centos提供yum工具，yum是通过查找repo里的软件仓库去安装相应的软件，但centos6.5自带repo源里的php版本都太低只能手工改repo</p>
+<h2 id="更新repo">更新repo</h2><p>下载安装webtatic提供的repo<br><code>rpm -Uvh https://mirror.webtatic.com/yum/el6/latest.rpm</code></p>
+<h2 id="安装php5-6">安装php5.6</h2><p><code>yum install php56w php56w-opcache</code><br>更多php5.6包<a href="https://webtatic.com/packages/php56/" target="_blank" rel="external">Webtatic.com</a></p>
 
       
     </div>
@@ -192,11 +176,11 @@
       
         <div class="post-tags">
           
-            <a href="/tags/git/"> #git </a>
+            <a href="/tags/centos6-5/"> #centos6.5 </a>
           
-            <a href="/tags/github/"> #github </a>
+            <a href="/tags/php5-6/"> #php5.6 </a>
           
-            <a href="/tags/hexo/"> #hexo </a>
+            <a href="/tags/yum/"> #yum </a>
           
         </div>
       
@@ -205,13 +189,11 @@
         <div class="post-nav">
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2015/07/03/PHP-5-6-on-CentOS6.5-via-Yum/">PHP 5.6 on CentOS6.5 via Yum</a>
-            
           </div>
 
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2015/06/26/hello-world/">Hello World</a>
+              <a href="/2015/06/26/hexo-on-github/">hexo-on-github</a>
             
           </div>
         </div>
@@ -311,7 +293,7 @@
           <div class="post-toc">
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#hexo在本地搭建github发布过程"><span class="nav-number">1.</span> <span class="nav-text">hexo在本地搭建github发布过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#安装node-js"><span class="nav-number">1.1.</span> <span class="nav-text">安装node.js</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装git"><span class="nav-number">1.2.</span> <span class="nav-text">安装git</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装hexo"><span class="nav-number">1.3.</span> <span class="nav-text">安装hexo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装主题"><span class="nav-number">1.4.</span> <span class="nav-text">安装主题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新建一篇文章"><span class="nav-number">1.5.</span> <span class="nav-text">新建一篇文章</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#本地预览"><span class="nav-number">1.6.</span> <span class="nav-text">本地预览</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发布到github"><span class="nav-number">1.7.</span> <span class="nav-text">发布到github</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#更新repo"><span class="nav-number">1.</span> <span class="nav-text">更新repo</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装php5-6"><span class="nav-number">2.</span> <span class="nav-text">安装php5.6</span></a></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator"></div>
