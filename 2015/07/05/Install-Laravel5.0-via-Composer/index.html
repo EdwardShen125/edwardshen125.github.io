@@ -166,17 +166,19 @@
 
       
         <h2 id="通过Composer快速(大雾)安装Laravel5-0">通过Composer快速(大雾)安装Laravel5.0</h2><p>Mark下安装过程和其中的坑</p>
-<h3 id="Composer安装">Composer安装</h3><p>下载<a href="http://www.getcomposer.org" target="_blank" rel="external">Composer</a><br><code>curl -sS https://getcomposer.org/installer | php</code></p>
-<p>移动到全局环境变量里，就可以在任意地方执行<code>composer</code><br><code>mv composer.phar /usr/local/bin/composer</code></p>
-<p>更多信息<a href="http://docs.phpcomposer.com/00-intro.html" target="_blank" rel="external">composer在线中文手册</a></p>
-<h3 id="PHP支持模块安装">PHP支持模块安装</h3><p>下载模块<br><code>yum install -y php56w-mysql,php56w-mysqlnd,php56w-xml,php56w-mbstring</code></p>
-<p>重启<code>apache</code><br><code>service httpd restart</code></p>
+<h3 id="Composer安装">Composer安装</h3><p>下载<a href="http://www.getcomposer.org" target="_blank" rel="external">Composer</a><br><code># curl -sS https://getcomposer.org/installer | php</code></p>
+<p>移动到全局环境变量里，就可以在任意地方执行<code>composer</code><br><code># mv composer.phar /usr/local/bin/composer</code></p>
+<p>更多信息参考<a href="http://docs.phpcomposer.com/00-intro.html" target="_blank" rel="external">composer在线中文手册</a></p>
+<h3 id="PHP支持模块安装">PHP支持模块安装</h3><p>下载模块<br><code># yum install -y php56w-mysql,php56w-mysqlnd,php56w-xml,php56w-mbstring</code></p>
+<p>重启<code>apache</code><br><code># service httpd restart</code></p>
 <p>之前没有装这些模块，直接装<code>Laravel</code>了，结果每次都报错找不到函数！<br>安装<code>Laravel</code>之前一定要检查模块是否安装齐全</p>
-<h3 id="Laravel安装">Laravel安装</h3><p>进入<code>apache</code>文档目录<br><code>cd /var/www/</code></p>
-<p>安装<code>Laravel</code><br><code># composer create-project laravel/laravel --prefer-dist</code></p>
-<p>修改<code>apache</code>默认文档路径<br><code>vi /etc/httpd/conf/httpd.conf</code><br>找到<code>DocumentRoot</code>字段 改为<code>&quot;/var/www/laravel/public/&quot;</code></p>
+<h3 id="Laravel安装">Laravel安装</h3><p>进入<code>apache</code>文档目录<br><code># cd /var/www/</code></p>
+<p>安装<code>Laravel5.0</code><br><code># composer create-project laravel/laravel --prefer-dist</code></p>
+<p>修改<code>apache</code>默认文档路径<br><code># vi /etc/httpd/conf/httpd.conf</code><br>找到<code>DocumentRoot</code>字段 改为<code>&quot;/var/www/laravel/public/&quot;</code></p>
+<p>重启<code>apache</code><br><code># service httpd restart</code></p>
 <p>修改<code>storage</code>权限<br><code># chmod -R 777 storage</code><br>不改就莫名其妙的<code>500</code>！</p>
-<h3 id="访问试试">访问试试</h3><p><a href="http://pkg.phpcomposer.com/" target="_blank" rel="external">composer国内镜像</a></p>
+<h3 id="访问试试">访问试试</h3><p><code>http://114.215.121.52</code><br>成功看到Laravel5！</p>
+<h3 id="换源">换源</h3><p>国内<code>vps</code>的话可以考虑换个<code>composer</code>源，让更新依赖包更快(没试过)<br>换源教程参考<a href="http://pkg.phpcomposer.com/" target="_blank" rel="external">composer国内镜像</a></p>
 
       
     </div>
@@ -200,7 +202,7 @@
 
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2015/07/05/Install-Laravel-via-Composer/">Install Laravel5.0 via Composer</a>
+              <a href="/2015/07/03/PHP-5-6-on-CentOS6.5-via-Yum/">PHP 5.6 on CentOS6.5 via Yum</a>
             
           </div>
         </div>
@@ -262,7 +264,7 @@
         <div class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">5</span>
+              <span class="site-state-item-count">4</span>
               <span class="site-state-item-name">posts</span>
             </a>
           </div>
@@ -300,7 +302,7 @@
           <div class="post-toc">
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#通过Composer快速(大雾)安装Laravel5-0"><span class="nav-number">1.</span> <span class="nav-text">通过Composer快速(大雾)安装Laravel5.0</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Composer安装"><span class="nav-number">1.1.</span> <span class="nav-text">Composer安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PHP支持模块安装"><span class="nav-number">1.2.</span> <span class="nav-text">PHP支持模块安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Laravel安装"><span class="nav-number">1.3.</span> <span class="nav-text">Laravel安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#访问试试"><span class="nav-number">1.4.</span> <span class="nav-text">访问试试</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#通过Composer快速(大雾)安装Laravel5-0"><span class="nav-number">1.</span> <span class="nav-text">通过Composer快速(大雾)安装Laravel5.0</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Composer安装"><span class="nav-number">1.1.</span> <span class="nav-text">Composer安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PHP支持模块安装"><span class="nav-number">1.2.</span> <span class="nav-text">PHP支持模块安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Laravel安装"><span class="nav-number">1.3.</span> <span class="nav-text">Laravel安装</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#访问试试"><span class="nav-number">1.4.</span> <span class="nav-text">访问试试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#换源"><span class="nav-number">1.5.</span> <span class="nav-text">换源</span></a></li></ol></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator"></div>
