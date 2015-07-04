@@ -171,13 +171,13 @@
       
         
           <h2 id="通过Composer快速(大雾)安装Laravel5-0">通过Composer快速(大雾)安装Laravel5.0</h2><p>Mark下安装过程和其中的坑</p>
-<h3 id="Composer安装">Composer安装</h3><p>下载<a href="http://www.getcomposer.org" target="_blank" rel="external">Composer</a><br><code># curl -sS https://getcomposer.org/installer | php</code></p>
+<h3 id="安装Composer">安装Composer</h3><p>下载<a href="http://www.getcomposer.org" target="_blank" rel="external">Composer</a><br><code># curl -sS https://getcomposer.org/installer | php</code></p>
 <p>移动到全局环境变量里，就可以在任意地方执行<code>composer</code><br><code># mv composer.phar /usr/local/bin/composer</code></p>
 <p>更多信息参考<a href="http://docs.phpcomposer.com/00-intro.html" target="_blank" rel="external">composer在线中文手册</a></p>
-<h3 id="PHP支持模块安装">PHP支持模块安装</h3><p>下载模块<br><code># yum install -y php56w-mysql,php56w-mysqlnd,php56w-xml,php56w-mbstring</code></p>
+<h3 id="安装PHP支持模块">安装PHP支持模块</h3><p>下载模块<br><code># yum install -y php56w-mysql,php56w-mysqlnd,php56w-xml,php56w-mbstring</code></p>
 <p>重启<code>apache</code><br><code># service httpd restart</code></p>
 <p>之前没有装这些模块，直接装<code>Laravel</code>了，结果每次都报错找不到函数！<br>安装<code>Laravel</code>之前一定要检查模块是否安装齐全</p>
-<h3 id="Laravel安装">Laravel安装</h3><p>进入<code>apache</code>文档目录<br><code># cd /var/www/</code></p>
+<h3 id="安装Laravel">安装Laravel</h3><p>进入<code>apache</code>文档目录<br><code># cd /var/www/</code></p>
 <p>安装<code>Laravel5.0</code><br><code># composer create-project laravel/laravel --prefer-dist</code></p>
 <p>修改<code>apache</code>默认文档路径<br><code># vi /etc/httpd/conf/httpd.conf</code><br>找到<code>DocumentRoot</code>字段 改为<code>&quot;/var/www/laravel/public/&quot;</code></p>
 <p>重启<code>apache</code><br><code># service httpd restart</code></p>
