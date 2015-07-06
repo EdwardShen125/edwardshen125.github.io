@@ -173,7 +173,7 @@
 <p>重启<code>apache</code><br><code># service httpd restart</code></p>
 <p>之前没有装这些模块，直接装<code>Laravel</code>了，结果每次都报错找不到函数！<br>安装<code>Laravel</code>之前一定要检查模块是否安装齐全</p>
 <h3 id="安装Laravel">安装Laravel</h3><p>进入<code>apache</code>文档目录<br><code># cd /var/www/</code></p>
-<p>安装<code>Laravel5.0</code><br><code># composer create-project laravel/laravel --prefer-dist</code></p>
+<p>安装<code>Laravel5</code><br><code># composer create-project laravel/laravel --prefer-dist</code></p>
 <p>修改<code>apache</code>默认文档路径<br><code># vi /etc/httpd/conf/httpd.conf</code><br>找到<code>DocumentRoot</code>字段 改为<code>&quot;/var/www/laravel/public/&quot;</code></p>
 <p>重启<code>apache</code><br><code># service httpd restart</code></p>
 <p>修改<code>storage</code>权限<br><code># chmod -R 777 storage</code><br>不改就莫名其妙的<code>500</code>！</p>
