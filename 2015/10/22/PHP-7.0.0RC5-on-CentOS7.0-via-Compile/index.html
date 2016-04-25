@@ -22,7 +22,7 @@
 
 
 
-  <meta name="keywords" content="git,github,hexo," />
+  <meta name="keywords" content="centos7.0,php7.0," />
 
 
 
@@ -45,7 +45,7 @@
 
 
 
-  <title> hexo-on-github // 沈厚桦的博客 </title>
+  <title> PHP 7.0.0RC5 on CentOS7.0 via Compile // 沈厚桦的博客 </title>
 </head>
 
 <body>
@@ -140,7 +140,7 @@
           
           
             
-              hexo-on-github
+              PHP 7.0.0RC5 on CentOS7.0 via Compile
             
           
         </h1>
@@ -148,7 +148,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          發表於 2015-06-26
+          發表於 2015-10-22
         </span>
 
         
@@ -165,25 +165,13 @@
       
 
       
-        <p>最近在学习web，知识点太多，想记录整理学习过程。<a href="https://github.com" target="_blank" rel="external">github</a>作为业内男性交友网站，提供了免费的<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>造福广大同胞。空间有了，再来个blog框架就完美了，github自带支持jekyll。然而我选择了hexo，酷炫的本地调试，一条命令即可发布！</p>
-<h2 id="hexo在本地搭建github发布过程">hexo在本地搭建github发布过程</h2><h3 id="安装node-js">安装node.js</h3><p>选择环境下载<a href="https://nodejs.org/download/" target="_blank" rel="external">node.js安装包</a>，我的主机是windows，下好一键安装即可</p>
-<h3 id="安装git">安装git</h3><p>选择<a href="http://git-scm.com/download/" target="_blank" rel="external">git安装包</a>，windows一键安装，进入git bash命令行界面</p>
-<p>配置git的用户名和邮箱：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git config --global user.name <span class="string">"HaywardShem"</span></span><br><span class="line">$ git config --global user.email <span class="string">"495430312@qq.com"</span></span><br></pre></td></tr></table></figure></p>
-<p>生成密钥：<br><code>$ ssh-keygen -t rsa -C &quot;495430312@qq.com&quot;</code></p>
-<p>进入~/.ssh，里面的id_rsa为自己保存，id_rsa.pub为公钥，打开并复制其内容，进入<a href="https://github.com/settings/ssh" target="_blank" rel="external">github ssh设置页面</a>，add ssh key后把刚刚复制的内容拷进去。</p>
-<h3 id="安装hexo">安装hexo</h3><p>打开git bash，安装hexo包<br><code>$ npm install -g hexo</code></p>
-<p>新建一个文件夹做本地hexo的部署，git bash里打开该文件夹，进行初始化<br><code>$ hexo init</code><br>执行后，hexo会将框架和发布文件都部署在目标文件夹下<br>按照提示，接着执行如下命令安装node_modules<br><code>$ npm install</code></p>
-<h3 id="安装主题">安装主题</h3><p>找一个炫酷的主题，在这里推荐<a href="https://github.com/iissnan/hexo-theme-next" target="_blank" rel="external">NexT</a></p>
-<p>打开git bash，进入hexo主目录<br><code>$ git clone https://github.com/iissnan/hexo-theme-next themes/next</code></p>
-<p>更改hexo目录下<code>_config.yml</code>中的<code>theme</code>字段为<code>next</code><br><code>theme: next</code></p>
-<h3 id="新建一篇文章">新建一篇文章</h3><p>一种方式 打开git bash 进入hexo主目录<br><code>$ hexo new [layout] &quot;postName&quot; #新建文章</code></p>
-<p>另一种方式 直接在<code>hexo\source\_posts</code>里新建一个md文件</p>
-<h3 id="本地预览">本地预览</h3><p>启动本地服务器，默认地址<a href="http://localhost:4000" target="_blank" rel="external">http://localhost:4000</a><br><code>$ hexo server</code></p>
-<h3 id="发布到github">发布到github</h3><p>参考<a href="https://pages.github.com" target="_blank" rel="external">github pages</a>建立符合规范的仓库名<br><code>username.github.io</code></p>
-<p>更改<code>_config.yml</code>中关于<code>deploy</code>的配置：<br><figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">deploy</span>:</span><br><span class="line">    <span class="attribute">type</span>: git</span><br><span class="line">    <span class="attribute">repo</span>: git<span class="variable">@github</span>.<span class="attribute">com</span>:HaywardShen/HaywardShen.github.io.git</span><br><span class="line">    <span class="attribute">branch</span>: master</span><br></pre></td></tr></table></figure></p>
-<p>这里有个坑！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>冒号后面要加空格！<br>重要的事情说三遍！ 不加空格，<code>hexo d</code>时会没有反应！什么动静都没有！</p>
-<p>保存好配置后一条命令即可发布到github<br><code>$ hexo d -g</code></p>
-<p>进入自己的github page查看效果，地址就是仓库名</p>
+        <p>参考链接<a href="https://webtatic.com/packages/php56/" target="_blank" rel="external">Webtatic.com</a></p>
+<h2 id="CentOS7-0下安装PHP7-0的方法">CentOS7.0下安装PHP7.0的方法</h2><p>最开始尝试通过yum一键安装，但发现需要依赖<code>libgmp.so.3() 64bit</code>，但我<code>centos7.0</code>主机上已经有了高版本的<code>gmp</code>包，在尝试降版本无果后，<br>还是决定用源码编译方式安装</p>
+<h3 id="下载">下载</h3><p>到<a href="www.php.net">php官网</a>下载<a href="https://downloads.php.net/~ab/php-7.0.0RC5.tar.gz" target="_blank" rel="external">php-7.0.0RC5.tar.gz</a><br><code>wget https://downloads.php.net/~ab/php-7.0.0RC5.tar.gz</code></p>
+<h3 id="安装前准备">安装前准备</h3><p>安装<code>mcrypt</code><br><code>yum install -y php-mcrypt libmcrypt libmcrypt-devel</code></p>
+<p>安装<code>bison</code><br><code>yum install -y bison</code></p>
+<h3 id="配置">配置</h3><figure class="highlight haml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">./configure --prefix=/usr/local/php7 \</span><br><span class="line">-<span class="ruby">-with-config-file-path=<span class="regexp">/usr/local</span><span class="regexp">/php7/etc</span> \</span><br><span class="line"></span>-<span class="ruby">-with-mcrypt=<span class="regexp">/usr/include</span> \</span><br><span class="line"></span>-<span class="ruby">-with-mysql=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-mysqli=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-pdo-mysql=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-gd \</span><br><span class="line"></span>-<span class="ruby">-with-iconv \</span><br><span class="line"></span>-<span class="ruby">-with-zlib \</span><br><span class="line"></span>-<span class="ruby">-enable-xml \</span><br><span class="line"></span>-<span class="ruby">-enable-bcmath \</span><br><span class="line"></span>-<span class="ruby">-enable-shmop \</span><br><span class="line"></span>-<span class="ruby">-enable-sysvsem \</span><br><span class="line"></span>-<span class="ruby">-enable-inline-optimization \</span><br><span class="line"></span>-<span class="ruby">-enable-mbregex \</span><br><span class="line"></span>-<span class="ruby">-enable-fpm \</span><br><span class="line"></span>-<span class="ruby">-enable-mbstring \</span><br><span class="line"></span>-<span class="ruby">-enable-ftp \</span><br><span class="line"></span>-<span class="ruby">-enable-gd-native-ttf \</span><br><span class="line"></span>-<span class="ruby">-with-openssl \</span><br><span class="line"></span>-<span class="ruby">-enable-pcntl \</span><br><span class="line"></span>-<span class="ruby">-enable-sockets \</span><br><span class="line"></span>-<span class="ruby">-with-xmlrpc \</span><br><span class="line"></span>-<span class="ruby">-enable-zip \</span><br><span class="line"></span>-<span class="ruby">-enable-soap \</span><br><span class="line"></span>-<span class="ruby">-without-pear \</span><br><span class="line"></span>-<span class="ruby">-with-gettext \</span><br><span class="line"></span>-<span class="ruby">-enable-session \</span><br><span class="line"></span>-<span class="ruby">-with-curl \</span><br><span class="line"></span>-<span class="ruby">-with-jpeg-dir \</span><br><span class="line"></span>-<span class="ruby">-with-freetype-dir \</span><br><span class="line"></span>-<span class="ruby">-enable-opcache</span><br><span class="line"></span>-<span class="ruby">-with-apxs2=<span class="regexp">/usr/bin</span><span class="regexp">/apxs</span></span></span><br></pre></td></tr></table></figure>
+<h3 id="开始安装">开始安装</h3><p><code>make &amp;&amp; make install</code></p>
 
       
     </div>
@@ -192,11 +180,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/git/"> #git </a>
+            <a href="/tags/centos7-0/"> #centos7.0 </a>
           
-            <a href="/tags/github/"> #github </a>
-          
-            <a href="/tags/hexo/"> #hexo </a>
+            <a href="/tags/php7-0/"> #php7.0 </a>
           
         </div>
       
@@ -205,13 +191,11 @@
         <div class="post-nav">
           <div class="post-nav-prev post-nav-item">
             
-              <a href="/2015/07/03/PHP-5-6-on-CentOS6.5-via-Yum/">PHP 5.6 on CentOS6.5 via Yum</a>
-            
           </div>
 
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2015/06/26/hello-world/">Hello World</a>
+              <a href="/2015/07/10/Mark-for-Laravel/">Mark for Laravel</a>
             
           </div>
         </div>
@@ -311,7 +295,7 @@
           <div class="post-toc">
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#hexo在本地搭建github发布过程"><span class="nav-number">1.</span> <span class="nav-text">hexo在本地搭建github发布过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#安装node-js"><span class="nav-number">1.1.</span> <span class="nav-text">安装node.js</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装git"><span class="nav-number">1.2.</span> <span class="nav-text">安装git</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装hexo"><span class="nav-number">1.3.</span> <span class="nav-text">安装hexo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装主题"><span class="nav-number">1.4.</span> <span class="nav-text">安装主题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#新建一篇文章"><span class="nav-number">1.5.</span> <span class="nav-text">新建一篇文章</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#本地预览"><span class="nav-number">1.6.</span> <span class="nav-text">本地预览</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发布到github"><span class="nav-number">1.7.</span> <span class="nav-text">发布到github</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#CentOS7-0下安装PHP7-0的方法"><span class="nav-number">1.</span> <span class="nav-text">CentOS7.0下安装PHP7.0的方法</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#下载"><span class="nav-number">1.1.</span> <span class="nav-text">下载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装前准备"><span class="nav-number">1.2.</span> <span class="nav-text">安装前准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置"><span class="nav-number">1.3.</span> <span class="nav-text">配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#开始安装"><span class="nav-number">1.4.</span> <span class="nav-text">开始安装</span></a></li></ol></li></ol></div>
             
           </div>
           <div class="post-toc-indicator-bottom post-toc-indicator"></div>

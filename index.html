@@ -95,7 +95,7 @@
         <li class="menu-item menu-item-home">
           <a href="/">
             <i class="menu-item-icon icon-home"></i> <br />
-            Home
+            首頁
           </a>
         </li>
       
@@ -103,7 +103,7 @@
         <li class="menu-item menu-item-archives">
           <a href="/archives">
             <i class="menu-item-icon icon-archives"></i> <br />
-            Archives
+            歸檔
           </a>
         </li>
       
@@ -111,7 +111,7 @@
         <li class="menu-item menu-item-tags">
           <a href="/tags">
             <i class="menu-item-icon icon-tags"></i> <br />
-            Tags
+            標籤
           </a>
         </li>
       
@@ -142,6 +142,133 @@
           
           
             
+              <a class="post-title-link" href="/2015/10/22/PHP-7.0.0RC5-on-CentOS7.0-via-Compile/">
+                PHP 7.0.0RC5 on CentOS7.0 via Compile
+              </a>
+            
+          
+        </h1>
+      
+
+      <div class="post-meta">
+        <span class="post-time">
+          發表於 2015-10-22
+        </span>
+
+        
+
+        
+          
+        
+      </div>
+    </div>
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <p>参考链接<a href="https://webtatic.com/packages/php56/" target="_blank" rel="external">Webtatic.com</a></p>
+<h2 id="CentOS7-0下安装PHP7-0的方法">CentOS7.0下安装PHP7.0的方法</h2><p>最开始尝试通过yum一键安装，但发现需要依赖<code>libgmp.so.3() 64bit</code>，但我<code>centos7.0</code>主机上已经有了高版本的<code>gmp</code>包，在尝试降版本无果后，<br>还是决定用源码编译方式安装</p>
+<h3 id="下载">下载</h3><p>到<a href="www.php.net">php官网</a>下载<a href="https://downloads.php.net/~ab/php-7.0.0RC5.tar.gz" target="_blank" rel="external">php-7.0.0RC5.tar.gz</a><br><code>wget https://downloads.php.net/~ab/php-7.0.0RC5.tar.gz</code></p>
+<h3 id="安装前准备">安装前准备</h3><p>安装<code>mcrypt</code><br><code>yum install -y php-mcrypt libmcrypt libmcrypt-devel</code></p>
+<p>安装<code>bison</code><br><code>yum install -y bison</code></p>
+<h3 id="配置">配置</h3><figure class="highlight haml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">./configure --prefix=/usr/local/php7 \</span><br><span class="line">-<span class="ruby">-with-config-file-path=<span class="regexp">/usr/local</span><span class="regexp">/php7/etc</span> \</span><br><span class="line"></span>-<span class="ruby">-with-mcrypt=<span class="regexp">/usr/include</span> \</span><br><span class="line"></span>-<span class="ruby">-with-mysql=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-mysqli=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-pdo-mysql=mysqlnd \</span><br><span class="line"></span>-<span class="ruby">-with-gd \</span><br><span class="line"></span>-<span class="ruby">-with-iconv \</span><br><span class="line"></span>-<span class="ruby">-with-zlib \</span><br><span class="line"></span>-<span class="ruby">-enable-xml \</span><br><span class="line"></span>-<span class="ruby">-enable-bcmath \</span><br><span class="line"></span>-<span class="ruby">-enable-shmop \</span><br><span class="line"></span>-<span class="ruby">-enable-sysvsem \</span><br><span class="line"></span>-<span class="ruby">-enable-inline-optimization \</span><br><span class="line"></span>-<span class="ruby">-enable-mbregex \</span><br><span class="line"></span>-<span class="ruby">-enable-fpm \</span><br><span class="line"></span>-<span class="ruby">-enable-mbstring \</span><br><span class="line"></span>-<span class="ruby">-enable-ftp \</span><br><span class="line"></span>-<span class="ruby">-enable-gd-native-ttf \</span><br><span class="line"></span>-<span class="ruby">-with-openssl \</span><br><span class="line"></span>-<span class="ruby">-enable-pcntl \</span><br><span class="line"></span>-<span class="ruby">-enable-sockets \</span><br><span class="line"></span>-<span class="ruby">-with-xmlrpc \</span><br><span class="line"></span>-<span class="ruby">-enable-zip \</span><br><span class="line"></span>-<span class="ruby">-enable-soap \</span><br><span class="line"></span>-<span class="ruby">-without-pear \</span><br><span class="line"></span>-<span class="ruby">-with-gettext \</span><br><span class="line"></span>-<span class="ruby">-enable-session \</span><br><span class="line"></span>-<span class="ruby">-with-curl \</span><br><span class="line"></span>-<span class="ruby">-with-jpeg-dir \</span><br><span class="line"></span>-<span class="ruby">-with-freetype-dir \</span><br><span class="line"></span>-<span class="ruby">-enable-opcache</span><br><span class="line"></span>-<span class="ruby">-with-apxs2=<span class="regexp">/usr/bin</span><span class="regexp">/apxs</span></span></span><br></pre></td></tr></table></figure>
+<h3 id="开始安装">开始安装</h3><p><code>make &amp;&amp; make install</code></p>
+
+        
+      
+    </div>
+
+    <div class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </div>
+  </div>
+
+
+    
+      
+
+  <div class="post post-type-normal ">
+    <div class="post-header">
+
+      
+      
+        <h1 class="post-title">
+          
+          
+            
+              <a class="post-title-link" href="/2015/07/10/Mark-for-Laravel/">
+                Mark for Laravel
+              </a>
+            
+          
+        </h1>
+      
+
+      <div class="post-meta">
+        <span class="post-time">
+          發表於 2015-07-10
+        </span>
+
+        
+
+        
+          
+        
+      </div>
+    </div>
+
+    <div class="post-body">
+
+      
+      
+
+      
+        
+          <p><code>\App\Http\Controllers</code>控制器目录<br><code>\App</code>模型目录</p>
+<p><a href="http://www.helloweba.com/view-blog-277.html" target="_blank" rel="external">http://www.helloweba.com/view-blog-277.html</a></p>
+<p>src=<br>jquery.js<br>config.js<br>bui.js</p>
+<p>script<br>BUI.use<br>common/page  页面链接跳转<br>bui/form 表单</p>
+
+        
+      
+    </div>
+
+    <div class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </div>
+  </div>
+
+
+    
+      
+
+  <div class="post post-type-normal ">
+    <div class="post-header">
+
+      
+      
+        <h1 class="post-title">
+          
+          
+            
               <a class="post-title-link" href="/2015/07/05/Install-Laravel5-via-Composer/">
                 Install Laravel5 via Composer
               </a>
@@ -152,7 +279,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          Posted on 2015-07-05
+          發表於 2015-07-05
         </span>
 
         
@@ -224,7 +351,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          Posted on 2015-07-03
+          發表於 2015-07-03
         </span>
 
         
@@ -286,7 +413,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          Posted on 2015-06-26
+          發表於 2015-06-26
         </span>
 
         
@@ -363,7 +490,7 @@
 
       <div class="post-meta">
         <span class="post-time">
-          Posted on 2015-06-26
+          發表於 2015-06-26
         </span>
 
         
@@ -443,22 +570,22 @@
         <div class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">4</span>
-              <span class="site-state-item-name">posts</span>
+              <span class="site-state-item-count">6</span>
+              <span class="site-state-item-name">文章</span>
             </a>
           </div>
 
           <div class="site-state-item site-state-categories">
             
               <span class="site-state-item-count">0</span>
-              <span class="site-state-item-name">categories</span>
+              <span class="site-state-item-name">分類</span>
               
           </div>
 
           <div class="site-state-item site-state-tags">
             <a href="/tags">
-              <span class="site-state-item-count">9</span>
-              <span class="site-state-item-name">tags</span>
+              <span class="site-state-item-count">10</span>
+              <span class="site-state-item-name">標籤</span>
               </a>
           </div>
 
@@ -488,7 +615,7 @@
         <div class="copyright">
   
   &copy; &nbsp; 
-  2015
+  2016
   <span class="with-love">
     <i class="icon-heart"></i>
   </span>
@@ -496,11 +623,11 @@
 </div>
 
 <div class="powered-by">
-  Powered by <a class="theme-link" href="http://hexo.io">Hexo</a>
+  由 <a class="theme-link" href="http://hexo.io">Hexo</a> 強力驅動
 </div>
 
 <div class="theme-info">
-  Theme -
+  主題 -
   <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
     NexT
   </a>
