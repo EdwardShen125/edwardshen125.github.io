@@ -43,7 +43,7 @@ external_link:
   exclude: ''
 filename_case: 0
 render_drafts: false
-post_asset_folder: false
+post_asset_folder: true
 relative_link: false
 future: true
 syntax_highlighter: highlight.js
@@ -64,12 +64,17 @@ prismjs:
 # order_by: Posts order. (Order by date descending by default)
 index_generator:
   path: ''
-  per_page: 10
+  per_page: 3
   order_by: -date
 
 # Category & Tag
 default_category: uncategorized
 category_map:
+  "《分布式架构路书：高可用、高性能与高并发的理论、实践与演进之道》": 分布式架构路书
+  "【前言篇】": 前言篇
+  "【高可用架构】": 高可用
+  "【高并发设计】": 高并发
+  "【高性能优化】": 高性能
 tag_map:
 
 # Metadata elements
@@ -109,3 +114,28 @@ deploy:
     branch: master
 #  - type: heroku
 #    repo:
+
+marked:
+  gfm: true
+  pedantic: false
+  breaks: true
+  smartLists: true
+  smartypants: true
+  quotes: '“”‘’'
+  modifyAnchors: 0
+  anchorAlias: false
+  autolink: true
+  mangle: true
+  sanitizeUrl: false
+  dompurify: true
+  headerIds: true
+  lazyload: true
+  figcaption: false
+  prependRoot: true
+  postAsset: true
+  external_link:
+    enable: false
+    exclude: []
+    nofollow: false
+  disableNunjucks: false
+  descriptionLists: true
