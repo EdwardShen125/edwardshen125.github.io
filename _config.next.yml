@@ -22,6 +22,8 @@ minify: false
 # Define custom file paths.
 # Create your custom files in site directory `source/_data` and uncomment needed files below.
 custom_file_path:
+  style: source/_data/styles.styl
+  bodyEnd: source/_data/body-end.njk
 #head: source/_data/head.swig
 #header: source/_data/header.swig
 #sidebar: source/_data/sidebar.swig
@@ -354,14 +356,14 @@ codeblock:
   # Code Highlight theme
   # Available values: normal | night | night eighties | night blue | night bright | solarized | solarized dark | galactic
   # See: https://github.com/chriskempson/tomorrow-theme
-  highlight_theme: night
+  highlight_theme: normal
   # Add copy button on codeblock
   copy_button:
     enable: true
     # Show text copy result.
     show_result: true
     # Available values: default | flat | mac
-    style:
+    style: flat
 
 back2top:
   enable: true
