@@ -50,3 +50,19 @@ hexo new post "short-english-slug"
 ```
 
 Write in English. Keep the title specific and interview-friendly. Add diagrams when the architecture is non-obvious.
+
+## Automatic Deployment
+
+Every push to `main` runs the GitHub Actions workflow at:
+
+```text
+.github/workflows/deploy.yml
+```
+
+The workflow:
+
+1. Installs dependencies with `npm ci`
+2. Builds the Hexo site
+3. Deploys `public/` to GitHub Pages
+
+After the repository is created on GitHub, enable **Settings → Pages → Source → GitHub Actions**. The first push to `main` will deploy the site.
