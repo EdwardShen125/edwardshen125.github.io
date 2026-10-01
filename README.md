@@ -72,10 +72,4 @@ The workflow:
 3. Builds the Hexo site
 4. Publishes `public/` to the `gh-pages` branch
 
-The previous version of this section said:
-
-1. Installs dependencies with `npm ci`
-2. Builds the Hexo site
-3. Deploys `public/` to GitHub Pages
-
-Configure **Settings → Pages → Build and deployment → Source → Deploy from a branch**, then select `gh-pages` and `/ (root)`.
+GitHub Pages is configured to publish from `gh-pages` and `/ (root)`.
