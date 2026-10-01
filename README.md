@@ -1,6 +1,12 @@
 # Edward Shen — Career Portfolio Blog
 
-This is a separate Hexo project from the original Chinese technical blog. It is dedicated to overseas-job-focused engineering write-ups, real project summaries, and system design case studies.
+This is a separate Hexo project from the local archived Chinese technical blog. It is dedicated to overseas-job-focused engineering write-ups, real project summaries, and system design case studies.
+
+It deploys from the `career` branch of `EdwardShen125/blog` to:
+
+```text
+https://edwardshen125.github.io/blog/
+```
 
 ## Local Development
 
