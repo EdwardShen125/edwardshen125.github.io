@@ -68,7 +68,14 @@ Every push to the `career` branch runs the GitHub Actions workflow at:
 The workflow:
 
 1. Installs dependencies with `npm ci`
+2. Installs Pandoc
+3. Builds the Hexo site
+4. Publishes `public/` to the `gh-pages` branch
+
+The previous version of this section said:
+
+1. Installs dependencies with `npm ci`
 2. Builds the Hexo site
 3. Deploys `public/` to GitHub Pages
 
-After enabling **Settings → Pages → Source → GitHub Actions**, the first push to `career` will deploy the site.
+Configure **Settings → Pages → Build and deployment → Source → Deploy from a branch**, then select `gh-pages` and `/ (root)`.
