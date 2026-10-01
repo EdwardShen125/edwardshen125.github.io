@@ -53,7 +53,7 @@ Write in English. Keep the title specific and interview-friendly. Add diagrams w
 
 ## Automatic Deployment
 
-Every push to `main` runs the GitHub Actions workflow at:
+Every push to the `career` branch runs the GitHub Actions workflow at:
 
 ```text
 .github/workflows/deploy.yml
@@ -65,4 +65,4 @@ The workflow:
 2. Builds the Hexo site
 3. Deploys `public/` to GitHub Pages
 
-After the repository is created on GitHub, enable **Settings → Pages → Source → GitHub Actions**. The first push to `main` will deploy the site.
+After enabling **Settings → Pages → Source → GitHub Actions**, the first push to `career` will deploy the site.
