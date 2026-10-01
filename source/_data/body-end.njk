@@ -1,0 +1,51 @@
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // 查找所有 div.table-container 元素
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    // 遍历所有 div.table-container 元素
+    tableContainers.forEach(function(tableContainer) {
+      // 获取 div.table-container 内的 span 元素数量
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      // 检查 span 元素数量是否 >= 3
+      if (spanCount >= 3) {
+        // 检查 div.table-container 前面是否有 figcaption 元素，如果没有则添加一个
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+        let iElement;
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          // 在 div.table-container 前插入一个 figcaption 元素
+          figcaption = document.createElement("figcaption");
+
+          // 将 figcaption 插入到 DOM 中
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        // 创建一个 <i> 标签并添加功能
+        iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        // 插入一点空格
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        // 为 <i> 标签添加点击事件
+        iElement.addEventListener("click", function() {
+          // 切换 tableContainer 的 "code-hidden" 类
+          tableContainer.classList.toggle("code-hidden");
+
+          // 切换 <i> 标签的类名
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
