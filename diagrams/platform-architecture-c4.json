@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 9,
+  "semantic_profile": "c4-review",
+  "diagram_type": "c4",
+  "c4_level": "container",
+  "review_state": "PRODUCTION VALIDATED",
+  "rough_seed": 20261003,
+  "scope": "Go Microservice Platform",
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "width": 1100,
+  "height": 620,
+  "title": "Go Microservice Platform · Container Review",
+  "subtitle": "one DSL contract entry, gateway composition, onion/DDD services",
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 540,
+  "legend": [
+    {
+      "flow": "control",
+      "label": "request"
+    },
+    {
+      "flow": "read",
+      "label": "data"
+    },
+    {
+      "flow": "async",
+      "label": "telemetry"
+    }
+  ],
+  "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
+  "footer_x": 48,
+  "footer_y": 590,
+  "containers": [
+    {
+      "id": "platform-boundary",
+      "x": 300,
+      "y": 80,
+      "width": 760,
+      "height": 420,
+      "label": "Go Microservice Platform"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "clients",
+      "kind": "review_card",
+      "c4_type": "external_system",
+      "x": 60,
+      "y": 260,
+      "width": 180,
+      "height": 96,
+      "label": "Clients",
+      "description": "web, mini-game and business clients"
+    },
+    {
+      "id": "gateway",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "x": 340,
+      "y": 140,
+      "width": 220,
+      "height": 110,
+      "label": "API Gateway",
+      "description": "single HTTP entry; gRPC routing; i18n response translation",
+      "technology": "go-zero gateway · jwt · 14 pb"
+    },
+    {
+      "id": "services",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "x": 620,
+      "y": 140,
+      "width": 240,
+      "height": 110,
+      "label": "Domain Services ×19",
+      "description": "onion/DDD scaffold with outbox domain events",
+      "technology": "go-zero · MySQL · Redis · Zipkin"
+    },
+    {
+      "id": "tidb",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "x": 620,
+      "y": 360,
+      "width": 240,
+      "height": 100,
+      "label": "TiDB",
+      "description": "per-service schemas via MySQL protocol",
+      "technology": "TiDB :4000"
+    },
+    {
+      "id": "zipkin",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "x": 340,
+      "y": 310,
+      "width": 200,
+      "height": 100,
+      "label": "Zipkin",
+      "description": "distributed tracing spans",
+      "technology": "Zipkin"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "http",
+      "source": "clients",
+      "target": "gateway",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "HTTPS",
+      "protocol": "HTTPS"
+    },
+    {
+      "id": "grpc-route",
+      "source": "gateway",
+      "target": "services",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "gRPC",
+      "protocol": "K8s"
+    },
+    {
+      "id": "spans-gw",
+      "source": "gateway",
+      "target": "zipkin",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "async",
+      "label": "spans",
+      "protocol": "HTTP"
+    },
+    {
+      "id": "sql",
+      "source": "services",
+      "target": "tidb",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "SQL",
+      "protocol": "MySQL protocol"
+    },
+    {
+      "id": "spans-svc",
+      "source": "services",
+      "target": "zipkin",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "async",
+      "label": "spans",
+      "protocol": "HTTP",
+      "route_points": [
+        [
+          740,
+          250
+        ],
+        [
+          740,
+          285
+        ],
+        [
+          440,
+          285
+        ],
+        [
+          440,
+          310
+        ]
+      ]
+    }
+  ]
+}

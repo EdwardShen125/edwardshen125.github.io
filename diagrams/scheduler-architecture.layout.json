@@ -1,0 +1,405 @@
+{
+  "canvas": {
+    "height": 580.0,
+    "width": 960.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 1.4,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.261,
+      "minimum_container_gutter": 20.0,
+      "minimum_node_gap": 80.0,
+      "shortest_segment": 6.0,
+      "total_bends": 22
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 70,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "elects",
+      "length": 120.0,
+      "route": [
+        [
+          280.0,
+          170.0
+        ],
+        [
+          400.0,
+          170.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "etcd",
+      "source_port": [
+        280.0,
+        170.0
+      ],
+      "target": "schedulers",
+      "target_port": [
+        400.0,
+        170.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 11,
+      "bridges": [],
+      "crossings": [],
+      "id": "acquire",
+      "length": 506.4,
+      "route": [
+        [
+          531.0,
+          198.0
+        ],
+        [
+          531.0,
+          208.2
+        ],
+        [
+          470.0,
+          208.2
+        ],
+        [
+          470.0,
+          198.0
+        ],
+        [
+          460.0,
+          198.0
+        ],
+        [
+          460.0,
+          240.0
+        ],
+        [
+          470.0,
+          240.0
+        ],
+        [
+          470.0,
+          250.0
+        ],
+        [
+          185.0,
+          250.0
+        ],
+        [
+          185.0,
+          240.0
+        ],
+        [
+          175.0,
+          240.0
+        ],
+        [
+          175.0,
+          278.0
+        ],
+        [
+          185.0,
+          278.0
+        ]
+      ],
+      "route_stretch": 1.189,
+      "source": "schedulers",
+      "source_port": [
+        531.0,
+        198.0
+      ],
+      "target": "tidb",
+      "target_port": [
+        185.0,
+        278.0
+      ],
+      "waypoints": [
+        [
+          470.0,
+          198.0
+        ],
+        [
+          470.0,
+          240.0
+        ],
+        [
+          185.0,
+          240.0
+        ],
+        [
+          185.0,
+          278.0
+        ]
+      ]
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "job-items",
+      "length": 106.0,
+      "route": [
+        [
+          310.0,
+          312.0
+        ],
+        [
+          330.4,
+          312.0
+        ],
+        [
+          330.4,
+          306.0
+        ],
+        [
+          410.0,
+          306.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "tidb",
+      "source_port": [
+        310.0,
+        312.0
+      ],
+      "target": "fire",
+      "target_port": [
+        410.0,
+        306.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "submit",
+      "length": 89.0,
+      "route": [
+        [
+          549.0,
+          198.0
+        ],
+        [
+          549.0,
+          218.4
+        ],
+        [
+          540.0,
+          218.4
+        ],
+        [
+          540.0,
+          278.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "schedulers",
+      "source_port": [
+        549.0,
+        198.0
+      ],
+      "target": "fire",
+      "target_port": [
+        540.0,
+        278.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "publish",
+      "length": 388.0,
+      "route": [
+        [
+          540.0,
+          334.0
+        ],
+        [
+          540.0,
+          370.0
+        ],
+        [
+          270.0,
+          370.0
+        ],
+        [
+          270.0,
+          452.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "fire",
+      "source_port": [
+        540.0,
+        334.0
+      ],
+      "target": "pulsar",
+      "target_port": [
+        270.0,
+        452.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "consume",
+      "length": 190.0,
+      "route": [
+        [
+          390.0,
+          482.0
+        ],
+        [
+          580.0,
+          482.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "pulsar",
+      "source_port": [
+        390.0,
+        482.0
+      ],
+      "target": "sdk",
+      "target_port": [
+        580.0,
+        482.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 5,
+      "bridges": [],
+      "crossings": [],
+      "id": "callback",
+      "length": 399.8,
+      "route": [
+        [
+          715.0,
+          452.0
+        ],
+        [
+          715.0,
+          431.6
+        ],
+        [
+          704.0,
+          431.6
+        ],
+        [
+          704.0,
+          452.0
+        ],
+        [
+          715.0,
+          452.0
+        ],
+        [
+          725.0,
+          452.0
+        ],
+        [
+          725.0,
+          170.0
+        ],
+        [
+          715.0,
+          170.0
+        ],
+        [
+          680.0,
+          170.0
+        ]
+      ],
+      "route_stretch": 1.261,
+      "source": "sdk",
+      "source_port": [
+        715.0,
+        452.0
+      ],
+      "target": "schedulers",
+      "target_port": [
+        680.0,
+        170.0
+      ],
+      "waypoints": [
+        [
+          715.0,
+          452.0
+        ],
+        [
+          715.0,
+          170.0
+        ],
+        [
+          680.0,
+          170.0
+        ]
+      ]
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [],
+  "mode": "architecture",
+  "ok": true,
+  "palette": {
+    "below_target": [],
+    "minimum_target": 4.5,
+    "ratios": {
+      "section_sub_fill": 8.32,
+      "text_muted": 8.32,
+      "text_primary": 12.1,
+      "text_secondary": 10.46
+    },
+    "scope": "default opaque canvas text tokens; not a full rendered accessibility audit",
+    "unsupported_tokens": []
+  },
+  "placements": {
+    "legend": null
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {},
+    "ok": true,
+    "profile": "generic",
+    "style": 3,
+    "visual_theme": "Blueprint"
+  },
+  "style": {
+    "id": 3,
+    "name": "Blueprint"
+  },
+  "summary": {
+    "bridged_crossings": 0,
+    "edges": 7,
+    "nodes": 6
+  },
+  "text_metrics": "heuristic-v1",
+  "typography": {
+    "complete_text": true,
+    "hint": null,
+    "metrics": "heuristic widths; inspect the actual rendered font",
+    "truncated": []
+  }
+}

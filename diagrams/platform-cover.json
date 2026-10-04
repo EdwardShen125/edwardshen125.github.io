@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 3,
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "title": "",
+  "width": 960,
+  "height": 560,
+  "nodes": [
+    {
+      "id": "clients",
+      "kind": "rect",
+      "x": 60,
+      "y": 140,
+      "width": 180,
+      "height": 80,
+      "label": "Clients",
+      "sublabel": "web · mini-game",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    },
+    {
+      "id": "gateway",
+      "kind": "double_rect",
+      "x": 340,
+      "y": 130,
+      "width": 220,
+      "height": 70,
+      "label": "API Gateway",
+      "sublabel": "i18n · jwt · pb×14",
+      "fill": "#0a4b78",
+      "stroke": "#38bdf8",
+      "flat": true
+    },
+    {
+      "id": "services",
+      "kind": "rect",
+      "x": 620,
+      "y": 130,
+      "width": 240,
+      "height": 70,
+      "label": "Domain Services ×19",
+      "sublabel": "go-zero · onion/DDD",
+      "fill": "#0a4b78",
+      "stroke": "#38bdf8",
+      "flat": true
+    },
+    {
+      "id": "wshub",
+      "kind": "rect",
+      "x": 340,
+      "y": 260,
+      "width": 220,
+      "height": 70,
+      "label": "ws-hub",
+      "sublabel": "websocket fan-out",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    },
+    {
+      "id": "tidb",
+      "kind": "cylinder",
+      "x": 620,
+      "y": 260,
+      "width": 220,
+      "height": 70,
+      "label": "TiDB",
+      "sublabel": "per-service schemas",
+      "fill": "#0b3b5e",
+      "stroke": "#06d6a0",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "http",
+      "source": "clients",
+      "target": "gateway",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "HTTPS"
+    },
+    {
+      "id": "grpc",
+      "source": "gateway",
+      "target": "services",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "gRPC"
+    },
+    {
+      "id": "notify",
+      "source": "services",
+      "target": "wshub",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "data",
+      "label": "push notify",
+      "route_points": [
+        [
+          640,
+          200
+        ],
+        [
+          640,
+          230
+        ],
+        [
+          450,
+          230
+        ],
+        [
+          450,
+          260
+        ]
+      ]
+    },
+    {
+      "id": "sql",
+      "source": "services",
+      "target": "tidb",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "SQL",
+      "route_points": [
+        [
+          730,
+          200
+        ],
+        [
+          730,
+          260
+        ]
+      ]
+    },
+    {
+      "id": "ws",
+      "source": "wshub",
+      "target": "clients",
+      "source_port": "bottom",
+      "target_port": "bottom",
+      "flow": "feedback",
+      "label": "websocket push",
+      "route_points": [
+        [
+          390,
+          330
+        ],
+        [
+          390,
+          355
+        ],
+        [
+          150,
+          355
+        ],
+        [
+          150,
+          220
+        ]
+      ]
+    }
+  ]
+}

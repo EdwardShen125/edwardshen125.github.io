@@ -1,0 +1,326 @@
+{
+  "canvas": {
+    "height": 620.0,
+    "width": 1100.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.29,
+      "minimum_container_gutter": 40.0,
+      "minimum_node_gap": 60.0,
+      "shortest_segment": 1.0,
+      "total_bends": 16
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 78,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "http",
+      "length": 213.0,
+      "route": [
+        [
+          240.0,
+          308.0
+        ],
+        [
+          260.4,
+          308.0
+        ],
+        [
+          260.4,
+          195.0
+        ],
+        [
+          340.0,
+          195.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "clients",
+      "source_port": [
+        240.0,
+        308.0
+      ],
+      "target": "gateway",
+      "target_port": [
+        340.0,
+        195.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "grpc-route",
+      "length": 60.0,
+      "route": [
+        [
+          560.0,
+          195.0
+        ],
+        [
+          620.0,
+          195.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "gateway",
+      "source_port": [
+        560.0,
+        195.0
+      ],
+      "target": "services",
+      "target_port": [
+        620.0,
+        195.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "spans-gw",
+      "length": 79.0,
+      "route": [
+        [
+          450.0,
+          250.0
+        ],
+        [
+          450.0,
+          270.4
+        ],
+        [
+          431.0,
+          270.4
+        ],
+        [
+          431.0,
+          310.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "gateway",
+      "source_port": [
+        450.0,
+        250.0
+      ],
+      "target": "zipkin",
+      "target_port": [
+        431.0,
+        310.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "sql",
+      "length": 119.0,
+      "route": [
+        [
+          749.0,
+          250.0
+        ],
+        [
+          749.0,
+          286.0
+        ],
+        [
+          740.0,
+          286.0
+        ],
+        [
+          740.0,
+          360.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "services",
+      "source_port": [
+        749.0,
+        250.0
+      ],
+      "target": "tidb",
+      "target_port": [
+        740.0,
+        360.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 10,
+      "bridges": [],
+      "crossings": [],
+      "id": "spans-svc",
+      "length": 441.2,
+      "route": [
+        [
+          731.0,
+          250.0
+        ],
+        [
+          731.0,
+          260.2
+        ],
+        [
+          740.0,
+          260.2
+        ],
+        [
+          740.0,
+          250.0
+        ],
+        [
+          741.0,
+          250.0
+        ],
+        [
+          741.0,
+          285.0
+        ],
+        [
+          740.0,
+          285.0
+        ],
+        [
+          440.0,
+          285.0
+        ],
+        [
+          440.0,
+          310.0
+        ],
+        [
+          444.5,
+          310.0
+        ],
+        [
+          444.5,
+          289.6
+        ],
+        [
+          449.0,
+          289.6
+        ],
+        [
+          449.0,
+          310.0
+        ]
+      ],
+      "route_stretch": 1.29,
+      "source": "services",
+      "source_port": [
+        731.0,
+        250.0
+      ],
+      "target": "zipkin",
+      "target_port": [
+        449.0,
+        310.0
+      ],
+      "waypoints": [
+        [
+          740.0,
+          250.0
+        ],
+        [
+          740.0,
+          285.0
+        ],
+        [
+          440.0,
+          285.0
+        ],
+        [
+          440.0,
+          310.0
+        ]
+      ]
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [],
+  "mode": "architecture",
+  "ok": true,
+  "palette": {
+    "below_target": [],
+    "minimum_target": 4.5,
+    "ratios": {
+      "section_sub_fill": 4.93,
+      "text_muted": 4.92,
+      "text_primary": 12.1,
+      "text_secondary": 5.3
+    },
+    "scope": "default opaque canvas text tokens; not a full rendered accessibility audit",
+    "unsupported_tokens": []
+  },
+  "placements": {
+    "legend": {
+      "actual": [
+        48.0,
+        540.0
+      ],
+      "bounds": [
+        38.0,
+        526.0,
+        380.08,
+        572.0
+      ],
+      "moved": false,
+      "requested": [
+        48.0,
+        540.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {
+      "elements": 5,
+      "level": "container",
+      "rough_seed": 20261003
+    },
+    "ok": true,
+    "profile": "c4-review",
+    "style": 9,
+    "visual_theme": "C4 Review Canvas"
+  },
+  "style": {
+    "id": 9,
+    "name": "C4 Review Canvas"
+  },
+  "summary": {
+    "bridged_crossings": 0,
+    "edges": 5,
+    "nodes": 5
+  },
+  "text_metrics": "heuristic-v1",
+  "typography": {
+    "complete_text": true,
+    "hint": null,
+    "metrics": "heuristic widths; inspect the actual rendered font",
+    "truncated": []
+  }
+}
