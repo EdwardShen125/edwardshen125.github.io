@@ -2,13 +2,13 @@
 title: Building a Production-Grade Go Microservice Architecture from Zero
 date: 2026-10-03 12:00:00
 categories:
-  - Engineering Case Study
+ - Engineering Case Study
 tags:
-  - go
-  - microservices
-  - api-gateway
-  - platform-engineering
-  - developer-productivity
+ - go
+ - microservices
+ - api-gateway
+ - platform-engineering
+ - developer-productivity
 ---
 
 Four Go engineers. Nineteen production services. A product benchmarked against the top platforms in its market — wallet flows where correctness was non-negotiable, live-ops cadence measured in days. That math works only if the right architecture costs nothing to follow — if conventions are generated instead of policed. So the platform made the right structure the default: a single API DSL as the contract entry, custom code generation down to proto and Swagger. This is the retrospective of what that bought, and what it cost.
@@ -17,11 +17,11 @@ Four Go engineers. Nineteen production services. A product benchmarked against t
 
 ## Context
 
-The product team was assembled from scratch in early 2025: seventeen people — four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. The product itself was racing to match the feature set and live-ops cadence of the top platforms in its market. I initiated and led the platform program that ran February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI — built in parallel with the first business services, everything in this post shipped against that codebase.
+The product team was assembled from scratch in early 2025: seventeen people — four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. The product itself was racing to match the feature set and live-ops cadence of the top platforms in its market. I initiated and led the platform program that ran February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI — built in parallel with the first business services, everything in this post shipped against that codebase. Its nineteen backend services spanned identity and access, real-money wallets and blockchain transactions, gaming, growth and live-ops, and platform infrastructure.
 
 ## Problem
 
-Four engineers, nineteen services at production grade, and a feature cadence measured in days. The arithmetic does not leave room for hand-maintained conventions. Every service would need auth, error codes, structured logging, RPC wiring, gateway registration, and tracing; done by hand, each one would diverge within weeks, and every divergence would cost integration time the schedule did not have. The problem was not cleaning up a mess. It was making sure the mess never got a chance to form — without spending the people who were supposed to ship the product.
+Four engineers couldn't hand-maintain conventions across nineteen services at production grade. Every service would need auth, error codes, structured logging, RPC wiring, gateway registration, and tracing; done by hand, each one would diverge within weeks, and every divergence would cost integration time the schedule did not have. The problem was not cleaning up a mess. It was making sure the mess never got a chance to form — without spending the people who were supposed to ship the product.
 
 ## Constraints
 
@@ -55,55 +55,55 @@ syntax = "v1"
 
 // public: login, 2fa check, token refresh, password reset
 @server(
-    prefix: /v1/admin/auth
+ prefix: /v1/admin/auth
 )
 service AdminAuthService {
-    @doc "check whether 2fa login is enabled"
-    @handler Check2FA
-    post /check2fa (Check2FAReq) returns (Check2FARes)
+ @doc "check whether 2fa login is enabled"
+ @handler Check2FA
+ post /check2fa (Check2FAReq) returns (Check2FARes)
 
-    @handler Login
-    post /login (LoginReq) returns (LoginRes)
+ @handler Login
+ post /login (LoginReq) returns (LoginRes)
 
-    @handler RefreshToken
-    post /refresh_token (RefreshTokenReq) returns (RefreshTokenRes)
+ @handler RefreshToken
+ post /refresh_token (RefreshTokenReq) returns (RefreshTokenRes)
 
-    @handler ForgetPassword
-    post /forget_password (ForgetPasswordReq) returns (ForgetPasswordRes)
+ @handler ForgetPassword
+ post /forget_password (ForgetPasswordReq) returns (ForgetPasswordRes)
 }
 
 // admin-jwt required: 2fa verification
 @server(
-    prefix: /v1/admin/auth
-    auth: admin
+ prefix: /v1/admin/auth
+ auth: admin
 )
 service AdminAuthService {
-    @handler Verify2FA
-    post /verify2fa (Verify2FAReq) returns (Verify2FARes)
+ @handler Verify2FA
+ post /verify2fa (Verify2FAReq) returns (Verify2FARes)
 }
 
 // permission-gated: temporary-token password reset
 @server(
-    prefix: /v1/admin/auth
-    auth: "admin=permissionUserResetPwd"
+ prefix: /v1/admin/auth
+ auth: "admin=permissionUserResetPwd"
 )
 service AdminAuthService {
-    @handler ResetPassword
-    post /reset_password (ResetPasswordReq) returns (ResetPasswordRes)
+ @handler ResetPassword
+ post /reset_password (ResetPasswordReq) returns (ResetPasswordRes)
 }
 
 type LoginReq {
-    Identifier string `json:"identifier"`
-    Password   string `json:"password"`
-    DeviceID   string `json:"device_id"`
-    Code       string `json:"code"`
+ Identifier string `json:"identifier"`
+ Password string `json:"password"`
+ DeviceID string `json:"device_id"`
+ Code string `json:"code"`
 }
 
 type Token {
-    AccessToken          string `json:"access_token"`
-    AccessTokenExpireIn  int64  `json:"access_token_expire_in"`
-    RefreshToken         string `json:"refresh_token"`
-    RefreshTokenExpireIn int64  `json:"refresh_token_expire_in"`
+ AccessToken string `json:"access_token"`
+ AccessTokenExpireIn int64 `json:"access_token_expire_in"`
+ RefreshToken string `json:"refresh_token"`
+ RefreshTokenExpireIn int64 `json:"refresh_token_expire_in"`
 }
 ```
 
@@ -124,9 +124,9 @@ The git history made the same point quantitatively. The contract repository abso
 const errUserNotFound = bizerr.ErrCode(120401)
 
 func init() {
-    bizerr.RegisterErrorCode(errUserNotFound, bizerr.ErrorMeta{
-        DefaultMessage: "user not found",
-    })
+ bizerr.RegisterErrorCode(errUserNotFound, bizerr.ErrorMeta{
+ DefaultMessage: "user not found",
+ })
 }
 
 // call sites build from registered codes only —
@@ -146,7 +146,7 @@ None of these decisions are specific to go-zero. The contract-entry choice, the 
 
 ## Implementation
 
-A new service started from the scaffold: the templates generated the `.api` skeleton, the onion directory tree, the Dockerfile, and deployment manifests. The makefile pinned the shared libraries at latest: utils, ddd-style, bizerr, go-zero, pubsub, auth, bizctx, plus any service SDKs. CI came from a shared GitLab include with pipelines for Go, React, and Next.js. Tracing was a config line: Zipkin batcher, full sampling in dev. The gateway picked up new services by regenerating its pb descriptors, fourteen by the time the program reached steady state.
+A new service started from the scaffold: the templates generated the `.api` skeleton, the onion directory tree, the Dockerfile, and deployment manifests. The makefile pinned the shared libraries at latest: utils, ddd-style, bizerr, go-zero, pubsub, auth, bizctx, plus any service SDKs. CI came from a shared GitLab include with pipelines for Go, React, and Next.js. Tracing was a config line: Zipkin batcher, full sampling in dev. The gateway discovered gRPC methods dynamically from Kubernetes endpoints at startup — new services were picked up without gateway redeployment, fourteen by the time the program reached steady state.
 
 ## Adoption
 
@@ -165,15 +165,15 @@ The platform kept paying after the build window closed. Once the scaffold and th
 
 ## Was It Worth It for Four People?
 
-Fair question: the platform cost the program's first four months of focused time, from a team that was also standing up its first services. The return came from the arithmetic it removed. Nineteen services each needed auth, error codes, tracing, configuration, deployment, and gateway registration; the scaffold generated all of it, turning days of boilerplate per service into a single command. The wallet services raised the stakes: correctness patterns like the outbox and the error-code registry were encoded once, centrally, instead of re-implemented — and re-gotten-wrong — in every service that touched money.
+Fair question: the platform cost the program's first four months of focused time, from a team that was also standing up its first services. The return came from the work it removed. Nineteen services each needed auth, error codes, tracing, configuration, deployment, and gateway registration; the scaffold generated all of it, turning days of boilerplate per service into a single command. The wallet services raised the stakes: correctness patterns like the outbox and the error-code registry were encoded once, centrally, instead of re-implemented — and re-gotten-wrong — in every service that touched money.
 
-And the beneficiaries were never just the backend — or even just engineering. The shared CI templates covered the React and Next.js pipelines the frontend developers worked in; Swagger generation kept their integration contracts current with every `.api` commit; and the registered error codes made QA's failures decodable to a service and function instead of mysterious. The product managers felt it loudest: the live-ops expansion of June and July — invites, VIP, sportsbook, mini-games — shipped off the same scaffold. Fourteen people consumed what four people built.
+And the beneficiaries were never just the backend — or even just engineering. The shared CI templates covered the React and Next.js pipelines the frontend developers worked in; Swagger generation kept their integration contracts current with every `.api` commit; and the registered error codes made QA's failures decodable to a service and function instead of mysterious. The product managers felt it loudest: the live-ops expansion of June and July — invites, VIP, mini-games — shipped off the same scaffold. Seventeen people consumed what four people built.
 
-I would not run this play everywhere. It stops being worth it on a short product runway, with a service count that never passes four or five, or if the platform build slips into its own project. None of those were our world: the roadmap called for what became nineteen services, the team grew to fourteen, and the platform landed inside its February-to-May window.
+I would not run this play everywhere. It stops being worth it on a short product runway, with a service count that never passes four or five, or if the platform build slips into its own project. None of those were our world: the roadmap called for what became nineteen services, the team grew to seventeen, and the platform landed inside its February-to-May window.
 
 ## Trade-offs
 
-DSL-first gave up proto-level control: generated proto constrains advanced gRPC features, and services that needed them dropped to hand-written proto (rare, but real). The maintained go-zero fork is a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering adds indirection that is overhead for thin CRUD services — the template made it cheap, not free. And the central error-code registry is a coordination point: two services cannot silently claim the same ID.
+DSL-first gave up proto-level control: generated proto constrained advanced gRPC features, and services that needed them dropped to hand-written proto (rare, but real). The maintained go-zero fork is a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering adds indirection that is overhead for thin CRUD services — the template made it cheap, not free. And the central error-code registry is a coordination point: two services cannot silently claim the same ID.
 
 ## What I Learned
 
@@ -181,12 +181,12 @@ For a small team, the cheapest time to enforce a convention is before the first 
 
 ## What I Would Change Today
 
-I would instrument adoption from day one: the 60% figure was an estimate, and a CI-computed boilerplate count per service would have made it a measurement. I would version the templates — template changes rolled to new services only, and existing services froze on older generations; a versioned contract would have made upgrades explicit instead of incidental. And I would add contract linting to CI — checking naming, error-code registration, and schema hygiene before merge, so the registry stayed clean without a human audit.
+**1. Chaos-test the failover paths.** Pod rescheduling, ws-hub reconnection, and gateway instance failure paths were designed but never systematically tested under failure conditions. A chaos suite that kills the leader pod, floods a consumer group, and partitions the gateway from its upstreams would validate what the design assumed. A chaos suite would have surfaced the isolation gap before a slow consumer could affect the entire platform.
 
-I would also name the platform's own bus factor as a risk. A custom toolchain (two goctl plugins, twenty templates, a maintained fork) concentrates knowledge in very few heads, and on a four-person team every head matters. The README and the generated code mitigated it, but rotating ownership of the plugin chain and the error-code registry would have been cheap insurance I did not think to buy.
+**2. API contract changes with zero alerting.** The `.api` contract files had no change monitoring - when an interface definition changed, no consumer was notified, and no team saw the diff before it merged. The change surfaced only when a consumer's call failed at runtime. A CI step that diffs the generated proto and Swagger against the previous version and posts the delta to the team channel would have made every contract change visible before it shipped.
 
-A closing note from the agent era. This platform was built before AI coding agents entered our workflow, and it turned out to be exactly what they needed. Agents amplify whatever the codebase already is: the contract repository, the per-service table ownership, and the generated scaffold got amplified into consistent, fast agent output — while a weak top-level design would have been amplified just as fast into something unmaintainable. The part of the design that earned this was not the splitting itself but the artifacts the boundaries produced: one contract repository, one scaffold, per-service table ownership. Boundaries encoded in artifacts force alignment on every future change; boundaries that live only in meetings do not. In an agent-era rebuild, the artifacts are the part I would invest in first.
+**3. No BFF layer between services and consumers.** Frontend consumers called domain services directly through the gateway, and domain services exposed aggregation endpoints that mixed business orchestration with data assembly - the boundary between "a service owns its domain capabilities" and "a BFF composes capabilities for a specific consumer" never existed. A BFF layer per consumer type would have drawn this line: services expose domain capabilities through a stable contract, and BFFs compose them into consumer-specific responses without leaking domain complexity to the frontend.
 
----
+A closing note from the agent era. This platform was built before AI coding agents entered our workflow, and it turned out to be exactly what they needed. Agents amplify whatever the codebase already is: the contract repository, the per-service table ownership, and the generated scaffold got amplified into consistent, fast agent output, while a weak top-level design would have been amplified just as fast into something unmaintainable. What made the boundaries work was not the act of splitting services but encoding them into contract files, table ownership, and generated structure. When a boundary lives in a contract file, every future change automatically respects it. When it lives only in a meeting discussion, the next sprint forgets it.
 
 *Previous in this series: [Designing a Distributed Scheduler Handling 200K+ Scheduling Operations per Second](/blog/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/) — a different company, a different problem: the scheduler built before this platform.*

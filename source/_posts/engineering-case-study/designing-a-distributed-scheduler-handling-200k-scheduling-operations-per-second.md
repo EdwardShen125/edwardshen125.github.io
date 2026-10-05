@@ -124,7 +124,7 @@ We split the topic per business domain. After that, a slow consumer could only d
 - Coverage of more than 20 business scenarios and a task volume approaching one hundred million.
 - Full replacement of both the batch center and xxl-job, with a gradual per-business cutover and no big-bang migration.
 
-The 200K+ figure was as much arithmetic as observation. It came off the Pulsar Manager publish-rate panel — messages per second on the execution-command topics, one message per task unit scheduled, since most jobs carried a single sharding item. The fire pool held 6,000 slots and dispatched commands in chunks of 200; by Little's law, that pool sustains 200,000 publishes per second only when average end-to-end dispatch latency — the Pulsar round trip included — stays under 30 milliseconds, comfortably inside Pulsar's async-send budget. On the acquisition side, each partition goroutine pulled up to 500 triggers per loop, so aggregate acquire capacity scaled linearly with the number of provisioned partitions. The reported ceiling was therefore bounded by deliberately chosen constants — pool size, batch size, partition count — each independently resizable in configuration.
+The 200K+ figure followed from the design itself. It came off the Pulsar Manager publish-rate panel — messages per second on the execution-command topics, one message per task unit scheduled, since most jobs carried a single sharding item. The fire pool held 6,000 slots and dispatched commands in chunks of 200; by Little's law, that pool sustains 200,000 publishes per second only when average end-to-end dispatch latency — the Pulsar round trip included — stays under 30 milliseconds, comfortably inside Pulsar's async-send budget. On the acquisition side, each partition goroutine pulled up to 500 triggers per loop, so aggregate acquire capacity scaled linearly with the number of provisioned partitions. The reported ceiling was therefore bounded by deliberately chosen constants — pool size, batch size, partition count — each independently resizable in configuration.
 
 ## Trade-offs
 
@@ -146,7 +146,7 @@ Topic-per-business-domain would be the initial design, not a post-incident fix, 
 
 I would instrument fire-time lag — the difference between a trigger's scheduled time and its actual delivery — as a first-class SLI from day one, with alerting on both platform-wide and per-domain percentiles.
 
-At the scale the system eventually reached, I would revisit the single-leader design and evaluate distributing partitions across nodes with partition-level handoff. The operational simplicity was worth it at first, but the calculus changes once the acquire loop itself approaches a single process's limits.
+At the scale the system eventually reached, I would revisit the single-leader design and evaluate distributing partitions across nodes with partition-level handoff. The operational simplicity was worth it at first, but the trade-off shifts once the acquire loop itself approaches a single process's limits.
 
 ---
 
