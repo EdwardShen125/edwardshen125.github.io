@@ -150,4 +150,4 @@ At the scale the system eventually reached, I would revisit the single-leader de
 
 ---
 
-*Next in this series: [Building a Production-Grade Go Microservice Architecture from Zero](/blog/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/) — a different company, a different problem: the platform built so that nineteen services would standardize themselves.*
+*Next in this series: [Building a Production-Grade Go Microservice Architecture from Zero](/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/) — a different company, a different problem: the platform built so that nineteen services would standardize themselves.*
