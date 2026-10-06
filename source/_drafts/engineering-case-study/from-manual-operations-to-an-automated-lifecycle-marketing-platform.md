@@ -17,7 +17,7 @@ published: false
   → 按本骨架逐章写作 → hexo generate 验证 → published: true
 ============================================================ -->
 <!--
-  【系列衔接】本文与 P1/P2 同平台同团队（go-zero 平台，14 人团队）：
+  【系列衔接】本文与 P1/P2 同平台同团队（go-zero 平台，17 人团队，其中 4 名 Go 后端）：
   - Context 继承 P1；营销/触达服务跑在同一平台（content-promotion 服务 2025-04 起）
   - ws-hub websocket 推送、language 多语言服务为本文的现成基础设施（可引用 P1 的图）
   - 开篇写 "on the platform from the previous posts..."；引用 P1/P2 的链接

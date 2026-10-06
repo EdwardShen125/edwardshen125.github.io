@@ -7,17 +7,17 @@
   "diagram_type": "c4",
   "c4_level": "container",
   "review_state": "PRODUCTION VALIDATED",
-  "rough_seed": 20261002,
+  "rough_seed": 20261006,
   "scope": "Distributed Scheduling Center",
   "quality_profile": "standard",
   "text_policy": "strict",
-  "width": 1100,
-  "height": 740,
-  "title": "Distributed Scheduling Center · Container Review",
-  "subtitle": "container responsibilities and review-ready relationships",
+  "width": 1260,
+  "height": 800,
+  "title": "Distributed Scheduling Center \u00b7 Container Review",
+  "subtitle": "final topology after topic isolation",
   "legend_orientation": "horizontal",
   "legend_x": 48,
-  "legend_y": 670,
+  "legend_y": 730,
   "legend": [
     {
       "flow": "control",
@@ -36,16 +36,16 @@
       "label": "callback"
     }
   ],
-  "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
+  "footer": "Edward Shen \u00b7 Distributed Systems Series \u00b7 container-level semantics",
   "footer_x": 48,
-  "footer_y": 720,
+  "footer_y": 780,
   "containers": [
     {
       "id": "sched-boundary",
-      "x": 300,
+      "x": 280,
       "y": 100,
-      "width": 750,
-      "height": 540,
+      "width": 970,
+      "height": 570,
       "label": "Distributed Scheduling Center"
     }
   ],
@@ -55,9 +55,9 @@
       "kind": "review_card",
       "c4_type": "external_system",
       "x": 50,
-      "y": 320,
+      "y": 330,
       "width": 190,
-      "height": 96,
+      "height": 110,
       "label": "Business Scenarios",
       "description": "20+ scenarios creating and consuming tasks"
     },
@@ -66,10 +66,10 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "sched-boundary",
-      "x": 340,
+      "x": 320,
       "y": 150,
-      "width": 190,
-      "height": 96,
+      "width": 200,
+      "height": 110,
       "label": "etcd Election",
       "description": "elects a single leader via lease",
       "technology": "etcd"
@@ -81,21 +81,34 @@
       "parent": "sched-boundary",
       "x": 610,
       "y": 150,
-      "width": 220,
-      "height": 110,
+      "width": 250,
+      "height": 120,
       "label": "Scheduler Leader",
-      "description": "scans partitions, acquires triggers via CAS",
-      "technology": "Go · one goroutine per partition"
+      "description": "runs one partition scheduler per HASH partition",
+      "technology": "Go \u00b7 CAS acquisition"
+    },
+    {
+      "id": "fire",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "sched-boundary",
+      "x": 950,
+      "y": 150,
+      "width": 260,
+      "height": 120,
+      "label": "Fire Pipeline",
+      "description": "pages sharding items and submits delivery commands",
+      "technology": "Go \u00b7 worker pool"
     },
     {
       "id": "tidb",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "sched-boundary",
-      "x": 340,
-      "y": 320,
-      "width": 190,
-      "height": 110,
+      "x": 320,
+      "y": 340,
+      "width": 200,
+      "height": 120,
       "label": "dus_job_trigger",
       "description": "holds trigger state in HASH(id) partitions",
       "technology": "TiDB"
@@ -105,26 +118,26 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "sched-boundary",
-      "x": 610,
-      "y": 320,
-      "width": 220,
-      "height": 110,
+      "x": 880,
+      "y": 340,
+      "width": 260,
+      "height": 120,
       "label": "Pulsar Topics",
       "description": "delivers commands per business domain",
-      "technology": "Pulsar · deliver-at"
+      "technology": "Pulsar \u00b7 deliver-at"
     },
     {
       "id": "sdk",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "sched-boundary",
-      "x": 610,
-      "y": 510,
-      "width": 220,
-      "height": 96,
+      "x": 880,
+      "y": 530,
+      "width": 260,
+      "height": 110,
       "label": "Executor SDK",
-      "description": "consumes topics, reports callbacks",
-      "technology": "Go SDK · consumer groups"
+      "description": "consumes topics and reports callbacks",
+      "technology": "Go SDK \u00b7 consumer groups"
     }
   ],
   "arrows": [
@@ -149,8 +162,18 @@
       "protocol": "SQL CAS"
     },
     {
-      "id": "publish",
+      "id": "handoff",
       "source": "schedulers",
+      "target": "fire",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "handoff",
+      "protocol": "in-process"
+    },
+    {
+      "id": "publish",
+      "source": "fire",
       "target": "pulsar",
       "source_port": "bottom",
       "target_port": "top",
@@ -163,21 +186,21 @@
       "source": "pulsar",
       "target": "sdk",
       "source_port": "bottom",
-      "target_port": "left",
+      "target_port": "top",
       "flow": "read",
       "label": "consume",
-      "protocol": "consumer groups",
-      "label_dy": 30
+      "protocol": "consumer groups"
     },
     {
       "id": "callback",
       "source": "sdk",
       "target": "schedulers",
-      "source_port": "right",
-      "target_port": "right",
+      "source_port": "left",
+      "target_port": "bottom",
       "flow": "async",
       "label": "callback",
       "protocol": "event"
     }
-  ]
+  ],
+  "boundary_width": null
 }

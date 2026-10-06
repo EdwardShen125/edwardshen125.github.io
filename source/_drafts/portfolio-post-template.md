@@ -21,6 +21,14 @@ Describe the production or project constraints. Include scale, latency, correctn
 
 What could fail? What was the incident, bottleneck, or architectural risk?
 
+## Constraints
+
+List conditions that could not be changed: deadline, team size, existing systems, compliance, cost ceiling, or downstream contracts.
+
+## Requirements
+
+State the measurable or testable goals. Use `[TODO]` for missing facts rather than inventing numbers.
+
 ## Options Considered
 
 | Option | Benefits | Costs / Risks | Why accepted or rejected |
@@ -28,15 +36,23 @@ What could fail? What was the incident, bottleneck, or architectural risk?
 | Option A |  |  |  |
 | Option B |  |  |  |
 
-## Final Design
+## Architecture / Design
 
 Explain the architecture and the key decision. Add a diagram if useful.
 
-## Failure Handling
+## Key Technical Decisions
+
+Explain the decision, alternatives, and trade-off. Focus on why this design fit the constraints.
+
+## Implementation
+
+Describe only the implementation details that affected correctness, performance, operability, or delivery.
+
+## Failure Modes / Production Challenges
 
 Describe timeout, retry, fallback, backpressure, idempotency, recovery, and observability behavior.
 
-## Result
+## Results
 
 Use measurable outcomes if available:
 
@@ -47,6 +63,16 @@ Use measurable outcomes if available:
 - recovery time
 - cost impact
 
-## Retrospective
+If a number is unavailable, use `[TODO]` instead of estimating.
 
-What worked well? What would you change next time?
+## Trade-offs
+
+State what the design made better and what it made worse.
+
+## What I Learned
+
+Extract the transferable engineering lesson, grounded in the production evidence above.
+
+## What I Would Change Today
+
+Describe the concrete redesign, measurement, or operational change you would make now.

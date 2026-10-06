@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 3,
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "title": "",
+  "width": 1260,
+  "height": 675,
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 590,
+  "legend_locked": true,
+  "legend": [
+    {
+      "flow": "async",
+      "label": "change stream"
+    },
+    {
+      "flow": "write",
+      "label": "aggregate"
+    },
+    {
+      "flow": "read",
+      "label": "query"
+    }
+  ],
+  "blueprint_title_block": {
+    "title": "REAL-TIME DATA",
+    "subtitle": "TIDB CDC + FLINK",
+    "center_caption": "SQL · JAVA · GO",
+    "left_caption": "REV: 1.0",
+    "right_caption": "DWG: DATA-002",
+    "width": 220,
+    "height": 76,
+    "x": 980,
+    "y": 560
+  },
+  "footer": "Edward Shen · Distributed Systems Series · TiDB CDC + Flink jobs",
+  "footer_x": 48,
+  "footer_y": 645,
+  "nodes": [
+    {
+      "id": "oltp",
+      "kind": "cylinder",
+      "x": 50,
+      "y": 220,
+      "width": 210,
+      "height": 90,
+      "label": "Business tables",
+      "sublabel": "production · TiKV",
+      "fill": "#0b3b5e",
+      "stroke": "#06d6a0",
+      "flat": true
+    },
+    {
+      "id": "ticdc",
+      "kind": "rect",
+      "x": 330,
+      "y": 220,
+      "width": 180,
+      "height": 90,
+      "label": "TiCDC",
+      "sublabel": "selected changes",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    },
+    {
+      "id": "kafka",
+      "kind": "rect",
+      "x": 580,
+      "y": 220,
+      "width": 180,
+      "height": 90,
+      "label": "Kafka",
+      "sublabel": "change stream",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    },
+    {
+      "id": "flink",
+      "kind": "double_rect",
+      "x": 870,
+      "y": 220,
+      "width": 210,
+      "height": 90,
+      "label": "Flink jobs",
+      "sublabel": "SQL + DataStream",
+      "fill": "#0a4b78",
+      "stroke": "#38bdf8",
+      "flat": true
+    },
+    {
+      "id": "olap",
+      "kind": "cylinder",
+      "x": 870,
+      "y": 400,
+      "width": 210,
+      "height": 90,
+      "label": "Analytics tables",
+      "sublabel": "derived · TiFlash",
+      "fill": "#0b3b5e",
+      "stroke": "#06d6a0",
+      "flat": true
+    },
+    {
+      "id": "queryhub",
+      "kind": "rect",
+      "x": 500,
+      "y": 400,
+      "width": 210,
+      "height": 90,
+      "label": "QueryHub",
+      "sublabel": "SQL templates",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    },
+    {
+      "id": "dashboards",
+      "kind": "rect",
+      "x": 180,
+      "y": 400,
+      "width": 220,
+      "height": 90,
+      "label": "Dashboards",
+      "sublabel": "operations · product",
+      "fill": "#0b3b5e",
+      "stroke": "#94a3b8",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "capture",
+      "source": "oltp",
+      "target": "ticdc",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "CDC"
+    },
+    {
+      "id": "publish",
+      "source": "ticdc",
+      "target": "kafka",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "stream"
+    },
+    {
+      "id": "consume",
+      "source": "kafka",
+      "target": "flink",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "read"
+    },
+    {
+      "id": "write",
+      "source": "flink",
+      "target": "olap",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "aggregate"
+    },
+    {
+      "id": "serve",
+      "source": "olap",
+      "target": "queryhub",
+      "source_port": "left",
+      "target_port": "right",
+      "flow": "read",
+      "label": "SQL"
+    },
+    {
+      "id": "query",
+      "source": "queryhub",
+      "target": "dashboards",
+      "source_port": "left",
+      "target_port": "right",
+      "flow": "read",
+      "label": "templates"
+    }
+  ]
+}

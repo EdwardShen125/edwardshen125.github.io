@@ -17,7 +17,7 @@
       "width": 180,
       "height": 80,
       "label": "Clients",
-      "sublabel": "web · mini-game",
+      "sublabel": "web · app",
       "fill": "#0b3b5e",
       "stroke": "#94a3b8",
       "flat": true
@@ -167,5 +167,8 @@
         ]
       ]
     }
-  ]
+  ],
+  "footer": "Edward Shen · Distributed Systems Series · Go microservice platform",
+  "footer_x": 48,
+  "footer_y": 530
 }

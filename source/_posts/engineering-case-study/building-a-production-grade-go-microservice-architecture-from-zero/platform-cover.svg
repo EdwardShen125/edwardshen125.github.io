@@ -51,7 +51,7 @@
   <g id="node-clients" data-graph-role="node" data-node-id="clients" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="60,140,240,220">
   <rect x="60.0" y="140.0" width="180.0" height="80.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
   <text data-text-role="title" data-full-text="Clients" data-text-max-width="156.0" x="150.0" y="180.0" text-anchor="middle" class="node-title" font-size="18">Clients</text>
-  <text data-text-role="subtitle" data-full-text="web · mini-game" data-text-max-width="156.0" x="150.0" y="202.0" text-anchor="middle" class="node-sub" font-size="12">web · mini-game</text>
+  <text data-text-role="subtitle" data-full-text="web · app" data-text-max-width="156.0" x="150.0" y="202.0" text-anchor="middle" class="node-sub" font-size="12">web · app</text>
   </g>
   <g id="node-gateway" data-graph-role="node" data-node-id="gateway" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,130,560,200">
   <rect x="340.0" y="130.0" width="220.0" height="70.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="2.0"/>
@@ -97,5 +97,8 @@
   <g id="ws-label" data-graph-role="label" data-owner="ws" data-graph-bounds="215.6,334,324.4,354">
   <rect x="215.6" y="334.0" width="108.80000000000001" height="20" rx="6" fill="#082f49" opacity="0.9"/>
   <text x="270.0" y="348.0" text-anchor="middle" class="arrow-label">websocket push</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,518,517,534">
+  <text x="48.0" y="530.0" class="footnote">Edward Shen · Distributed Systems Series · Go microservice platform</text>
   </g>
 </svg>

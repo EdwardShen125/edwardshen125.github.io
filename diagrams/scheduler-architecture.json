@@ -208,5 +208,8 @@
       ]
     }
   ],
-  "title": ""
+  "title": "",
+  "footer": "Edward Shen · Distributed Systems Series · scheduler topology",
+  "footer_x": 48,
+  "footer_y": 570
 }

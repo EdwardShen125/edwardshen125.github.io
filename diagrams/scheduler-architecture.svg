@@ -123,4 +123,7 @@
   <rect x="728.0" y="297.0" width="127.28000000000002" height="20" rx="6" fill="#082f49" opacity="0.9"/>
   <text x="791.64" y="311.0" text-anchor="middle" class="arrow-label">execution callback</text>
   </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,558,475,574">
+  <text x="48.0" y="570.0" class="footnote">Edward Shen · Distributed Systems Series · scheduler topology</text>
+  </g>
 </svg>

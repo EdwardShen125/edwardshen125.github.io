@@ -11,13 +11,13 @@
   "scope": "Go Microservice Platform",
   "quality_profile": "standard",
   "text_policy": "strict",
-  "width": 1100,
-  "height": 620,
+  "width": 1400,
+  "height": 700,
   "title": "Go Microservice Platform · Container Review",
   "subtitle": "one DSL contract entry, gateway composition, onion/DDD services",
   "legend_orientation": "horizontal",
   "legend_x": 48,
-  "legend_y": 540,
+  "legend_y": 600,
   "legend": [
     {
       "flow": "control",
@@ -34,14 +34,14 @@
   ],
   "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
   "footer_x": 48,
-  "footer_y": 590,
+  "footer_y": 650,
   "containers": [
     {
       "id": "platform-boundary",
       "x": 300,
       "y": 80,
-      "width": 760,
-      "height": 420,
+      "width": 1020,
+      "height": 560,
       "label": "Go Microservice Platform"
     }
   ],
@@ -51,11 +51,11 @@
       "kind": "review_card",
       "c4_type": "external_system",
       "x": 60,
-      "y": 260,
+      "y": 330,
       "width": 180,
-      "height": 96,
+      "height": 100,
       "label": "Clients",
-      "description": "web, mini-game and business clients"
+      "description": "web, mobile and business clients"
     },
     {
       "id": "gateway",
@@ -63,8 +63,8 @@
       "c4_type": "container",
       "parent": "platform-boundary",
       "x": 340,
-      "y": 140,
-      "width": 220,
+      "y": 130,
+      "width": 230,
       "height": 110,
       "label": "API Gateway",
       "description": "single HTTP entry; gRPC routing; i18n response translation",
@@ -75,22 +75,22 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "platform-boundary",
-      "x": 620,
-      "y": 140,
-      "width": 240,
+      "x": 700,
+      "y": 130,
+      "width": 260,
       "height": 110,
       "label": "Domain Services ×19",
       "description": "onion/DDD scaffold with outbox domain events",
-      "technology": "go-zero · MySQL · Redis · Zipkin"
+      "technology": "go-zero · Redis · Zipkin"
     },
     {
       "id": "tidb",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "platform-boundary",
-      "x": 620,
-      "y": 360,
-      "width": 240,
+      "x": 700,
+      "y": 470,
+      "width": 260,
       "height": 100,
       "label": "TiDB",
       "description": "per-service schemas via MySQL protocol",
@@ -101,13 +101,39 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "platform-boundary",
-      "x": 340,
-      "y": 310,
-      "width": 200,
+      "x": 1020,
+      "y": 130,
+      "width": 210,
       "height": 100,
       "label": "Zipkin",
       "description": "distributed tracing spans",
       "technology": "Zipkin"
+    },
+    {
+      "id": "redis",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "label": "Redis",
+      "description": "cache for hot service data",
+      "technology": "Redis",
+      "x": 700,
+      "y": 300,
+      "width": 220,
+      "height": 100
+    },
+    {
+      "id": "wshub",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "label": "ws-hub",
+      "description": "terminates websockets and fans out pushes",
+      "technology": "ws-hub",
+      "x": 340,
+      "y": 470,
+      "width": 220,
+      "height": 100
     }
   ],
   "arrows": [
@@ -129,17 +155,7 @@
       "target_port": "left",
       "flow": "control",
       "label": "gRPC",
-      "protocol": "K8s"
-    },
-    {
-      "id": "spans-gw",
-      "source": "gateway",
-      "target": "zipkin",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "async",
-      "label": "spans",
-      "protocol": "HTTP"
+      "protocol": "gRPC"
     },
     {
       "id": "sql",
@@ -155,29 +171,42 @@
       "id": "spans-svc",
       "source": "services",
       "target": "zipkin",
-      "source_port": "bottom",
-      "target_port": "top",
+      "source_port": "right",
+      "target_port": "left",
       "flow": "async",
       "label": "spans",
-      "protocol": "HTTP",
-      "route_points": [
-        [
-          740,
-          250
-        ],
-        [
-          740,
-          285
-        ],
-        [
-          440,
-          285
-        ],
-        [
-          440,
-          310
-        ]
-      ]
+      "protocol": "HTTP"
+    },
+    {
+      "id": "cache",
+      "source": "services",
+      "target": "redis",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "cache",
+      "protocol": "RESP"
+    },
+    {
+      "id": "push-notify",
+      "source": "services",
+      "target": "wshub",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "data",
+      "label": "push",
+      "protocol": "event",
+      "label_dy": 14
+    },
+    {
+      "id": "websocket-push",
+      "source": "wshub",
+      "target": "clients",
+      "source_port": "bottom",
+      "target_port": "bottom",
+      "flow": "feedback",
+      "label": "websocket push",
+      "protocol": "WebSocket"
     }
   ]
 }

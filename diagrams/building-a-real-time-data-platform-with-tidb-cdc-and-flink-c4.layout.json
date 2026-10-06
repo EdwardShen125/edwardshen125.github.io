@@ -1,7 +1,7 @@
 {
   "canvas": {
-    "height": 700.0,
-    "width": 1400.0
+    "height": 820.0,
+    "width": 1460.0
   },
   "composition": {
     "limits": {
@@ -16,16 +16,16 @@
       "profile": "standard"
     },
     "metrics": {
-      "bridged_crossings": 2,
-      "max_route_stretch": 1.774,
+      "bridged_crossings": 1,
+      "max_route_stretch": 1.047,
       "minimum_container_gutter": 40.0,
-      "minimum_node_gap": 60.0,
-      "shortest_segment": 2.0,
-      "total_bends": 17
+      "minimum_node_gap": 40.0,
+      "shortest_segment": 4.0,
+      "total_bends": 11
     },
     "ok": true,
     "profile": "standard",
-    "score": 64,
+    "score": 84,
     "violations": []
   },
   "edges": [
@@ -33,36 +33,36 @@
       "bends": 2,
       "bridges": [],
       "crossings": [],
-      "id": "http",
-      "length": 295.0,
+      "id": "capture",
+      "length": 170.0,
       "route": [
         [
-          240.0,
-          380.0
+          430.0,
+          230.0
         ],
         [
-          260.4,
-          380.0
+          450.4,
+          230.0
         ],
         [
-          260.4,
-          185.0
+          450.4,
+          220.0
         ],
         [
-          340.0,
-          185.0
+          590.0,
+          220.0
         ]
       ],
       "route_stretch": 1.0,
-      "source": "clients",
+      "source": "business-data",
       "source_port": [
-        240.0,
-        380.0
+        430.0,
+        230.0
       ],
-      "target": "gateway",
+      "target": "ticdc",
       "target_port": [
-        340.0,
-        185.0
+        590.0,
+        220.0
       ],
       "waypoints": []
     },
@@ -70,73 +70,28 @@
       "bends": 0,
       "bridges": [],
       "crossings": [],
-      "id": "grpc-route",
-      "length": 130.0,
+      "id": "publish",
+      "length": 150.0,
       "route": [
         [
-          570.0,
-          185.0
+          770.0,
+          220.0
         ],
         [
-          700.0,
-          185.0
+          920.0,
+          220.0
         ]
       ],
       "route_stretch": 1.0,
-      "source": "gateway",
+      "source": "ticdc",
       "source_port": [
-        570.0,
-        185.0
+        770.0,
+        220.0
       ],
-      "target": "services",
+      "target": "kafka",
       "target_port": [
-        700.0,
-        185.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 4,
-      "bridges": [],
-      "crossings": [],
-      "id": "sql",
-      "length": 440.0,
-      "route": [
-        [
-          848.0,
-          240.0
-        ],
-        [
-          848.0,
-          260.4
-        ],
-        [
-          944.0,
-          260.4
-        ],
-        [
-          944.0,
-          449.6
-        ],
-        [
-          830.0,
-          449.6
-        ],
-        [
-          830.0,
-          470.0
-        ]
-      ],
-      "route_stretch": 1.774,
-      "source": "services",
-      "source_port": [
-        848.0,
-        240.0
-      ],
-      "target": "tidb",
-      "target_port": [
-        830.0,
-        470.0
+        920.0,
+        220.0
       ],
       "waypoints": []
     },
@@ -144,124 +99,73 @@
       "bends": 2,
       "bridges": [],
       "crossings": [],
-      "id": "spans-svc",
-      "length": 65.0,
+      "id": "consume",
+      "length": 390.0,
       "route": [
         [
-          960.0,
-          185.0
+          1030.0,
+          280.0
         ],
         [
-          980.4,
-          185.0
+          1030.0,
+          284.0
         ],
-        [
-          980.4,
-          180.0
-        ],
-        [
-          1020.0,
-          180.0
-        ]
-      ],
-      "route_stretch": 1.0,
-      "source": "services",
-      "source_port": [
-        960.0,
-        185.0
-      ],
-      "target": "zipkin",
-      "target_port": [
-        1020.0,
-        180.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 2,
-      "bridges": [],
-      "crossings": [],
-      "id": "cache",
-      "length": 62.0,
-      "route": [
-        [
-          812.0,
-          240.0
-        ],
-        [
-          812.0,
-          254.0
-        ],
-        [
-          810.0,
-          254.0
-        ],
-        [
-          810.0,
-          300.0
-        ]
-      ],
-      "route_stretch": 1.0,
-      "source": "services",
-      "source_port": [
-        812.0,
-        240.0
-      ],
-      "target": "redis",
-      "target_port": [
-        810.0,
-        300.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 3,
-      "bridges": [
-        [
-          812.0,
-          240.0
-        ]
-      ],
-      "crossings": [
-        [
-          812.0,
-          240.0
-        ]
-      ],
-      "id": "push-notify",
-      "length": 610.0,
-      "route": [
         [
           830.0,
-          240.0
+          284.0
         ],
         [
-          594.0,
-          240.0
-        ],
-        [
-          594.0,
-          449.6
-        ],
-        [
-          450.0,
-          449.6
-        ],
-        [
-          450.0,
+          830.0,
           470.0
         ]
       ],
       "route_stretch": 1.0,
-      "source": "services",
+      "source": "kafka",
       "source_port": [
-        830.0,
-        240.0
+        1030.0,
+        280.0
       ],
-      "target": "wshub",
+      "target": "flink-jobs",
       "target_port": [
-        450.0,
+        830.0,
         470.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "write-ads",
+      "length": 271.0,
+      "route": [
+        [
+          620.0,
+          530.0
+        ],
+        [
+          460.0,
+          530.0
+        ],
+        [
+          460.0,
+          419.0
+        ],
+        [
+          460.0,
+          419.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "flink-jobs",
+      "source_port": [
+        620.0,
+        530.0
+      ],
+      "target": "analytics-data",
+      "target_port": [
+        460.0,
+        419.0
       ],
       "waypoints": []
     },
@@ -269,54 +173,120 @@
       "bends": 4,
       "bridges": [
         [
-          450.0,
-          450.4
+          830.0,
+          382.0
         ]
       ],
       "crossings": [
         [
-          450.0,
-          450.4
+          830.0,
+          382.0
         ]
       ],
-      "id": "websocket-push",
-      "length": 700.8,
+      "id": "query-ads",
+      "length": 847.0,
       "route": [
         [
-          450.0,
-          570.0
+          1160.0,
+          510.0
         ],
         [
-          450.0,
-          590.4
+          1139.6,
+          510.0
         ],
         [
-          560.0,
-          590.4
+          1139.6,
+          382.0
         ],
         [
-          560.0,
-          450.4
+          480.4,
+          382.0
         ],
         [
-          150.0,
-          450.4
+          480.4,
+          401.0
         ],
         [
-          150.0,
-          430.0
+          460.0,
+          401.0
         ]
       ],
-      "route_stretch": 1.593,
-      "source": "wshub",
+      "route_stretch": 1.047,
+      "source": "queryhub",
       "source_port": [
-        450.0,
-        570.0
+        1160.0,
+        510.0
       ],
-      "target": "clients",
+      "target": "analytics-data",
       "target_port": [
-        150.0,
-        430.0
+        460.0,
+        401.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "cache-result",
+      "length": 70.0,
+      "route": [
+        [
+          1280.0,
+          580.0
+        ],
+        [
+          1280.0,
+          600.4
+        ],
+        [
+          1290.0,
+          600.4
+        ],
+        [
+          1290.0,
+          640.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "queryhub",
+      "source_port": [
+        1280.0,
+        580.0
+      ],
+      "target": "cache",
+      "target_port": [
+        1290.0,
+        640.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "dashboard-query",
+      "length": 180.0,
+      "route": [
+        [
+          1280.0,
+          260.0
+        ],
+        [
+          1280.0,
+          440.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "viewers",
+      "source_port": [
+        1280.0,
+        260.0
+      ],
+      "target": "queryhub",
+      "target_port": [
+        1280.0,
+        440.0
       ],
       "waypoints": []
     }
@@ -327,22 +297,11 @@
       "code": "EDGE_CROSSING_BRIDGED",
       "coordinates": [
         [
-          812.0,
-          240.0
+          830.0,
+          382.0
         ]
       ],
-      "element": "push-notify",
-      "severity": "info"
-    },
-    {
-      "code": "EDGE_CROSSING_BRIDGED",
-      "coordinates": [
-        [
-          450.0,
-          450.4
-        ]
-      ],
-      "element": "websocket-push",
+      "element": "query-ads",
       "severity": "info"
     }
   ],
@@ -364,27 +323,27 @@
     "legend": {
       "actual": [
         48.0,
-        600.0
+        730.0
       ],
       "bounds": [
         38.0,
-        586.0,
-        380.08,
-        632.0
+        716.0,
+        465.28,
+        762.0
       ],
       "moved": false,
       "requested": [
         48.0,
-        600.0
+        730.0
       ]
     }
   },
   "schema_version": 1,
   "semantics": {
     "details": {
-      "elements": 7,
+      "elements": 8,
       "level": "container",
-      "rough_seed": 20261003
+      "rough_seed": 20261006
     },
     "ok": true,
     "profile": "c4-review",
@@ -396,9 +355,9 @@
     "name": "C4 Review Canvas"
   },
   "summary": {
-    "bridged_crossings": 2,
+    "bridged_crossings": 1,
     "edges": 7,
-    "nodes": 7
+    "nodes": 8
   },
   "text_metrics": "heuristic-v1",
   "typography": {
