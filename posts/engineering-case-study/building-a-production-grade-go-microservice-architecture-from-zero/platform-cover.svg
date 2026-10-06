@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="3" data-visual-theme="Blueprint" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#67e8f9"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fde047"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c084fc"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#bae6fd"/>
+    </marker>
+    <pattern id="blueprintGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#0ea5e9" stroke-opacity="0.12" stroke-width="1"/>
+    </pattern>
+    <style>
+    text { font-family: 'SF Mono', 'Fira Code', Menlo, 'Noto Sans CJK SC', 'Microsoft YaHei', 'SimHei', monospace; }
+    .title { font-size: 30px; font-weight: 700; fill: #e0f2fe; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #7dd3fc; }
+    .section { font-size: 13px; font-weight: 700; fill: #67e8f9; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #7dd3fc; }
+    .node-title { font-weight: 700; fill: #e0f2fe; }
+    .node-sub { font-weight: 500; fill: #bae6fd; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #7dd3fc; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #e0f2fe; }
+    .legend { font-size: 12px; font-weight: 500; fill: #bae6fd; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #7dd3fc; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #7dd3fc; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #e0f2fe; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="960.0" height="560.0" fill="#082f49"/>
+  <text x="480.0" y="56" text-anchor="middle" class="title"></text>
+  <path id="notify" data-graph-role="edge" data-edge-id="notify" data-source="services" data-target="wshub" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="11" data-route-stretch="1.212" data-bridges="" d="M 731,200 L 731,210.2 L 640,210.2 L 640,200 L 630,200 L 630,230 L 640,230 L 640,236 L 450,236 L 450,230 L 440,230 L 440,260 L 450,260" fill="none" stroke="#fde047" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="sql-bridge-mask" data-graph-role="bridge-mask" data-owner="sql" d="M 749,200 L 749,220.4 L 730,220.4 L 730,200 L 759,200 L 759,260 L 730,260" fill="none" stroke="#082f49" stroke-width="6.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="sql" data-graph-role="edge" data-edge-id="sql" data-source="services" data-target="tidb" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="5" data-route-stretch="2.251" data-bridges="730,210.2;731,200" d="M 749,200 L 749,220.4 L 730,220.4 L 730,200 L 759,200 L 759,260 L 730,260" fill="none" stroke="#38bdf8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="ws" data-graph-role="edge" data-edge-id="ws" data-source="wshub" data-target="clients" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="8" data-route-stretch="1.269" data-bridges="" d="M 450,330 L 450,340.2 L 390,340.2 L 390,330 L 380,330 L 380,355 L 390,355 L 390,365 L 150,365 L 150,355 L 150,220" fill="none" stroke="#fb7185" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="http" data-graph-role="edge" data-edge-id="http" data-source="clients" data-target="gateway" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 240,180 L 260.4,180 L 260.4,165 L 340,165" fill="none" stroke="#67e8f9" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="grpc" data-graph-role="edge" data-edge-id="grpc" data-source="gateway" data-target="services" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 560,165 L 620,165" fill="none" stroke="#67e8f9" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <g id="node-clients" data-graph-role="node" data-node-id="clients" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="60,140,240,220">
+  <rect x="60.0" y="140.0" width="180.0" height="80.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Clients" data-text-max-width="156.0" x="150.0" y="180.0" text-anchor="middle" class="node-title" font-size="18">Clients</text>
+  <text data-text-role="subtitle" data-full-text="web · app" data-text-max-width="156.0" x="150.0" y="202.0" text-anchor="middle" class="node-sub" font-size="12">web · app</text>
+  </g>
+  <g id="node-gateway" data-graph-role="node" data-node-id="gateway" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,130,560,200">
+  <rect x="340.0" y="130.0" width="220.0" height="70.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="2.0"/>
+  <rect x="346.0" y="136.0" width="208.0" height="58.0" rx="5.0" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="API Gateway" data-text-max-width="188.0" x="450.0" y="165.0" text-anchor="middle" class="node-title" font-size="18">API Gateway</text>
+  <text data-text-role="subtitle" data-full-text="i18n · jwt · pb×14" data-text-max-width="188.0" x="450.0" y="187.0" text-anchor="middle" class="node-sub" font-size="12">i18n · jwt · pb×14</text>
+  </g>
+  <g id="node-services" data-graph-role="node" data-node-id="services" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="620,130,860,200">
+  <rect x="620.0" y="130.0" width="240.0" height="70.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Domain Services ×19" data-text-max-width="216.0" x="740.0" y="165.0" text-anchor="middle" class="node-title" font-size="18">Domain Services ×19</text>
+  <text data-text-role="subtitle" data-full-text="go-zero · onion/DDD" data-text-max-width="216.0" x="740.0" y="187.0" text-anchor="middle" class="node-sub" font-size="12">go-zero · onion/DDD</text>
+  </g>
+  <g id="node-wshub" data-graph-role="node" data-node-id="wshub" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="340,260,560,330">
+  <rect x="340.0" y="260.0" width="220.0" height="70.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="ws-hub" data-text-max-width="196.0" x="450.0" y="295.0" text-anchor="middle" class="node-title" font-size="18">ws-hub</text>
+  <text data-text-role="subtitle" data-full-text="websocket fan-out" data-text-max-width="196.0" x="450.0" y="317.0" text-anchor="middle" class="node-sub" font-size="12">websocket fan-out</text>
+  </g>
+  <g id="node-tidb" data-graph-role="node" data-node-id="tidb" data-semantic-role="cylinder" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="620,260,840,330">
+  <ellipse cx="730.0" cy="268.75" rx="110.0" ry="8.75" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <rect x="620.0" y="268.75" width="220.0" height="52.5" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <ellipse cx="730.0" cy="321.25" rx="110.0" ry="8.75" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <ellipse cx="730.0" cy="286.6" rx="110.0" ry="8.75" fill="none" stroke="#06d6a0" stroke-opacity="0.45" stroke-width="1.2"/>
+  <ellipse cx="730.0" cy="302.0" rx="110.0" ry="8.75" fill="none" stroke="#06d6a0" stroke-opacity="0.25" stroke-width="1.2"/>
+  <text data-text-role="title" data-full-text="TiDB" data-text-max-width="196.0" x="730.0" y="289.0" text-anchor="middle" class="node-title" font-size="18">TiDB</text>
+  <text data-text-role="subtitle" data-full-text="per-service schemas" data-text-max-width="196.0" x="730.0" y="313.0" text-anchor="middle" class="node-sub" font-size="12">per-service schemas</text>
+  </g>
+  <g id="http-label" data-graph-role="label" data-owner="http" data-graph-bounds="275.8,134,324.6,154">
+  <rect x="275.8" y="134.0" width="48.8" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="300.2" y="148.0" text-anchor="middle" class="arrow-label">HTTPS</text>
+  </g>
+  <g id="grpc-label" data-graph-role="label" data-owner="grpc" data-graph-bounds="569.08,134,610.92,154">
+  <rect x="569.08" y="134.0" width="41.839999999999996" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="590.0" y="148.0" text-anchor="middle" class="arrow-label">gRPC</text>
+  </g>
+  <g id="notify-label" data-graph-role="label" data-owner="notify" data-graph-bounds="502.6,205,587.4,225">
+  <rect x="502.6" y="205.0" width="84.80000000000001" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="545.0" y="219.0" text-anchor="middle" class="arrow-label">push notify</text>
+  </g>
+  <g id="sql-label" data-graph-role="label" data-owner="sql" data-graph-bounds="719,216,755,236">
+  <rect x="719.0" y="216.0" width="36.0" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="737.0" y="230.0" text-anchor="middle" class="arrow-label">SQL</text>
+  </g>
+  <g id="ws-label" data-graph-role="label" data-owner="ws" data-graph-bounds="215.6,334,324.4,354">
+  <rect x="215.6" y="334.0" width="108.80000000000001" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="270.0" y="348.0" text-anchor="middle" class="arrow-label">websocket push</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,518,517,534">
+  <text x="48.0" y="530.0" class="footnote">Edward Shen · Distributed Systems Series · Go microservice platform</text>
+  </g>
+</svg>

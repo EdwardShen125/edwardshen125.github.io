@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Edward Shen">
+<meta property="og:url" content="https://edwardshen125.github.io/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+<meta property="og:locale" content="en_US">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="backend engineering, distributed systems, system design, high availability, Go, cloud native, SRE, platform engineering">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://edwardshen125.github.io/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : true,
+    isPost : false,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Edward Shen - Backend & Distributed Systems Engineer</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content index posts-expand">
+            
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/" class="post-title-link" itemprop="url">Building a Real-Time Data Platform With TiDB CDC and Flink</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2026-02-07 12:00:00" itemprop="dateCreated datePublished" datetime="2026-02-07T12:00:00+08:00">2026-02-07</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.7k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>10 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>The Go backend platform had been established earlier in 2025 and
+eventually carried nineteen services. Product teams could ship features,
+but operational questions still required ad-hoc production queries.
+Dashboards were slow, and linked views could not be trusted to refresh
+from a consistent snapshot.</p>
+<p>The conventional fix was a separate OLAP database, a sync pipeline,
+and a dedicated data engineering function. The backend team had to
+absorb this work alongside feature delivery, so that was not practical.
+This is the retrospective of the platform we built instead: <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/ticdc-overview">TiCDC</a> →
+<span class="exturl" data-url="aHR0cHM6Ly9rYWZrYS5hcGFjaGUub3JnLw==">Kafka<i class="fa fa-external-link-alt"></i></span> → <a
+target="_blank" rel="noopener" href="https://flink.apache.org/">Apache Flink</a> → analytical tables in
+TiDB, served by QueryHub, a self-developed SQL-template service.</p>
+<img data-src="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/data-platform-cover.png" class="" title="Real-Time Data Platform architecture cover">
+<h2 id="context">Context</h2>
+<p>The backend foundation came from <a
+href="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/">Building
+a Production-Grade Go Microservice Architecture from Zero</a>. I then
+led a separate data-platform workstream from June through November 2025;
+it also included ConfigHub, but this article focuses on the CDC,
+warehouse, and query-serving path.</p>
+<p>Product managers needed transaction, settlement, and promotion
+metrics. Operations needed to detect abuse while a campaign was still
+active. Finance needed reconciliation. The production schemas were
+optimized for writes, not analytical reads.</p>
+<h2 id="problem">Problem</h2>
+<p>The binding constraint was staffing: the same team had to build the
+data platform alongside feature delivery. A traditional OLTP/OLAP split
+required another database, sync pipeline, and transformation layer that
+we could not operate.</p>
+<p>The daily cost appeared in three ways: new metrics required ad-hoc
+production queries or a new ETL pipeline; metrics varied by dimension,
+granularity, and refresh requirement; and T+1 reporting was too slow for
+an active promotion-abuse investigation.</p>
+<h2 id="constraints">Constraints</h2>
+<p>Four Go engineers owned the entire backend, including this data
+platform. The product had a fast feature cadence, correctness-sensitive
+transaction flows, and live-ops reports that changed every sprint. We
+also chose to standardize on TiDB rather than operate a separate OLAP
+database.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Hourly aggregation of transaction, settlement, promotion,
+referral/commission, and wallet-transfer events.</li>
+<li>Multi-stream joins and dimension-table lookups for detail and
+wide-table analysis.</li>
+<li>Logical ODS → DWD → DWS layering with explicit ownership.</li>
+<li>Analytics tables updated within seconds rather than waiting for T+1
+reports.</li>
+<li>Daily and monthly report boundaries in the viewer's timezone.</li>
+<li>Stable pipeline definitions deployed through the existing K8s and
+CI/CD path.</li>
+<li>Recoverability from TiCDC replay, Flink restarts, and batch
+corrections without duplicating aggregate rows.</li>
+</ul>
+<h2 id="options-considered">Options Considered</h2>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Alternatives considered</th>
+<th>Selected</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report access</td>
+<td><span class="exturl" data-url="aHR0cHM6Ly9zdXBlcnNldC5hcGFjaGUub3JnLw==">Superset<i class="fa fa-external-link-alt"></i></span>, self-developed
+QueryHub + existing admin UI</td>
+<td>Self-developed QueryHub + React/ECharts</td>
+<td>Kept dashboards product-owned and inside the admin experience</td>
+</tr>
+<tr>
+<td>Change capture</td>
+<td><span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL2FsaWJhYmEvY2FuYWw=">Canal<i class="fa fa-external-link-alt"></i></span>, direct Flink
+CDC, <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/ticdc-overview">TiCDC</a></td>
+<td>TiCDC → Kafka</td>
+<td>Native TiDB capture; Kafka retained the changefeed while Flink
+checkpoints stored source offsets and job state</td>
+</tr>
+<tr>
+<td>Storage/query</td>
+<td>Separate OLAP store, TiDB + TiFlash</td>
+<td>TiDB + TiFlash</td>
+<td>Reused MySQL compatibility, joins, security, and operational
+knowledge</td>
+</tr>
+<tr>
+<td>Processing API</td>
+<td>Custom streaming pipeline, Flink SQL, DataStream</td>
+<td>Flink SQL by default; DataStream for custom state and cleansing</td>
+<td>Reused tested checkpoint, keyed-state, recovery, and backpressure
+primitives; kept common reports reviewable</td>
+</tr>
+</tbody>
+</table>
+<p>Processing was not a simple SQL-versus-DataStream choice. A custom
+streaming pipeline was considered because it could keep business logic
+close to the services and avoid adopting another framework. We rejected
+it because it would have made the team own checkpoint/recovery behavior,
+state migration, event-time ordering, duplicate suppression, scaling,
+backpressure, and latency tuning. Flink did not remove those concerns,
+but it provided tested primitives for them. We still handled correctness
+at the TiDB sink through idempotent hourly keys and reconciliation.</p>
+<h2 id="architecture-design">Architecture / Design</h2>
+<p>The platform had two table groups, but both were queryable through
+TiDB. Selected production tables were stored in TiKV, with <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/tiflash-overview">TiFlash</a>
+maintaining asynchronous columnar Raft Learner replicas. For derived
+metrics, TiCDC sent selected changes to Kafka; Flink aggregated them and
+wrote <code>ads_*</code> tables back to TiDB—not directly to
+TiFlash—over MySQL/JDBC; TiKV persisted the rows and TiFlash maintained
+the serving replicas.</p>
+<p>For the direct replicas, TiKV → TiFlash was a storage-engine
+operation rather than an external ETL job. One command enabled the
+replica:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">ALTER TABLE</span> <span class="operator">&lt;</span>source_table<span class="operator">&gt;</span> <span class="keyword">SET</span> TIFLASH REPLICA <span class="number">1</span>;</span><br></pre></td></tr></table></figure>
+<p>TiFlash then bootstrapped existing rows through a Raft Learner
+snapshot and applied subsequent Raft updates. We did not write a
+separate full-load/backfill job, store high-watermark offsets, or run an
+incremental sync process for those replicas. This did not eliminate
+operational work: replica progress, storage headroom, IOPS, scans, and
+compaction became part of the TiDB capacity model. The TiCDC → Kafka →
+Flink path remained conventional ETL because it transformed selected
+events into new <code>ads_*</code> aggregates.</p>
+<p>Logically, the warehouse followed ODS → DWD → DWS. TiCDC-fed source
+tables formed ODS; Flink joined event streams and dimensions into
+detail/wide tables for DWD; SQL jobs materialized hourly aggregates into
+<code>ads_*</code> DWS tables. Because all layers lived in TiDB, the
+layering set naming, ownership, and refresh rules; it did not require a
+separate database.</p>
+<img data-src="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/architecture-c4.png" class="" title="C4 container view of the real-time data platform: selected production tables with TiFlash replicas, TiCDC, Kafka, Flink SQL and DataStream jobs, ads_* aggregates, QueryHub, Redis caching, and dashboard users">
+<p>TiCDC captured only selected event tables—transaction settlements,
+order amounts, referral/commission ledgers, promotion records, and
+wallet transfers. Kafka partitioned high-volume tables by user ID,
+preserving per-user ordering while allowing parallel consumers.</p>
+<h2 id="key-technical-decisions">Key Technical Decisions</h2>
+<h3 id="sql-first-processing">SQL-first processing</h3>
+<p>SQL jobs produced hourly aggregate rows keyed by bucket time and
+business dimensions. A separate DataStream JAR handled workloads that
+needed custom state or event cleaning: it owned user-session state
+driven by device and transaction events, and cleansed
+standard-operating-procedure (SOP) lifecycle-management data. This kept
+most metrics reviewable while isolating timers, keyed state, and
+change-only output.</p>
+<h3 id="idempotent-hourly-aggregates">Idempotent hourly aggregates</h3>
+<p>Aggregates were not append-only facts. Each hourly table used the
+bucket start timestamp plus business dimensions as its primary key.
+Flink JDBC sinks upserted those keys, so early fires, checkpoint
+restarts, or batch reruns replaced the same row instead of creating
+duplicates.</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- Simplified Flink sink shape; several hourly tables followed this pattern.</span></span><br><span class="line"><span class="keyword">CREATE TABLE</span> ads_user_transfer_source_symbol_hourly (</span><br><span class="line">    created_at <span class="type">BIGINT</span> <span class="keyword">NOT NULL</span>,      <span class="comment">-- UTC millisecond bucket start</span></span><br><span class="line">    source     STRING <span class="keyword">NOT NULL</span>,</span><br><span class="line">    symbol     STRING <span class="keyword">NOT NULL</span>,</span><br><span class="line">    amount     <span class="type">DECIMAL</span>(<span class="number">38</span>, <span class="number">18</span>),</span><br><span class="line">    amount_usd <span class="type">DECIMAL</span>(<span class="number">38</span>, <span class="number">18</span>),</span><br><span class="line">    <span class="keyword">PRIMARY KEY</span> (created_at, source, symbol) <span class="keyword">NOT</span> ENFORCED</span><br><span class="line">) <span class="keyword">WITH</span> (</span><br><span class="line">    <span class="string">&#x27;connector&#x27;</span> <span class="operator">=</span> <span class="string">&#x27;jdbc&#x27;</span></span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<p>Batch jobs reread a selected time range and recalculated the same
+keys, making reconciliation targeted rather than a full rebuild.
+Streaming and batch paths therefore shared one serving table; that
+avoided a separate reconciliation target but increased contention on the
+TiDB cluster and required closer attention to TiFlash sync capacity.</p>
+<h3 id="queryhub-template-service">QueryHub template service</h3>
+<p>I <strong>designed and built</strong> QueryHub, the self-developed
+SQL-template service. It stored named SQL templates as versioned
+configuration. A template carried its data source, SQL, parameters,
+cache policy, status, and version. Query execution became a
+configuration change rather than a new Go handler, route, DTO, and
+deployment. Reviewed SQL seeds were still required, and a new
+visualization could still require frontend wiring.</p>
+<p>Redis keys included the template name, sorted-parameter hash, and
+cache-group version. Hot queries reused results while related templates
+could be invalidated together.</p>
+<h3 id="timezone-aware-reporting">Timezone-aware reporting</h3>
+<p>Streaming jobs wrote UTC millisecond buckets. QueryHub templates
+accepted a <code>:time_zone</code> parameter, converted report
+boundaries to UTC, and grouped stored buckets into viewer-local dates or
+months. Templates generated date/month series, left joined aggregates
+onto them, and filled inactive periods with zero. The same physical rows
+supported different local reporting boundaries and consistent MoM/YoY
+comparisons.</p>
+<h2 id="implementation">Implementation</h2>
+<p>The platform spanned two Kubernetes clusters. TiDB, PD, TiKV, and
+TiFlash ran in a dedicated TiDB K8s cluster, while TiCDC captured their
+changes into Kafka. Flink and QueryHub ran in the business K8s cluster,
+in different namespaces. This preserved database cluster isolation while
+reusing the business deployment model and a MySQL-compatible query
+interface.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Component</th>
+<th>Configuration / scale</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flink cluster</td>
+<td>1.15.4; HA; 2 ZooKeeper-coordinated JobManagers; S3/MinIO
+checkpoints; 10-second <code>EXACTLY_ONCE</code> checkpoints for SQL
+jobs</td>
+<td>Processing runtime</td>
+</tr>
+<tr>
+<td>Flink SQL</td>
+<td>9 streaming jobs, 4 batch jobs</td>
+<td>Aggregation, joins, and reconciliation</td>
+</tr>
+<tr>
+<td>DataStream JAR</td>
+<td>Java JAR on the same Flink cluster</td>
+<td>User online/session state and SOP (standard-operating-procedure)
+lifecycle-management cleansing</td>
+</tr>
+<tr>
+<td>TiDB</td>
+<td>2 nodes, 16 vCPU / 48 GiB floor</td>
+<td>MySQL-compatible query endpoint</td>
+</tr>
+<tr>
+<td>PD</td>
+<td>3 nodes, 8 vCPU / 16 GiB floor</td>
+<td>Metadata and scheduling</td>
+</tr>
+<tr>
+<td>TiKV</td>
+<td>3 nodes, 16 vCPU / 64 GiB floor</td>
+<td>Row storage for production and derived tables</td>
+</tr>
+<tr>
+<td>TiFlash</td>
+<td>2 nodes, 32 vCPU / 64 GiB floor</td>
+<td>Columnar replicas for analytical queries</td>
+</tr>
+<tr>
+<td>TiCDC</td>
+<td>2 nodes, 16 vCPU / 64 GiB floor</td>
+<td>Change capture into Kafka</td>
+</tr>
+<tr>
+<td>QueryHub</td>
+<td>At least 2 replicas behind HPA</td>
+<td>SQL templates, parameter binding, caching, and query API</td>
+</tr>
+</tbody>
+</table>
+<p>AWS instance families met or exceeded PingCAP's production floors
+rather than reproducing them exactly. Each metric followed the same
+rollout path: Flink job, <code>ads_*</code> table, optional TiFlash
+replica, QueryHub template, and frontend chart mapping. Early jobs
+landed in June; settlement, commission, promotion, campaign, and
+wallet-transfer jobs followed over the next months.</p>
+<p>For dashboard queries, the admin frontend called QueryHub's
+named-query API through the gateway. QueryHub returned generic tabular
+rows, which ECharts rendered in the existing React admin.</p>
+<h2 id="production-challenges">Production Challenges</h2>
+<p>The first production problem was not Flink SQL or TiCDC correctness;
+it was TiFlash storage sizing. The TiFlash data volumes initially used
+<strong>default IOPS provisioning</strong>. As continuous writes
+arrived, replica synchronization lagged because writes, replica
+maintenance, and analytical reads competed for the small per-volume IOPS
+budget. The visible symptom was stale analytical tables.</p>
+<p>The diagnosis was concrete: <strong>TiFlash freshness depended on
+enough disk IOPS</strong>; it was not a free index attached to TiKV.</p>
+<table>
+<colgroup>
+<col style="width: 30%" />
+<col style="width: 40%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr>
+<th>Setting</th>
+<th style="text-align: right;">Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial TiFlash data volume</td>
+<td style="text-align: right;">Cloud-volume default</td>
+<td>Left too little headroom for the replica’s concurrent workloads</td>
+</tr>
+<tr>
+<td>Updated TiFlash data volume</td>
+<td style="text-align: right;">40,000 provisioned IOPS</td>
+<td>Applied independently to each TiFlash data volume</td>
+</tr>
+<tr>
+<td>TiFlash layer aggregate</td>
+<td style="text-align: right;">80,000 provisioned IOPS</td>
+<td>Two TiFlash nodes; <strong>not a shared cluster-wide
+pool</strong></td>
+</tr>
+</tbody>
+</table>
+<p>This table describes the observed bottleneck, not the complete
+storage model. TiKV also required SSD storage—and preferably NVMe/PCIe
+SSDs—because TiDB writes became Raft-replicated row storage and TiCDC
+read those changes. TiKV's RocksDB LSM path also needed IOPS and
+throughput headroom for WAL writes, memtable flushes, and background
+compaction; queueing there could raise write and Raft latency even
+without TiFlash contention. The incident surfaced on TiFlash first
+because columnar replicas added a second storage workload with scans,
+merge/compaction, and synchronization traffic.</p>
+<p>After the change, TiFlash replicas kept up with the streaming path,
+and second-level freshness became dependable in normal operation. Public
+guidance reinforced the direction: PingCAP recommends NVMe/PCIe SSDs for
+TiKV and says TiFlash's first data disk should not be slower than TiKV.
+On AWS, gp3 starts at 3,000 IOPS by default, while provisioned-IOPS
+volumes scale higher at additional cost.</p>
+<p>This choice also changed cost. The TiFlash layer added dedicated
+nodes and 40,000 provisioned IOPS per data volume, so each analytical
+replica increased baseline storage and IOPS cost—not only query load. We
+paid for that choice with more storage headroom and provisioned IOPS
+rather than operating a separate OLAP service.</p>
+<p>TiFlash also added an operational checklist. TiCDC does not replicate
+TiFlash DDL, so we explicitly enabled each derived table's replica and
+verified that it was queryable before calling the dashboard
+production-ready.</p>
+<h2 id="results">Results</h2>
+<p>The platform moved dashboards from ad-hoc production queries to a
+repeatable pipeline. Transaction records were the largest write path:
+one user action produced <em>one or two</em> transaction writes, so the
+path handled roughly <strong>10–20 million rows per day</strong>, with
+peaks of <strong>at least 500 inserts per second</strong>. The Flink
+jobs covered transaction/settlement, promotion, commission-ledger,
+wallet-transfer, campaign, and online/session data; the Java DataStream
+JAR added SOP lifecycle-management cleansing. That scale became the
+reference for CDC throughput, Kafka partitioning, Flink parallelism, and
+TiFlash capacity.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Evidence</th>
+<th>Engineering effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Near-real-time analytics</td>
+<td>Second-level OLTP-to-analytics freshness</td>
+<td>Enabled active-campaign monitoring instead of T+1 review</td>
+</tr>
+<tr>
+<td>Analytical query isolation</td>
+<td>QueryHub read analytical tables and cached hot queries</td>
+<td>Reduced uncontrolled production-table scans</td>
+</tr>
+<tr>
+<td>Reporting as configuration</td>
+<td>More than 100 parameterized SQL templates</td>
+<td>New query-backed metrics became configuration changes, not service
+deployments</td>
+</tr>
+<tr>
+<td>Consistent linked dashboards</td>
+<td>Cache groups and keyed hourly aggregates</td>
+<td>Linked views used the same metric definitions</td>
+</tr>
+<tr>
+<td>Targeted reconciliation</td>
+<td>Batch rewrote the same hourly keys</td>
+<td>Corrected selected ranges without rebuilding serving tables</td>
+</tr>
+<tr>
+<td>Ledger reconciliation</td>
+<td>Covered settlement and commission ledgers</td>
+<td>Supported repeatable reconciliation</td>
+</tr>
+<tr>
+<td>Faster delivery</td>
+<td>Template reuse plus agent assistance</td>
+<td>New query-backed metrics often required only template configuration
+and review; visualization work still depended on the frontend</td>
+</tr>
+</tbody>
+</table>
+<h2 id="trade-offs">Trade-offs</h2>
+<p>The result was <strong>logical decoupling</strong> from production
+tables, not <strong>physical isolation</strong> from TiDB. That made
+delivery faster, but analytics still shared the same TiDB cluster’s CPU,
+storage, IOPS, and operational path.</p>
+<p>What it made better:</p>
+<ul>
+<li>One TiDB endpoint preserved MySQL compatibility, operational
+familiarity, and joins between source and derived tables.</li>
+<li>Hourly primary keys made streaming recovery, checkpoint restarts,
+and batch reruns target the same rows.</li>
+<li>TiFlash provided a columnar path without introducing a second SQL
+dialect.</li>
+<li>QueryHub turned report execution into reviewed configuration.</li>
+</ul>
+<p>What it made worse:</p>
+<ul>
+<li>CDC, reconciliation, and analytical scans remained coupled through
+TiDB’s storage and query path.</li>
+<li>TiFlash added dedicated nodes, replica capacity, provisioned IOPS,
+and the runtime cost of replica maintenance.</li>
+<li>QueryHub removed service-code work but did not remove metric review
+or frontend wiring.</li>
+</ul>
+<h2 id="what-i-learned">What I Learned</h2>
+<p>Hardware floors were necessary but not sufficient. TiFlash sizing
+still depended on changed-row volume, scan shape, compaction pressure,
+and freshness targets.</p>
+<p>Idempotency mattered more than connector choice. Shared hourly
+primary keys let streaming recovery, batch reconciliation, and targeted
+correction update the same aggregate rows.</p>
+<p>Platform boundaries changed team workflow. A reviewed SQL template
+made metric definitions, parameters, cache invalidation, and access
+visible as configuration.</p>
+<h2 id="what-i-would-change-today">What I Would Change Today</h2>
+<p>Looking back, this was not primarily a TiDB-versus-ClickHouse
+decision. It was a decision about workload isolation. I would keep the
+ingestion pipeline, but define the analytical workload's capacity and
+operational boundary earlier.</p>
+<h3 id="keep-the-pipeline-and-idempotent-sinks">Keep the pipeline and
+idempotent sinks</h3>
+<p>TiCDC → Kafka → Flink fit our constraints. Kafka preserved the
+changefeed across Flink restarts, and Flink checkpoints preserved
+processing state. Most importantly, hourly TiDB primary keys and upserts
+made checkpoint recovery, batch reruns, and targeted reconciliation
+update the same row instead of creating duplicates.</p>
+<h3 id="separate-analytical-workload-operations-earlier">Separate
+analytical workload operations earlier</h3>
+<p>The incomplete part was treating production TiKV tables, analytical
+detail tables, <code>ads_*</code> aggregates, and TiFlash replicas as
+one operational unit. That was a defensible staffing decision, but the
+IOPS incident showed the cost: an analytical freshness problem became a
+TiDB capacity problem. The incident did not prove that TiDB + TiFlash
+was wrong; it proved that the analytical workload needed an explicit
+boundary.</p>
+<p>Today I would define that boundary in two stages. The minimum
+boundary would come before any storage change: keep dashboards on
+analytical tables only, set QueryHub query limits and timeouts, isolate
+batch reconciliation windows, and alert on TiCDC lag, Kafka partition
+skew, Flink checkpoint duration, JDBC upsert rate, TiKV write latency,
+TiFlash replica lag, TiFlash disk IOPS and latency, and TiFlash
+compaction activity. Those metrics would localize pressure to the
+source, pipeline, or serving engine; disk metrics would then distinguish
+IOPS, compaction, and query-load pressure.</p>
+<p>If analytical scans or production-latency risk kept growing, I would
+move analytical detail and <code>ads_*</code> serving out of the
+production TiDB cluster while preserving the same pipeline. That
+decision would come before choosing another storage engine: first define
+the workload boundary, then decide whether TiDB or a different OLAP
+engine should own that boundary.</p>
+<h3 id="treat-tiflash-sizing-as-its-own-decision">Treat TiFlash sizing
+as its own decision</h3>
+<p>The production surprise was stale TiFlash tables caused by disk IOPS,
+not a Flink SQL bug. After moving each TiFlash data volume to 40,000
+provisioned IOPS, freshness recovered. I would therefore size TiFlash
+from changed-row volume, replica sync traffic, scan shape, and freshness
+targets—not from the same node floors used for TiDB HA.</p>
+<h3 id="treat-clickhouse-as-workload-driven">Treat ClickHouse as
+workload-driven</h3>
+<p>I would not default to ClickHouse. It can be right for sustained
+detail scans and long retention, but it would change correction
+semantics: the current TiDB upserts are idempotent, while ClickHouse
+requires explicit ordering, merge/deduplication, and correction
+behavior. Migration should wait until sustained scan cost, retention,
+and query concurrency demand it.</p>
+<hr />
+<p><em>Previous in this series: <a
+href="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/">Building
+a Production-Grade Go Microservice Architecture from Zero</a> — the same
+team, the same product, a different layer of the platform.</em></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/" class="post-title-link" itemprop="url">Building a Production-Grade Go Microservice Architecture From Zero</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-10-03 12:00:00" itemprop="dateCreated datePublished" datetime="2025-10-03T12:00:00+08:00">2025-10-03</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.9k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>11 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Four Go engineers. Nineteen production services. A consumer
+transaction platform where correctness was non-negotiable and live-ops
+cadence was measured in days. That pressure was manageable only if the
+right architecture had a low marginal cost to follow — if conventions
+were generated instead of policed. So the platform made the right
+structure the default: a single API DSL as the contract entry, custom
+code generation down to <span class="exturl" data-url="aHR0cHM6Ly9wcm90b2J1Zi5kZXYv">Protocol
+Buffers<i class="fa fa-external-link-alt"></i></span> and <a
+target="_blank" rel="noopener" href="https://swagger.io/specification/">Swagger/OpenAPI</a>. This is
+the retrospective of what that bought, and what it cost.</p>
+<img data-src="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-cover.png" class="" title="Go Microservice Platform cover: clients, API gateway, nineteen domain services, ws-hub, TiDB">
+<h2 id="context">Context</h2>
+<p>The product team was assembled from scratch in early 2025: seventeen
+people — four Go engineers building the backend, six frontend
+developers, two QA, two UI designers, and three product managers driving
+the live-ops roadmap. The product itself was racing to match the feature
+set and live-ops cadence of the top platforms in its market. I initiated
+and led the platform program that ran February to May: an architecture
+template, a contract toolchain, a shared gateway, base libraries, and CI
+— built in parallel with the first business services, everything in this
+post shipped against that codebase. The platform then remained the
+default path as the backend grew to nineteen services spanning identity
+and access, financial transactions and ledger integrations, consumer
+engagement, growth and live-ops, and platform infrastructure.</p>
+<h2 id="problem">Problem</h2>
+<p>Four engineers couldn't hand-maintain conventions across nineteen
+services at production grade. Every service would need auth, error
+codes, structured logging, RPC wiring, gateway registration, and
+tracing; done by hand, each one would diverge within weeks, and every
+divergence would cost integration time the schedule did not have. The
+problem was not cleaning up a mess. It was making sure the mess never
+got a chance to form — without spending the people who were supposed to
+ship the product.</p>
+<h2 id="constraints">Constraints</h2>
+<p>Four Go engineers for the entire backend. The product's benchmark was
+the top platforms in its market: feature cadence measured in days,
+money-movement flows where correctness was non-negotiable, and
+around-the-clock availability. And one constraint by choice: we
+standardized on <a
+target="_blank" rel="noopener" href="https://github.com/zeromicro/go-zero">go-zero</a> rather than
+building a framework — the platform's job was to encode conventions, not
+to own runtime infrastructure.</p>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>One contract entry per service, from which handlers, RPC, and docs
+all derive.</li>
+<li>A scaffold that enforced the architecture instead of documenting
+it.</li>
+<li>Platform-wide error codes, auth, and context propagation as
+libraries.</li>
+<li>CI and tracing by default on every service.</li>
+<li>Services production-grade at their first commit; there was no
+move-fast-and-fix-later phase to lean on.</li>
+<li>An onboarding cost we could measure.</li>
+</ul>
+<h2 id="options-considered">Options Considered</h2>
+<p>The serious decision was not which framework but how deep to
+standardize on the one we had. go-zero is one of the most widely used Go
+microservice frameworks in the Chinese ecosystem — performance-oriented,
+with built-in <span class="exturl" data-url="aHR0cHM6Ly9ldGNkLmlvLw==">etcd<i class="fa fa-external-link-alt"></i></span> service discovery and
+a code generator (goctl). The team knew it well. The open question was
+the contract direction. goctl's native toolchain is API-first: it
+generates handlers, types, and routes from a <code>.api</code> DSL file.
+The alternative was proto-first — define <a
+target="_blank" rel="noopener" href="https://grpc.io/">gRPC</a> contracts and derive HTTP from them. We
+stayed DSL-first; the reasoning is in the next section.</p>
+<h2 id="architecture-design">Architecture / Design</h2>
+<p>The <span class="exturl" data-url="aHR0cHM6Ly9jNG1vZGVsLmNvbS8=">C4<i class="fa fa-external-link-alt"></i></span> container view below shows
+the platform as it runs today. Clients speak HTTPS to a single API
+Gateway, which routes to the domain services over gRPC. Service
+descriptors live on the gateway side; discovery runs through <a
+target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/">Kubernetes
+EndpointSlices</a>. Services keep per-service schemas in <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a> over the
+MySQL protocol, cache in Redis, and export spans to <a
+target="_blank" rel="noopener" href="https://zipkin.io/">Zipkin</a>. ws-hub terminates websockets and
+fans pushes out to clients on behalf of the services. The gateway card
+carries the piece I would highlight: an i18n hook on the response chain
+that localizes response content per user locale, so services stay
+locale-blind.</p>
+<img data-src="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-architecture-c4.png" class="" title="C4 container view of the Go Microservice Platform: clients, API gateway with i18n and jwt, nineteen domain services on go-zero with onion&#x2F;DDD scaffold, TiDB per-service schemas, Redis caching, Kubernetes discovery, Zipkin tracing, and ws-hub websocket fan-out">
+<h2 id="key-technical-decisions">Key Technical Decisions</h2>
+<h3 id="dsl-as-the-single-contract-entry">DSL as the single contract
+entry</h3>
+<p>The platform had a double-contract problem: clients spoke HTTP/JSON
+through the gateway while services spoke gRPC to each other. With
+proto-first, the HTTP side still needs its own route and type
+definitions; the same interface lives in two files and drifts. With
+DSL-first, one <code>.api</code> file expressed the complete feature —
+including its access-control tiers:</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line">syntax = &quot;v1&quot;</span><br><span class="line"></span><br><span class="line">// <span class="built_in">public</span>: <span class="keyword">login</span>, <span class="number">2</span>fa <span class="keyword">check</span>, token <span class="keyword">refresh</span>, <span class="keyword">password</span> <span class="keyword">reset</span></span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @doc &quot;check whether 2fa login is enabled&quot;</span><br><span class="line"> @<span class="keyword">handler</span> Check2FA</span><br><span class="line"> post /check2fa (Check2FAReq) <span class="keyword">returns</span> (Check2FARes)</span><br><span class="line"></span><br><span class="line"> @<span class="keyword">handler</span> <span class="keyword">Login</span></span><br><span class="line"> post /<span class="keyword">login</span> (LoginReq) <span class="keyword">returns</span> (LoginRes)</span><br><span class="line"></span><br><span class="line"> @<span class="keyword">handler</span> RefreshToken</span><br><span class="line"> post /refresh_token (RefreshTokenReq) <span class="keyword">returns</span> (RefreshTokenRes)</span><br><span class="line"></span><br><span class="line"> @<span class="keyword">handler</span> ForgetPassword</span><br><span class="line"> post /forget_password (ForgetPasswordReq) <span class="keyword">returns</span> (ForgetPasswordRes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// <span class="keyword">admin</span>-jwt required: <span class="number">2</span>fa verification</span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line"> auth: <span class="keyword">admin</span></span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @<span class="keyword">handler</span> Verify2FA</span><br><span class="line"> post /verify2fa (Verify2FAReq) <span class="keyword">returns</span> (Verify2FARes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// permission-gated: <span class="keyword">temporary</span>-token <span class="keyword">password</span> <span class="keyword">reset</span></span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line"> auth: &quot;admin=permissionUserResetPwd&quot;</span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @<span class="keyword">handler</span> ResetPassword</span><br><span class="line"> post /reset_password (ResetPasswordReq) <span class="keyword">returns</span> (ResetPasswordRes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> LoginReq &#123;</span><br><span class="line"> Identifier string `<span class="type">json</span>:&quot;identifier&quot;`</span><br><span class="line"> <span class="keyword">Password</span> string `<span class="type">json</span>:&quot;password&quot;`</span><br><span class="line"> DeviceID string `<span class="type">json</span>:&quot;device_id&quot;`</span><br><span class="line"> Code string `<span class="type">json</span>:&quot;code&quot;`</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Token &#123;</span><br><span class="line"> AccessToken string `<span class="type">json</span>:&quot;access_token&quot;`</span><br><span class="line"> AccessTokenExpireIn int64 `<span class="type">json</span>:&quot;access_token_expire_in&quot;`</span><br><span class="line"> RefreshToken string `<span class="type">json</span>:&quot;refresh_token&quot;`</span><br><span class="line"> RefreshTokenExpireIn int64 `<span class="type">json</span>:&quot;refresh_token_expire_in&quot;`</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Three access tiers in one contract: public login flow, admin-jwt
+verification, permission-gated password reset. Handlers, types, proto
+via our plugin, Swagger via the other — all generated from this one
+file. A single interface stops drifting because there is no second copy
+to drift from.</p>
+<p>The git history made the same point quantitatively. The contract
+repository absorbed 3,568 commits in the platform's first seven months —
+more than any single service, holding fifty-five <code>.api</code>
+contract files and sixty-eight generated proto schemas, with four
+hundred to seven hundred commits landing every month. Every interface
+change in the platform flowed through that one repository.</p>
+<h3 id="domain-boundaries-and-data-ownership">Domain boundaries and data
+ownership</h3>
+<p>All nineteen services shared one TiDB cluster, so the boundary that
+mattered was drawn at the table level: every service owned a disjoint
+set of tables — the user service held its auth, KYC, and
+customer-profile tables; the ledger service held currency orders,
+account balances, and token metadata. Each service's data layer reached
+only its own tables. Cross-service access ran exclusively over gRPC,
+with service discovery through Kubernetes EndpointSlices and the
+dependency graph explicit in every service's configuration; a
+repository-layer scan confirmed zero cross-domain table access. Shared
+infrastructure, owned data: one operational cluster, hard logical
+boundaries.</p>
+<h3 id="fill-the-generation-gaps-with-plugins">Fill the generation gaps
+with plugins</h3>
+<p>Vanilla goctl generated HTTP handlers from <code>.api</code> but not
+proto or Swagger, and the platform needed both. We wrote two goctl
+plugins, goctl-proto and goctl-swagger, so one <code>.api</code> file
+produces handlers, proto, and Swagger in the same commit. Both install
+with <code>go install</code> and run in goctl's plugin mode: they extend
+the standard toolchain instead of replacing it.</p>
+<h3 id="the-scaffold-as-specification">The scaffold as
+specification</h3>
+<p>The onion/DDD structure (application, domain, infrastructure, and
+service-context layers; repository interfaces in the domain with
+implementations injected from infrastructure; outbox-pattern domain
+events) lived in a README and in custom goctl templates. A service
+generated from the template starts compliant: the layering, the event
+outbox, and the repository seams all exist before the first line of
+business code. The README stayed the reference; the template did the
+enforcing.</p>
+<h3 id="platform-wide-error-codes">Platform-wide error codes</h3>
+<p>bizerr encodes every error as a six-digit code: two digits of service
+ID, two of function, two of error. Clients match on the prefix; anyone
+can decode an error to its origin without grep. Errors carry captured
+stacks and wrap their causes, so production incidents could be traced
+through the chain without re-running anything. The registry doubles as
+the coordination point — a new service claims its service ID once, and
+using an unregistered code panics at runtime.</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// each service claims an id; codes are registered with metadata</span></span><br><span class="line"><span class="keyword">const</span> errUserNotFound = bizerr.ErrCode(<span class="number">120401</span>)</span><br><span class="line"></span><br><span class="line"><span class="function">func <span class="title">init</span>()</span> &#123;</span><br><span class="line"> bizerr.RegisterErrorCode(errUserNotFound, bizerr.ErrorMeta&#123;</span><br><span class="line"> DefaultMessage: <span class="string">&quot;user not found&quot;</span>,</span><br><span class="line"> &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// call sites build from registered codes only —</span></span><br><span class="line"><span class="comment">// an unregistered code panics before it can reach a user</span></span><br><span class="line"><span class="keyword">return</span> errUserNotFound.Build(err)</span><br></pre></td></tr></table></figure>
+<h3 id="gateway-as-the-composition-edge">Gateway as the composition
+edge</h3>
+<p>The gateway wrapped a maintained go-zero fork and owned everything
+cross-cutting: JWT auth, header processing, response wrapping, CORS, and
+an i18n hook on the response chain that localizes response content per
+user locale. Because localization lived in the gateway, services stayed
+locale-blind — adding a language was a gateway change, not nineteen
+service changes.</p>
+<p>The i18n hook localized the CMS's dynamic content — product
+descriptions, promotions, and operational copy — per user locale,
+managed by operations through the language service. Error messages took
+a different path by design: services return language-neutral error
+codes, and the frontend maps each code to a localized string through its
+own static i18n library — no backend round-trip for error
+localization.</p>
+<h3 id="generation-over-governance">Generation over governance</h3>
+<p>Every convention that could be enforced by generation was: custom
+goctl templates generated the onion structure, makefile targets pinned
+the base-library set, and shared CI templates standardized pipelines for
+Go, React, and Next.js services. Convention reviews do not scale; code
+generation does.</p>
+<h3 id="what-we-deliberately-did-not-build">What we deliberately did not
+build</h3>
+<p>The refusals were as considered as the builds. No service mesh:
+go-zero already carried service discovery and the microservice mechanics
+we needed on Kubernetes, and Istio's operational weight was a tax a
+four-person team should not pay. No custom deployment system or RPC
+framework: the Kubernetes API and the maintained go-zero fork covered
+both, and a small team stays agile by standing on the platform it runs
+on. Even the config center waited: Kubernetes ConfigMap carried the
+early services, and config-hub was built only when business operations
+needed runtime-flexible configuration — self-service changes without
+engineering deploy cycles. One rule ran through every refusal: nothing
+heavy gets built before a concrete operational need forces it.</p>
+<p>None of these decisions are specific to go-zero. The contract-entry
+choice, the plugin chain, and scaffold-as-specification transfer to any
+codegen-first stack — swap the framework and the pattern holds.</p>
+<h2 id="implementation">Implementation</h2>
+<p>A new service started from the scaffold: the templates generated the
+<code>.api</code> skeleton, the onion directory tree, the Dockerfile,
+and deployment manifests. The makefile pinned the shared libraries at
+latest: utils, ddd-style, bizerr, go-zero, pubsub, auth, bizctx, plus
+any service SDKs. CI came from a shared GitLab include with pipelines
+for Go, React, and Next.js. Tracing was a config line: Zipkin batcher,
+full sampling in dev. The gateway discovered gRPC methods dynamically
+from Kubernetes endpoints at startup — new services were picked up
+without gateway redeployment as the platform grew toward nineteen
+services.</p>
+<h2 id="adoption">Adoption</h2>
+<p>With a four-person team there was no convincing to do. The same
+people built the platform and the services, so adoption was a sequencing
+problem, not a persuasion problem: the scaffold had to stay ahead of the
+services while features shipped. In practice the template evolved with
+the first services, and every service that followed generated from it.
+Where a convention could not be generated, it had exactly one
+coordination point: claiming a service ID in the bizerr registry.</p>
+<p>The platform kept paying after the build window closed. Once the
+scaffold and the DSL stabilized, team members started writing business
+logic with AI coding agents, and delivery got faster again. The reason
+is worth naming; I return to it in the closing note below.</p>
+<h2 id="results">Results</h2>
+<ul>
+<li>Nineteen services on the platform, from identity to ledgers to
+interactive products.</li>
+<li>The build itself: eleven thousand commits across forty repositories
+in the platform's first seven months.</li>
+<li>All nineteen generated from the scaffold, zero hand-rolled
+exceptions, by a team of four, while the product shipped weekly.</li>
+<li>Onboarding cost down roughly 60%, measured in boilerplate lines and
+person-days to a first deployed endpoint (an internal estimate, not a
+controlled measurement).</li>
+<li>Fourteen service descriptors registered at the gateway, and eight
+service SDKs layered on top of the six base libraries.</li>
+<li>Three CI pipelines covering every service and frontend.</li>
+</ul>
+<h2 id="was-it-worth-it-for-four-people">Was It Worth It for Four
+People?</h2>
+<p>Fair question: the platform cost the program's first four months of
+focused time, from a team that was also standing up its first services.
+The return came from the work it removed. Nineteen services each needed
+auth, error codes, tracing, configuration, deployment, and gateway
+registration; the scaffold generated all of it, turning days of
+boilerplate per service into a single command. The ledger services
+raised the stakes: correctness patterns like the outbox and the
+error-code registry were encoded once, centrally, instead of
+re-implemented — and re-gotten-wrong — in every service that touched
+money.</p>
+<p>And the beneficiaries were never just the backend — or even just
+engineering. The shared CI templates covered the React and Next.js
+pipelines the frontend developers worked in; Swagger generation kept
+their integration contracts current with every <code>.api</code> commit;
+and the registered error codes made QA's failures decodable to a service
+and function instead of mysterious. The product managers felt it
+loudest: the live-ops expansion of June and July — referrals, membership
+programs, interactive campaigns — shipped off the same scaffold.
+Seventeen people consumed what four people built.</p>
+<p>I would not run this play everywhere. It stops being worth it on a
+short product runway, with a service count that never passes four or
+five, or if the platform build slips into its own project. None of those
+were our world: the roadmap called for what became nineteen services,
+the team grew to seventeen, and the platform landed inside its
+February-to-May window.</p>
+<h2 id="trade-offs">Trade-offs</h2>
+<p>DSL-first gave up proto-level control: generated proto constrained
+advanced gRPC features, and services that needed them dropped to
+hand-written proto (rare, but real). The maintained go-zero fork is a
+permanent maintenance duty; we took fixes on our schedule, not
+upstream's. Onion layering adds indirection that is overhead for thin
+CRUD services — the template made it cheap, not free. And the central
+error-code registry is a coordination point: two services cannot
+silently claim the same ID.</p>
+<h2 id="what-i-learned">What I Learned</h2>
+<p>For a small team, the cheapest time to enforce a convention is before
+the first service exists. Every service generated after that point
+inherits it for free; every hand-rolled exception would have spent the
+schedule twice. Contract drift, when it appeared, turned out to be a
+tooling problem too: moving the contract into the source of generation
+ended it without a process. And boring choices compound: standardizing
+on go-zero and a DSL we did not invent left our innovation budget for
+the two plugins and the scaffold — the parts that were actually
+ours.</p>
+<h2 id="what-i-would-change-today">What I Would Change Today</h2>
+<h3 id="chaos-test-the-failover-paths">Chaos-test the failover
+paths</h3>
+<p>Pod rescheduling, ws-hub reconnection, and gateway instance failure
+paths were designed but never systematically tested under failure
+conditions. A chaos suite that restarts gateway instances, interrupts
+service discovery, and exercises ws-hub reconnection under load would
+have validated those assumptions before production traffic did.</p>
+<h3 id="alert-on-api-contract-changes">Alert on API contract
+changes</h3>
+<p>The <code>.api</code> contract files had no change monitoring - when
+an interface definition changed, no consumer was notified, and no team
+saw the diff before it merged. The change surfaced only when a
+consumer's call failed at runtime. A CI step that diffs the generated
+proto and Swagger against the previous version and posts the delta to
+the team channel would have made every contract change visible before it
+shipped.</p>
+<h3 id="introduce-a-bff-boundary">Introduce a BFF boundary</h3>
+<p>One admin editor showed the missing boundary. A single page called
+content/activity, catalog, payment-metadata, and localization services
+directly. It loaded catalog providers, playable items, token metadata,
+and localized components. On save, the frontend first upserted localized
+copy, read back generated references, merged them into the business
+payload, and then called the business create or update API.</p>
+<p>That made the browser own a cross-service write sequence. If
+localization succeeded but the business write failed, the localized
+components remained while the business record did not. A
+backend-for-frontend endpoint for this editor would have made the
+composition explicit: the domain services would keep content, catalog,
+payment, and localization ownership, while the BFF owned the admin page
+shape and the localization-plus-business write path, including
+compensation or idempotency. It would not replace domain services; it
+would stop each page from assembling service boundaries by itself.</p>
+<p>The same assembly cost appeared elsewhere. Several admin pages
+independently fetched catalog providers, payment metadata, or localized
+labels to build dropdowns and display names. A change to one visible
+page could therefore cross multiple domain contracts even when the
+business change was small.</p>
+<h2 id="a-closing-note-from-the-agent-era">A Closing Note from the Agent
+Era</h2>
+<p>This platform was built before AI coding agents entered our workflow,
+and it turned out to be exactly what they needed. Agents amplify
+whatever the codebase already is: the contract repository, the
+per-service table ownership, and the generated scaffold got amplified
+into consistent, fast agent output, while a weak top-level design would
+have been amplified just as fast into something unmaintainable. What
+made the boundaries work was not the act of splitting services but
+encoding them into contract files, table ownership, and generated
+structure. When a boundary lives in a contract file, every future change
+automatically respects it. When it lives only in a meeting discussion,
+the next sprint forgets it.</p>
+<p><em>Previous in this series: <a
+href="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/">Designing
+a Distributed Scheduler Handling 200K+ Scheduling Operations per
+Second</a> — a different company, a different problem: the scheduler
+built before this platform.</em></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/" class="post-title-link" itemprop="url">Designing a Distributed Scheduler Handling 200K+ Scheduling Operations per Second</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-01-01 14:00:00" itemprop="dateCreated datePublished" datetime="2025-01-01T14:00:00+08:00">2025-01-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.3k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>8 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>Adding scheduler instances made the contention worse, not better. The
+legacy batch center and <a
+target="_blank" rel="noopener" href="https://github.com/xuxueli/xxl-job">xxl-job</a> flatlined at a few
+thousand operations per second, and every new instance multiplied lock
+contention on the same task table. This is the retrospective of their
+replacement — a scheduling center on <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a>, <a
+target="_blank" rel="noopener" href="https://etcd.io/">etcd</a>, and <a
+target="_blank" rel="noopener" href="https://pulsar.apache.org/">Apache Pulsar</a> that peaked above
+200K operations per second — and of the incident that forced its
+isolation model to be redesigned. Here, a scheduling operation means one
+trigger-unit execution command published to Pulsar.</p>
+<img data-src="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture.png" class="" title="Final Distributed Scheduling Center architecture after topic isolation: etcd election, partition schedulers, TiDB CAS state machine, fire pipeline, Pulsar topics per business domain, and executor SDK">
+<h2 id="context">Context</h2>
+<p>At my previous company, the SCRM (Social CRM) platform served
+enterprise marketing teams, and a large share of product features
+depended on delayed execution: marketing SOP (standard operating
+procedure) sequences that touched segmented audiences at scheduled
+moments, follow-up reminders, and large one-shot jobs created by
+operations. Two legacy components carried this load: an in-house batch
+center and xxl-job. Together they covered more than twenty business
+scenarios and were approaching a hundred million scheduled tasks.</p>
+<p>I owned the design and delivery of their replacement: a distributed
+scheduling center built in Go on top of those systems, and later the
+migration of existing business scenarios onto it. The design was
+lightweight in responsibilities rather than in ambition: it reused
+established storage, coordination, and delivery primitives instead of
+inventing new ones.</p>
+<h2 id="problem">Problem</h2>
+<p>Both legacy systems shared the same effective execution model for our
+workloads. When a task came due, the scheduler dispatched it onto a
+worker and invoked a business HTTP callback; the worker stayed occupied
+until the callback returned. For fast handlers this was fine. But real
+business handlers took anywhere from milliseconds to minutes, and every
+slow task held its worker hostage. Under load, the worker pool saturated
+and throughput collapsed. Production hit a ceiling at a few thousand
+scheduling operations per second.</p>
+<p>Scaling out made things worse, not better. Every instance polled and
+updated the same task table, so adding instances multiplied read/write
+lock contention on it. The system could not grow horizontally at exactly
+the moment we needed it to.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart LR
+    D[due task] --> W["worker occupied<br/>until callback returns"]
+    W --> H["handler: ms to minutes"]
+    H --> S["pool saturated<br/>few thousand ops/s"]
+    S -.->|"redesign: decouple dispatch<br/>from handler time"| R["command published<br/>with deliver-at = fire time"]
+    R --> X["capacity scales with<br/>partitions + fire-pool size"]
+          </pre>
+<h2 id="constraints">Constraints</h2>
+<ul>
+<li>Task state had to live in a transactional database. Tasks were
+coupled to business flows, and we needed state transitions to be
+auditable and recoverable, not buried inside message queues or
+caches.</li>
+<li>Existing business scenarios had to migrate without rewrites. The new
+system needed an SDK and a data migration path.</li>
+<li>Downstream handler latency was unpredictable and outside our
+control. The scheduler had to make progress regardless of how long
+business callbacks took.</li>
+<li>The replacement had to happen gradually, business by business, while
+both old and new systems ran against production traffic.</li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Second-level scheduling precision for delayed tasks, plus cron
+support for recurring ones.</li>
+<li>Peak throughput well beyond the old ceiling.</li>
+<li>Failure isolation between business scenarios. This became a hard
+requirement after the SOP workload showed that a slow consumer could
+affect the shared delivery path.</li>
+<li>Full replacement of the batch center and xxl-job with a gradual,
+verifiable cutover.</li>
+</ul>
+<h2 id="options-considered">Options Considered</h2>
+<p>Patching xxl-job and the batch center (sharding the table, enlarging
+worker pools) treated symptoms. The thread-per-callback execution model
+and the shared-table contention remained, so the ceiling would only move
+slightly.</p>
+<p>Moving the entire task lifecycle into the message queue, holding
+every task as a delayed message, would have removed the database from
+the scheduling path. We rejected it because pausing, cancelling,
+migrating, and auditing tasks then mean reading and rewriting messages.
+We wanted the database to remain the single source of truth for task
+state.</p>
+<p>The design we landed on was a hybrid: the database decides
+<em>what</em> is due, on a coarse time grid; the message queue decides
+<em>when</em> each execution command is delivered, with second-level
+precision.</p>
+<h2 id="architecture-design">Architecture / Design</h2>
+<p>The <span class="exturl" data-url="aHR0cHM6Ly9jNG1vZGVsLmNvbS8=">C4<i class="fa fa-external-link-alt"></i></span> container view below shows
+the final system after topic isolation. Inside the boundary sat the
+containers we operated: etcd election, the scheduler leader, the fire
+pipeline, the TiDB trigger store, Pulsar topics per business domain, and
+the executor SDK embedded in each business service. Every arrow carries
+its protocol as a badge — lease, SQL CAS, deliver-at, consumer groups,
+and event — because each of those protocols is a design decision
+explained in the next section.</p>
+<img data-src="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture-c4.png" class="" title="C4 container view of the final Distributed Scheduling Center: etcd election, scheduler leader and fire pipeline, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar topics, executor SDK consumer groups, and execution callback events">
+<h2 id="key-technical-decisions">Key Technical Decisions</h2>
+<h3 id="partition-serial-scheduling">Partition-serial scheduling</h3>
+<p>The trigger table was hash-partitioned by ID in TiDB, with the
+partition count sized to expected business volume. The scheduler
+discovered partitions from <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/partitioned-table">table
+metadata</a> and ran exactly one scheduling goroutine per partition
+inside the leader process. Within a partition, acquisition was serial:
+scan due triggers, acquire, fire. Because each goroutine touched only
+its own partition, there was no cross-goroutine contention in the common
+case, and partition pruning kept every scan cheap.</p>
+<h3 id="cas-as-a-safety-net">CAS as a safety net</h3>
+<p>Every transition
+(<code>waiting → acquired → triggered → waiting/completed</code>) went
+through a conditional update:
+<code>UPDATE ... SET state = acquired WHERE id IN (...) AND state = waiting</code>,
+followed by re-reading state to confirm which rows actually
+transitioned. With a single owner per partition this rarely contended,
+but it meant correctness never depended on the election being perfect.
+If two processes ever touched the same trigger, exactly one would
+win.</p>
+<p>The same discipline covered operational controls: pausing and
+resuming a job moved its triggers between <code>waiting</code> and
+<code>paused</code> through the same conditional-update API, so a manual
+operation could never leave a trigger in a state the scheduler would
+misread.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            stateDiagram-v2
+    [*] --> waiting: job created
+    waiting --> acquired: CAS acquire
+    acquired --> triggered: command published (deliver-at)
+    acquired --> waiting: release after failed dispatch
+    triggered --> waiting: cron, next fire time
+    triggered --> completed: one-shot task
+    waiting --> paused: pause API
+    paused --> waiting: resume API
+    completed --> [*]
+          </pre>
+<h3 id="coarse-acquisition-precise-delivery">Coarse acquisition, precise
+delivery</h3>
+<p>The scheduling loop acquired triggers in a lookahead window of
+roughly forty seconds (configurable), in batches of up to 500, ordered
+by due time. Each execution command was then published with a deliver-at
+timestamp equal to the trigger's fire time, so the message bus held it
+until the right moment. This decoupled the database polling frequency
+from scheduling precision: the DB loop could be lazy and batchy while
+precision stayed at the second level.</p>
+<h3 id="a-single-leader-for-partition-schedulers">A single leader for
+partition schedulers</h3>
+<p>I considered distributing partitions across nodes, but that adds
+assignment, rebalancing, and partial-failure handling. A single leader
+through etcd lease-based election was operationally simpler: if the
+leader died, followers campaigned with exponential backoff and one took
+over. The trade-off was that the acquire loop's ceiling was one process,
+and there was a brief gap during failover. Given that the fire pipeline
+(not the acquire loop) was the throughput bottleneck, this was
+acceptable.</p>
+<h3 id="fan-out-through-sharding-items">Fan-out through sharding
+items</h3>
+<p>Large audience jobs could not expand into millions of individual
+triggers. Instead, each job carried sharding items that the fire
+pipeline paged through (300 per page), turning each item into its own
+execution command. Fired records were persisted per item so execution
+results could be tracked and aggregated through callbacks.</p>
+<h2 id="implementation">Implementation</h2>
+<p>The acquire loop of each partition scheduler did the following, once
+per tick:</p>
+<ol type="1">
+<li>Compute the acquisition window: from the misfire floor (overdue
+triggers up to 30 minutes old were still fireable; on startup the
+catch-up window extended back further) to now plus the lookahead.</li>
+<li>Select <code>waiting</code> triggers in that window, ordered by due
+time, limited to the batch size — and capped by available capacity in
+the fire pool, so the scheduler never acquired more than it could hand
+off.</li>
+<li>CAS the batch from <code>waiting</code> to <code>acquired</code>,
+confirm winners by re-reading state, then submit them to the fire
+pipeline in chunks of 200 with retries.</li>
+<li>If the fire pipeline rejected work repeatedly, release the triggers
+back to <code>waiting</code> so nothing was lost.</li>
+</ol>
+<p>The fire pipeline loaded job definitions, computed the next fire time
+(for cron) or marked completion (for one-shot tasks), expanded sharding
+items, persisted fired records, and published execution commands with
+their deliver-at timestamps. Business services integrated through an SDK
+that subscribed with its own consumer group per business and reported
+results back through callback events.</p>
+<p>We migrated the legacy systems with purpose-built tooling: readers
+for the old batch task tables and their change streams, a data flag to
+make migration idempotent, and an SDK for business teams. We load-tested
+and functionally tested against production traffic first, then cut over
+business by business, starting with small, low-value scenarios and
+ending with the critical ones.</p>
+<h2 id="codebase-surface">Codebase Surface</h2>
+<p>The implementation stayed deliberately bounded. The scheduler service
+and executor SDK contained 110 non-test Go files and roughly 8,900 lines
+of code — about 7,100 lines in the scheduler and 1,800 in the SDK. That
+number is not the point by itself; the point is what the design did not
+add: no bespoke coordination service and no custom storage engine. TiDB,
+etcd, Pulsar, and the SDK carried those responsibilities.</p>
+<p>Maintenance therefore focused on a small set of real complexity:
+partition sizing, leader failover, state-transition correctness, topic
+isolation, SDK compatibility, and executor idempotency. Those were the
+places where a mistake could affect callers; the rest of the
+implementation was deliberately ordinary.</p>
+<h2 id="failure-modes-production-challenges">Failure Modes / Production
+Challenges</h2>
+<p>The most instructive incident came after onboarding the audience-SOP
+scenario. The consumer queues started backing up. The SDK gave each
+business its own consumer group, so handler execution was isolated at
+the subscription level; Pulsar showed exactly which subscription was
+falling behind because its handlers could not keep up with the dispatch
+rate. Delivery infrastructure was not isolated, however: all commands
+still entered one shared topic. As that subscription's backlog grew,
+producers observed backpressure on the shared topic. A problem scoped to
+one business had become a platform-wide stall.</p>
+<p>We split the topic per business domain. After that, a slow consumer
+could only delay its own domain; other businesses kept flowing, and the
+offending business could be throttled or scaled independently. The
+diagrams show this final topology after topic isolation.</p>
+<h2 id="results">Results</h2>
+<ul>
+<li>Peak scheduling throughput above 200K operations per second, up from
+a ceiling of a few thousand in the legacy systems.</li>
+<li>Coverage of more than 20 business scenarios and a task volume
+approaching one hundred million.</li>
+<li>Full replacement of both the batch center and xxl-job, with a
+gradual per-business cutover and no big-bang migration.</li>
+</ul>
+<p>The 200K+ figure came from the Pulsar Manager publish-rate panel:
+messages per second on the execution-command topics. For the SOP
+workload that drove the peak, each scheduled task unit published one
+execution command; jobs with multiple sharding items would publish
+proportionally more. The fire pool held 6,000 slots and dispatched
+commands in chunks of 200. Those constants implied that sustaining
+200,000 publishes per second required average end-to-end dispatch
+latency — the Pulsar round trip included — below 30 milliseconds. On the
+acquisition side, each partition goroutine pulled up to 500 triggers per
+loop, so aggregate acquire capacity scaled with the number of
+provisioned partitions.</p>
+<h2 id="trade-offs">Trade-offs</h2>
+<h3 id="what-it-made-better">What it made better</h3>
+<p>Horizontal scalability improved because capacity grew with partition
+count and fire-pool size instead of fighting table locks. The design
+also provided second-level precision without hammering the database,
+auditable task state in one place, and predictable scheduling behavior
+per partition.</p>
+<h3 id="what-it-made-worse">What it made worse</h3>
+<p>Every state transition added write amplification on TiDB. Partition
+count became a capacity-planning burden, since changing it later is not
+free. The single-leader acquire loop had a process ceiling and a
+failover gap during election. At-least-once delivery pushed idempotency
+requirements onto every executor.</p>
+<h2 id="what-i-learned">What I Learned</h2>
+<p>Throughput problems are often execution-model problems, not resource
+problems. The legacy systems did not need more machines; they needed to
+stop holding a worker per in-flight callback. Adding instances made
+contention worse — the opposite of what scaling is supposed to do.</p>
+<p>Isolation boundaries must be a first-class design input. We designed
+for throughput and correctness, and retrofit isolation after the
+single-topic incident. Both were necessary; only one was planned.</p>
+<p>Decoupling acquisition granularity from delivery precision gave us
+most of the wins: the database stayed transactional and lazy, while the
+message queue absorbed the precision requirement.</p>
+<h2 id="what-i-would-change-today">What I Would Change Today</h2>
+<p>Topic-per-business-domain would be the initial design, not a
+post-incident fix, and per-business concurrency quotas would ship with
+the first version of the SDK.</p>
+<p>I would instrument fire-time lag — the difference between a trigger's
+scheduled time and its actual delivery — as a first-class SLI from day
+one, with alerting on both platform-wide and per-domain percentiles.</p>
+<p>At the scale the system eventually reached, I would revisit the
+single-leader design and evaluate distributing partitions across nodes
+with partition-level handoff. The operational simplicity was worth it at
+first, but the trade-off shifts once the acquire loop itself approaches
+a single process's limits.</p>
+<hr />
+<p><em>Next in this series: <a
+href="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/">Building
+a Production-Grade Go Microservice Architecture from Zero</a> — a
+different company, a different problem: the platform built so that
+nineteen services would standardize themselves.</em></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">8k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">29 mins.</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
