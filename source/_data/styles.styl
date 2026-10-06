@@ -2,3 +2,62 @@
 .code-hidden {
     display: none;
   }
+
+// Improve H2/H3 hierarchy inside engineering case studies.
+.post-body {
+  h2 {
+    margin: 44px 0 20px;
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid $grey-lighter;
+    font-size: 1.375em;
+  }
+
+  h3 {
+    margin: 30px 0 14px;
+    padding-left: 0.6em;
+    border-left: 3px solid $grey-lighter;
+    font-size: 1.125em;
+  }
+
+  h2.has-anchor {
+    position: relative;
+    padding-inline-end: 2.35rem;
+  }
+
+  .heading-anchor {
+    position: absolute;
+    top: 0.1em;
+    inset-inline-end: 0;
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 0.3rem;
+    color: var(--link-color);
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+  }
+
+  .heading-anchor:hover,
+  .heading-anchor:focus-visible {
+    color: var(--link-hover-color);
+    background: var(--card-bg-color);
+    opacity: 1;
+  }
+
+  .heading-anchor:focus-visible {
+    outline: 2px solid var(--brand-color);
+    outline-offset: 2px;
+  }
+}
+
+@media (hover: none) {
+  .post-body .heading-anchor {
+    opacity: 0.68;
+  }
+}
