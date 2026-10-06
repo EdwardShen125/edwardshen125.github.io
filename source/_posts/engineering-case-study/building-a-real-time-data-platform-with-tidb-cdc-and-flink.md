@@ -189,23 +189,27 @@ Platform boundaries changed team workflow. A reviewed SQL template made metric d
 
 ## What I Would Change Today
 
-The single-TiDB-cluster design was defensible for this team and initial workload, but TiFlash still introduced a second storage engine whose cost and failure modes were coupled to the analytical path. That footprint was justifiable for correctness and HA, yet it front-loaded infrastructure cost before analytical query volume fully materialized.
+Looking back, this was not primarily a TiDB-versus-ClickHouse decision. It was a decision about workload isolation. I would keep the ingestion pipeline, but define the analytical workload's capacity and operational boundary earlier.
 
-Before deciding that TiDB itself was the cost problem, I would measure the write and query path:
+### Keep the pipeline and idempotent sinks
 
-| Path to measure | What to measure | Why it mattered |
-|---|---|---|
-| TiCDC | Changed rows per table and changefeed lag | Separated broad write amplification from a hot source table |
-| Kafka | Partition throughput and skew | Checked whether user-ID partitioning stayed parallel |
-| Flink | Checkpoint size/duration and JDBC upsert rate | Connected business events to state and sink pressure |
-| TiKV | Raft write latency, compaction, and storage queueing | Identified impact on transactional durability |
-| TiFlash | Replica sync lag, scan IOPS, and compaction pressure | Linked write-back and scans to freshness and latency |
+TiCDC → Kafka → Flink fit our constraints. Kafka preserved the changefeed across Flink restarts, and Flink checkpoints preserved processing state. Most importantly, hourly TiDB primary keys and upserts made checkpoint recovery, batch reruns, and targeted reconciliation update the same row instead of creating duplicates.
 
-I would then reduce coupling in stages: route dashboards to analytical tables, cache hot results, isolate batch windows, provision TiFlash storage independently, and keep QueryHub scans bounded. Where the freshness target allowed, I would evaluate TiDB resource groups, placement rules, and stale reads. If sustained detail scans, replica lag, storage queueing, or query load threatened OLTP capacity, I would separate analytical storage/compute and migrate detail/history first.
+### Separate analytical workload operations earlier
 
-Hourly aggregates were keyed for targeted reads, so moving them to columnar storage would make sense *only if* width, retention, dimension cardinality, or scan pattern justified it. Migration would also change sink semantics: TiDB primary keys and upserts made recovery, reruns, and reconciliation idempotent, while ClickHouse would require explicit merge/deduplication, ordering, query visibility, and correction semantics.
+The incomplete part was treating production TiKV tables, analytical detail tables, `ads_*` aggregates, and TiFlash replicas as one operational unit. That was a defensible staffing decision, but the IOPS incident showed the cost: an analytical freshness problem became a TiDB capacity problem. The incident did not prove that TiDB + TiFlash was wrong; it proved that the analytical workload needed an explicit boundary.
 
-For a cloud-first product starting small, Aurora → Kafka CDC → ClickHouse *can have* lower starting cost and more independent scaling. The later voice-chat project used that pattern, but its source database, workload, and constraints differed. The next version should make analytical storage cost, write and query paths, and scale ceilings explicit from the beginning.
+Today I would define that boundary in two stages. The minimum boundary would come before any storage change: keep dashboards on analytical tables only, set QueryHub query limits and timeouts, isolate batch reconciliation windows, and alert on TiCDC lag, Kafka partition skew, Flink checkpoint duration, JDBC upsert rate, TiKV write latency, TiFlash replica lag, TiFlash disk IOPS and latency, and TiFlash compaction activity. Those metrics would localize pressure to the source, pipeline, or serving engine; disk metrics would then distinguish IOPS, compaction, and query-load pressure.
+
+If analytical scans or production-latency risk kept growing, I would move analytical detail and `ads_*` serving out of the production TiDB cluster while preserving the same pipeline. That decision would come before choosing another storage engine: first define the workload boundary, then decide whether TiDB or a different OLAP engine should own that boundary.
+
+### Treat TiFlash sizing as its own decision
+
+The production surprise was stale TiFlash tables caused by disk IOPS, not a Flink SQL bug. After moving each TiFlash data volume to 40,000 provisioned IOPS, freshness recovered. I would therefore size TiFlash from changed-row volume, replica sync traffic, scan shape, and freshness targets—not from the same node floors used for TiDB HA.
+
+### Treat ClickHouse as workload-driven
+
+I would not default to ClickHouse. It can be right for sustained detail scans and long retention, but it would change correction semantics: the current TiDB upserts are idempotent, while ClickHouse requires explicit ordering, merge/deduplication, and correction behavior. Migration should wait until sustained scan cost, retention, and query concurrency demand it.
 
 ---
 
