@@ -207,7 +207,11 @@ The `.api` contract files had no change monitoring - when an interface definitio
 
 ### Introduce a BFF boundary
 
-Frontend consumers called domain services directly through the gateway, and domain services exposed aggregation endpoints that mixed business orchestration with data assembly - the boundary between "a service owns its domain capabilities" and "a BFF composes capabilities for a specific consumer" never existed. A BFF layer per consumer type would have drawn this line: services expose domain capabilities through a stable contract, and BFFs compose them into consumer-specific responses without leaking domain complexity to the frontend.
+One admin editor showed the missing boundary. A single page called content/activity, catalog, payment-metadata, and localization services directly. It loaded catalog providers, playable items, token metadata, and localized components. On save, the frontend first upserted localized copy, read back generated references, merged them into the business payload, and then called the business create or update API.
+
+That made the browser own a cross-service write sequence. If localization succeeded but the business write failed, the localized components remained while the business record did not. A backend-for-frontend endpoint for this editor would have made the composition explicit: the domain services would keep content, catalog, payment, and localization ownership, while the BFF owned the admin page shape and the localization-plus-business write path, including compensation or idempotency. It would not replace domain services; it would stop each page from assembling service boundaries by itself.
+
+The same assembly cost appeared elsewhere. Several admin pages independently fetched catalog providers, payment metadata, or localized labels to build dropdowns and display names. A change to one visible page could therefore cross multiple domain contracts even when the business change was small.
 
 ## A Closing Note from the Agent Era
 
