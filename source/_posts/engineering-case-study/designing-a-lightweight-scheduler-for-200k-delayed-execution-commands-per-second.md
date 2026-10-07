@@ -87,6 +87,8 @@ The [C4](https://c4model.com/) container view below shows the final system after
 
 {% asset_img architecture-c4.png C4 container view of the final Lightweight Scheduling Center: etcd election, scheduler leader and in-process fire pool, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar topics, executor SDK consumer groups, and execution callback events %}
 
+Here "lightweight" described the ownership surface, not the throughput target. The scheduler and executor SDK reused TiDB for transactional trigger state, etcd for election, and Pulsar for delayed delivery instead of adding a bespoke coordinator or storage engine. That boundary kept the final implementation to roughly 8,900 lines across 110 non-test Go files while the system handled the 200K command-per-second load described below.
+
 ## Key Technical Decisions
 
 ### Leader election and acquire-loop ownership
@@ -177,7 +179,7 @@ The SQL admitted by due time first. Trigger priority then acted as an in-memory 
 
 After CAS admission, the fire pipeline computed the next fire time or marked completion, expanded sharding items, persisted fired records, and published each command with `deliver-at = fire time` and a job-code tag. Each business SDK consumed its domain topic, invoked the registered callback, and reported the result as a callback event.
 
-Purpose-built readers read old batch task tables and their change streams; a data flag made repeated migration idempotent. After load and functional tests against production traffic, cutover proceeded from low-risk to critical scenarios. The final scheduler and SDK stayed deliberately bounded—110 non-test Go files and roughly 8,900 lines—without a bespoke coordination service or storage engine.
+Purpose-built readers read old batch task tables and their change streams; a data flag made repeated migration idempotent. After load and functional tests against production traffic, cutover proceeded from low-risk to critical scenarios.
 
 ## Failure Modes / Production Challenges
 
