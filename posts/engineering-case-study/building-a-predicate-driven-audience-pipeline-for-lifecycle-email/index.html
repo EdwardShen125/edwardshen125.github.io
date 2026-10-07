@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="The platform already had transactional services and a TiDB&#x2F;CDC&#x2F;Flink data path. Marketing operations still needed another layer: a reusable way to define audiences, materialize them from behavioral an">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Building a Predicate-Driven Audience Pipeline for Lifecycle Email">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="The platform already had transactional services and a TiDB&#x2F;CDC&#x2F;Flink data path. Marketing operations still needed another layer: a reusable way to define audiences, materialize them from behavioral an">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/architecture.png">
+<meta property="article:published_time" content="2026-02-14T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-07T03:15:18.014Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="flink">
+<meta property="article:tag" content="kafka">
+<meta property="article:tag" content="ticdc">
+<meta property="article:tag" content="data-platform">
+<meta property="article:tag" content="lifecycle-marketing">
+<meta property="article:tag" content="audience-segmentation">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/architecture.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+
+  <title>Building a Predicate-Driven Audience Pipeline for Lifecycle Email | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+        <li class="menu-item menu-item-commonweal">
+
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Building a Predicate-Driven Audience Pipeline for Lifecycle Email
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2026-02-14 12:00:00" itemprop="dateCreated datePublished" datetime="2026-02-14T12:00:00+08:00">2026-02-14</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>7 mins.</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>The platform already had transactional services and a TiDB/CDC/Flink
+data path. Marketing operations still needed another layer: a reusable
+way to define audiences, materialize them from behavioral and asset
+data, and trigger lifecycle email tasks without copying business filters
+into every campaign.</p>
+<p>This is the retrospective of the audience pipeline I built for that
+problem. The scope in this article is deliberately narrower than
+"marketing automation": it covers data sources, warehouse layering,
+predicate compilation, segment lifecycle, and email reach. It does not
+claim a completed multi-channel marketing platform.</p>
+<img data-src="/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/architecture.png" class="" title="Predicate-driven audience pipeline architecture">
+<h2 id="context">Context</h2>
+<p>The service ran on the Go microservice platform described in the
+previous articles. Product and operations needed lifecycle campaigns for
+registration, activity, deposit behavior, VIP progression, and expiring
+rewards. The underlying platform already had TiDB, TiCDC, Kafka, Flink,
+and query-serving infrastructure.</p>
+<p>The new work was to make audience definitions a first-class backend
+model rather than ad-hoc SQL owned by individual reports or
+campaigns.</p>
+<h2 id="problem">Problem</h2>
+<p>The core problem was not sending email. It was deciding who should
+receive a lifecycle message in a repeatable and reviewable way.</p>
+<p>Audience logic spanned several shapes:</p>
+<ul>
+<li>latest user traits, such as activity, deposit totals, and VIP
+level;</li>
+<li>historical events, such as registration or level-up;</li>
+<li>time-sensitive asset state, such as bonus or free-spin expiry;</li>
+<li>business-level predicates built from combinations of those
+fields.</li>
+</ul>
+<p>Without a shared model, each feature would need its own table scan,
+filter expression, and campaign-specific interpretation of "active user"
+or "expiring reward."</p>
+<h2 id="constraints">Constraints</h2>
+<ul>
+<li>The pipeline reused the existing TiDB / TiCDC / Kafka / Flink
+platform rather than introducing another warehouse.</li>
+<li>The pipeline ran in production alongside existing feature
+delivery.</li>
+<li>Email was the reach channel implemented end-to-end in this code
+path; SMS, push, and inbox message were modeled but not completed as
+send paths.</li>
+<li>The reward encapsulation RPC was still a boundary; lifecycle tasks
+could define incentives, but this article does not claim a completed
+reward issuance loop.</li>
+</ul>
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li>Define audiences through business predicates rather than
+hand-written campaign SQL.</li>
+<li>Separate UI/business predicates from physical table routing.</li>
+<li>Materialize user traits, events, and asset state into queryable
+warehouse layers.</li>
+<li>Reuse identical segment definitions instead of creating duplicate
+audience tables.</li>
+<li>Refresh segments and emit only added/removed members.</li>
+<li>Support lifecycle plans and day-based tasks.</li>
+<li>Send and record lifecycle email messages.</li>
+</ul>
+<h2 id="data-sources">Data Sources</h2>
+<h3 id="track-events">Track events</h3>
+<p>The Track service accepted user events over gRPC and asynchronously
+produced them to Kafka:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">user_behavior_event</span><br></pre></td></tr></table></figure>
+<p>Events carried event metadata, user context, and event body. Flink
+jobs consumed this topic for online status, behavioral statistics, and
+user feature aggregation.</p>
+<h3 id="ticdc-domain-changes">TiCDC domain changes</h3>
+<p>TiCDC routed database changes into Kafka topics, including:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">game_bet_settle</span><br><span class="line">sport_order_amount</span><br><span class="line">proxy_commission</span><br><span class="line">vip_user_score_record</span><br><span class="line">vip_bonus_record</span><br><span class="line">user_transfer</span><br><span class="line">bonus_amount_tx</span><br><span class="line">domain_event_*</span><br></pre></td></tr></table></figure>
+<p>Most user-level topics were partitioned by <code>user_id</code>;
+<code>proxy_commission</code> used <code>invited_user_id</code>;
+<code>domain_event_*</code> used <code>event_type</code> and
+<code>aggregate_id</code>.</p>
+<h2 id="data-layering">Data Layering</h2>
+<h3 id="dwd">DWD</h3>
+<p>The DWD layer normalized selected facts into detail tables.</p>
+<p>One implemented Flink SQL path consumed <code>user_transfer</code>
+and <code>bonus_amount_tx</code>, joined user, game, and activity
+dimensions, normalized in/out amounts and sources, and wrote
+<code>dwd_activity_bonus_tx_di</code> with <code>(ref_id, type)</code>
+as the sink key.</p>
+<p>The first audience design considered three fixed storage shapes:
+latest traits, event history, and asset status. The implemented pipeline
+did not force every audience fact into those three tables. Instead,
+Flink jobs cleaned events into the appropriate DWD tables and summarized
+reusable state into DWS/ADS tables. Predicate metadata then selected the
+physical table that matched each condition's shape.</p>
+<h3 id="dws-ads">DWS / ADS</h3>
+<p>Flink SQL jobs maintained aggregates such as:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dws_activity_bonus_tx_user_type_source_symbol_rt</span><br><span class="line">ads_user_game_bet_stat_hourly</span><br><span class="line">ads_user_sport_bet_stat_hourly</span><br><span class="line">ads_user_activity_stat_hourly</span><br><span class="line">ads_user_transfer_source_symbol_hourly</span><br><span class="line">ads_vip_user_bet_stat_hourly</span><br><span class="line">ads_vip_bonus_stat_hourly</span><br></pre></td></tr></table></figure>
+<p>The segmentation model could route latest-state predicates to a keyed
+trait table such as <code>dws_user_latest_traits</code>:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">uid</span><br><span class="line">trait_key</span><br><span class="line">trait_val_str</span><br><span class="line">trait_val_num</span><br></pre></td></tr></table></figure>
+<p>For conditions that already had a stable latest-state representation,
+this avoided recomputing user history from raw events. Event conditions
+and asset conditions could route to other DWD tables instead.</p>
+<h3 id="serving">Serving</h3>
+<p>QueryHub continued to serve report-style queries. The audience engine
+had a different access pattern: it compiled predicates into SQL that
+could read from the TiDB/TiFlash serving path and return matching user
+IDs.</p>
+<h2 id="audience-model">Audience Model</h2>
+<p>Predicate configuration was stored through ConfigHub and split into
+two layers. This was the mechanism that made the warehouse-layered
+implementation work: business predicates did not have to target one
+canonical audience table.</p>
+<h3 id="atomic-predicates">Atomic predicates</h3>
+<p>Atomic predicates described physical routing only: the physical
+table, alias, key column, value column, value type, and optional fixed
+key. For example, a deposit-stage predicate could route to
+<code>dws_user_latest_traits</code> with <code>trait_key</code> as the
+key column and a parameterized fixed key such as:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">activity_deposit_asset_idx_&#123;&#123;stage&#125;&#125;</span><br></pre></td></tr></table></figure>
+<p>Another predicate could route to an event-history table and compare
+<code>occurred_at</code>, while an asset predicate could route to a DWD
+table carrying <code>asset_type</code>, <code>asset_sub_type</code>, and
+<code>expire_at</code>. The compiler treated each atomic predicate as a
+route to the table best suited to that condition.</p>
+<h3 id="composite-predicates">Composite predicates</h3>
+<p>Composite predicates were the only business-facing layer. They
+carried labels, categories, parameter definitions, operators, UI hints,
+and expansion templates.</p>
+<p>Examples included:</p>
+<ul>
+<li>consecutive active days;</li>
+<li>inactive days;</li>
+<li>deposit stage;</li>
+<li>total deposit amount;</li>
+<li>deposit frequency;</li>
+<li>current VIP level;</li>
+<li>level-up reached;</li>
+<li>asset validity.</li>
+</ul>
+<p>The frontend or RPC caller sent an AST. The backend expanded
+composite predicates into atomic predicates, validated that no composite
+remained, and compiled the result into SQL.</p>
+<h2 id="predicate-compiler">Predicate Compiler</h2>
+<p>The compiler had three stages:</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart LR
+  A[Business AST] --> B[Expand composite predicates]
+  B --> C[Validate atomic-only AST]
+  C --> D[Route atomic predicates to physical tables]
+  D --> E[Compile SQL branches]
+  E --> F[TiDB / TiFlash query]
+          </pre>
+<p>For an <code>AND</code> root, each child became a branch. Branch
+results were combined with <code>UNION ALL</code>, grouped by
+<code>uid</code>, and filtered with:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">HAVING</span> <span class="built_in">COUNT</span>(<span class="keyword">DISTINCT</span> logic_branch_id) <span class="operator">=</span> ?</span><br></pre></td></tr></table></figure>
+<p>This expressed conjunctive semantics without requiring every
+predicate to live in one flattened <code>WHERE</code> clause. The
+generated SQL included a TiFlash storage hint:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*+ READ_FROM_STORAGE(TIFLASH[table]) */</span></span><br></pre></td></tr></table></figure>
+<p>Time predicates supported interval operations such as
+<code>BEFORE_INTERVAL</code>, <code>WITHIN_INTERVAL</code>, and
+<code>AFTER_INTERVAL</code>. The compiler accepted a current-time option
+so relative conditions were evaluated consistently at refresh time.</p>
+<h2 id="segment-lifecycle">Segment Lifecycle</h2>
+<p>Each segment definition stored the original AST, a SHA-256 AST hash,
+reference count, status, and last run time.</p>
+<p>When a lifecycle task referenced a predicate, the service found an
+existing segment by AST hash or created a new one. A unique index on
+<code>ast_hash</code> handled concurrent creation; duplicate-key
+handling reread the canonical segment.</p>
+<p>Segment members were stored in <code>segment_member</code> with
+<code>(segment_id, uid)</code>. Refresh executed the compiled query,
+compared new and old members, and classified users as added or removed.
+Large diffs were split into events with at most 5,000 UIDs per message.
+Member replacement was batched.</p>
+<h2 id="lifecycle-email-reach">Lifecycle Email Reach</h2>
+<p>Lifecycle plans contained day-based tasks. A task referenced a
+segment, a day number, an email template, and optional incentive
+configuration.</p>
+<p>Email templates were stored with subject, body, status, type,
+version, and audit fields. The Reach service accepted batch messages
+on:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">domain_event_reach</span><br></pre></td></tr></table></figure>
+<p>For each user, it created a reach record, rendered the template,
+invoked the configured email channel, and updated the record with
+status, error code, error message, provider, sent time, and retry
+count.</p>
+<p>The email abstraction supported provider implementations for log,
+SMTP, SendCloud, Mailgun, and SendGrid. This article only claims Email
+as the implemented reach path. It does not describe fallback between
+providers because that was not implemented.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            sequenceDiagram
+  participant L as Lifecycle trigger
+  participant K as domain_event_reach
+  participant R as Reach consumer
+  participant T as Template engine
+  participant C as Email channel
+  participant D as reach_record
+  L->>K: Publish batch message
+  K->>R: Consume batch
+  R->>D: Create pending records
+  R->>T: Render template per user
+  R->>C: Send email
+  C-->>R: Provider result
+  R->>D: Update success / failure
+          </pre>
+<h2 id="user-behavior-feature-job">User Behavior Feature Job</h2>
+<p>A separate DataStream job, <code>UserBehaviorAnalysisJob</code>,
+showed how the layered build worked in practice: it turned platform
+events into DWD rows and DWS feature increments instead of writing
+everything into one audience table. It consumed the track topic and
+TiCDC topics:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">user_behavior_event</span><br><span class="line">domain_event_deposit</span><br><span class="line">domain_event_user</span><br><span class="line">game_bet_settle</span><br><span class="line">sport_order_amount</span><br></pre></td></tr></table></figure>
+<p>The job normalized those inputs into one <code>UnifiedEvent</code>
+model. Track events produced browse, deposit-click, register-click,
+spin, and broke events. CDC events produced deposits, registrations,
+game bets, and sports bets. The merged stream used event-time watermarks
+and idle-source handling.</p>
+<p>An async enrichment function attached acquisition dimensions. It
+resolved a user to a promoter channel or proxy inviter, using the
+registration payload first when available and a keyed lookup afterward.
+A Caffeine cache retained up to 50,000 user dimensions for 30 minutes to
+avoid repeating the same lookup.</p>
+<p>The enriched stream had two outputs. Side outputs wrote DWD rows for
+deposits, broke events, and registrations:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">dwd_user_deposit_di</span><br><span class="line">dwd_user_broke_di</span><br><span class="line">dwd_user_register_di</span><br></pre></td></tr></table></figure>
+<p>The main stream was keyed by user and source. A process function
+maintained state for registration-to-action and broke-to-deposit
+windows. It emitted hourly feature increments such as:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">register_click_cnt</span><br><span class="line">is_register_success</span><br><span class="line">is_reg_then_spin_24h</span><br><span class="line">is_reg_then_deposit_24h</span><br><span class="line">broke_cnt</span><br><span class="line">is_broke_then_deposit_24h</span><br><span class="line">deposit_cnt</span><br><span class="line">deposit_amount_usd</span><br><span class="line">currency_deposit_amount</span><br><span class="line">symbol_deposit_amount</span><br></pre></td></tr></table></figure>
+<p>Those increments were upserted into hourly DWS tables, including
+<code>dws_user_register_dh</code>, <code>dws_user_broke_dh</code>, and
+<code>dws_user_deposit_dh</code>.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart LR
+    T["user_behavior_event"] --> U["UnifiedEvent"]
+    C["domain_event_deposit / domain_event_user"] --> U
+    G["game_bet_settle / sport_order_amount"] --> U
+    U --> E["Async acquisition enrichment"]
+    E --> S{"Split enriched stream"}
+    S -->|side outputs| DWD["dwd_user_deposit_di<br/>dwd_user_broke_di<br/>dwd_user_register_di"]
+    S -->|main stream| P["Keyed feature state"]
+    P --> DWS["dws_user_register_dh<br/>dws_user_deposit_dh<br/>dws_user_broke_dh"]
+          </pre>
+<h2 id="results">Results</h2>
+<p>The pipeline established a reusable audience path from source events
+to warehouse tables, predicate compilation, segment definitions, and
+email reach records. It replaced the need for every lifecycle campaign
+to own its own targeting SQL.</p>
+<p>The audience layer also made a useful separation explicit: operations
+reasoned about business predicates, while the backend routed those
+predicates to physical warehouse tables.</p>
+<p>Because routing was part of atomic-predicate metadata, the query
+engine could adapt to multiple warehouse tables. A latest-trait
+predicate, event predicate, and asset predicate could participate in the
+same AST without forcing all source data into one physical audience
+table.</p>
+<h2 id="trade-offs">Trade-offs</h2>
+<p>What it made better:</p>
+<ul>
+<li>audience definitions became reviewable configuration;</li>
+<li>identical ASTs could reuse the same segment definition;</li>
+<li>physical tables could evolve behind atomic predicates;</li>
+<li>lifecycle tasks could reference stable segment IDs;</li>
+<li>email delivery results had per-user records.</li>
+</ul>
+<p>What it made worse:</p>
+<ul>
+<li>predicate configuration became part of the runtime contract;</li>
+<li>segment refresh needed careful batching and state management;</li>
+<li>email-only support simplified the first version but limited campaign
+shapes;</li>
+<li>behavior feature computation introduced keyed state and JDBC write
+pressure.</li>
+</ul>
+<h2 id="what-i-learned">What I Learned</h2>
+<p>Audience systems fail at the boundary between business language and
+physical data. Business users need predicates such as "active," "VIP,"
+or "expiring reward." The backend still needs an unambiguous mapping to
+tables, columns, types, and timestamps.</p>
+<p>AST hashes made reuse safer than name-based reuse. The same logical
+audience could be referenced by multiple lifecycle tasks without copying
+member lists.</p>
+<p>Email reach was easy to start and hard to generalize. The first
+version needed a real provider path and per-user records, but
+multi-channel behavior would have added policy questions that this
+pipeline was not ready to answer.</p>
+<h2 id="what-i-would-change-today">What I Would Change Today</h2>
+<p>I would make the routed warehouse contract explicit before adding
+more predicates: each atomic route needs a named producer, table owner,
+refresh semantics, primary-key meaning, and freshness target.</p>
+<p>I would also make segment-to-lifecycle event wiring easier to verify.
+The mechanism existed, but a production-grade version needs clear
+consumer registration, lag metrics, replay behavior, and an idempotency
+key that survives retries.</p>
+<p>For email, I would keep the channel abstraction but define retry,
+provider failure classification, and fallback policy before claiming
+multi-channel support. A record that says "failed" is useful only if the
+next action is unambiguous.</p>
+<p>For the user-behavior job, I would make the JDBC sink contract
+stronger: pool connections, version the feature-table schema, avoid
+table and column names assembled at runtime, and route failed writes to
+a retry or dead-letter path. I would also make checkpoint behavior and
+state TTL explicit so recovery semantics were obvious during deployment
+changes.</p>
+<hr />
+<p><em>Previous in this series: <a
+href="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/">Building
+a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/flink/" rel="tag"># flink</a>
+              <a href="/tags/kafka/" rel="tag"># kafka</a>
+              <a href="/tags/ticdc/" rel="tag"># ticdc</a>
+              <a href="/tags/data-platform/" rel="tag"># data-platform</a>
+              <a href="/tags/lifecycle-marketing/" rel="tag"># lifecycle-marketing</a>
+              <a href="/tags/audience-segmentation/" rel="tag"># audience-segmentation</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/" rel="prev" title="Building a Real-Time Data Platform With TiDB CDC and Flink">
+      <i class="fa fa-chevron-left"></i> Building a Real-Time Data Platform With TiDB CDC and Flink
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#context"><span class="nav-number">1.</span> <span class="nav-text">Context</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem"><span class="nav-number">2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#constraints"><span class="nav-number">3.</span> <span class="nav-text">Constraints</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#requirements"><span class="nav-number">4.</span> <span class="nav-text">Requirements</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-sources"><span class="nav-number">5.</span> <span class="nav-text">Data Sources</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#track-events"><span class="nav-number">5.1.</span> <span class="nav-text">Track events</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ticdc-domain-changes"><span class="nav-number">5.2.</span> <span class="nav-text">TiCDC domain changes</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-layering"><span class="nav-number">6.</span> <span class="nav-text">Data Layering</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#dwd"><span class="nav-number">6.1.</span> <span class="nav-text">DWD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dws-ads"><span class="nav-number">6.2.</span> <span class="nav-text">DWS &#x2F; ADS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#serving"><span class="nav-number">6.3.</span> <span class="nav-text">Serving</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#audience-model"><span class="nav-number">7.</span> <span class="nav-text">Audience Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#atomic-predicates"><span class="nav-number">7.1.</span> <span class="nav-text">Atomic predicates</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#composite-predicates"><span class="nav-number">7.2.</span> <span class="nav-text">Composite predicates</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#predicate-compiler"><span class="nav-number">8.</span> <span class="nav-text">Predicate Compiler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#segment-lifecycle"><span class="nav-number">9.</span> <span class="nav-text">Segment Lifecycle</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lifecycle-email-reach"><span class="nav-number">10.</span> <span class="nav-text">Lifecycle Email Reach</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#user-behavior-feature-job"><span class="nav-number">11.</span> <span class="nav-text">User Behavior Feature Job</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">12.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">13.</span> <span class="nav-text">Trade-offs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">14.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">15.</span> <span class="nav-text">What I Would Change Today</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Engineering deep dives, production case studies, and system design notes for backend, platform, and infrastructure roles.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">10k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">38 mins.</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

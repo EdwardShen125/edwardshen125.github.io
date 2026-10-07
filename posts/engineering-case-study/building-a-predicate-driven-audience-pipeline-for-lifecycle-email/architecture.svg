@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1850 1030" width="1850" height="1030" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="9" data-visual-theme="C4 Review Canvas" data-diagram-type="c4" data-motion-scene="" data-semantic-profile="c4-review" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#365f56"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a44a3f"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#356a8a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c06b35"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7a5c99"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b13e53"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#746b60"/>
+    </marker>
+    <pattern id="reviewGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.8" fill="#8c7d68" fill-opacity="0.18"/>
+    </pattern>
+    <style>
+    text { font-family: 'Avenir Next', Avenir, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 27px; font-weight: 700; fill: #24312f; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #6f756f; }
+    .section { font-size: 13px; font-weight: 700; fill: #5b5144; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #756753; }
+    .node-title { font-weight: 700; fill: #24312f; }
+    .node-sub { font-weight: 500; fill: #5f665f; }
+    .node-type { font-size: 10px; font-weight: 700; fill: #8a6f43; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #4b5563; }
+    .legend { font-size: 12px; font-weight: 500; fill: #5f665f; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #656b61; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #656b61; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #24312f; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1850.0" height="1030.0" fill="#f7f2e8"/>
+  <rect data-graph-role="decoration" width="1850.0" height="1030.0" fill="url(#reviewGrid)"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">Predicate-Driven Audience Pipeline · Container Review</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">Track and TiCDC events feed Flink layers; Marketing compiles predicates and Reach sends lifecycle email</text>
+  <g id="style-signature" data-graph-role="decoration" data-style-signature="c4-review-board">
+    <rect x="1626.0" y="22.0" width="176.0" height="34.0" rx="7" fill="#fffdf7" stroke="#8c7d68" stroke-width="1.2" stroke-dasharray="6 4"/>
+    <path d="M 1638.0 39.0 l 5 5 9 -11" fill="none" stroke="#365f56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text data-full-text="C4 · CONTAINER VIEW" x="1660.0" y="36.0" font-size="8.5" font-weight="800" fill="#8a6f43">C4 · CONTAINER VIEW</text>
+    <text data-full-text="PRODUCTION VALIDATED" x="1660.0" y="49.0" font-size="8" font-weight="700" fill="#5f665f">PRODUCTION VALIDATED</text>
+  </g>
+  <path id="business-capture-review-stroke" data-graph-role="decoration" data-owner="business-capture" d="M 520,240 L 540.4,240 L 540.4,220 L 700,220" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="1.15"/>
+  <path id="business-capture" data-graph-role="edge" data-edge-id="business-capture" data-source="business-tables" data-target="ticdc" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="TiKV change log" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 520,240 L 540.4,240 L 540.4,220 L 700,220" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="cdc-publish-review-stroke" data-graph-role="decoration" data-owner="cdc-publish" d="M 880,220 L 970,220" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-1.1"/>
+  <path id="cdc-publish" data-graph-role="edge" data-edge-id="cdc-publish" data-source="ticdc" data-target="kafka" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Kafka sink" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 880,220 L 970,220" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="track-publish-review-stroke" data-graph-role="decoration" data-owner="track-publish" d="M 550,360 L 1074,360 L 1074,280" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.77"/>
+  <path id="track-publish" data-graph-role="edge" data-edge-id="track-publish" data-source="track-service" data-target="kafka" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Kafka" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 550,360 L 1074,360 L 1074,280" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="kafka-flink-bridge-mask" data-graph-role="bridge-mask" data-owner="kafka-flink" d="M 1056,280 L 1069,280 A 5 5 0 0 0 1079,280 L 1084,280 L 1084,379 L 550,379 L 550,429.6 L 315,429.6 L 315,450" fill="none" stroke="#f7f2e8" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="kafka-flink-review-stroke" data-graph-role="decoration" data-owner="kafka-flink" d="M 1056,280 L 1069,280 A 5 5 0 0 0 1079,280 L 1084,280 L 1084,379 L 550,379 L 550,429.6 L 315,429.6 L 315,450" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.63"/>
+  <path id="kafka-flink" data-graph-role="edge" data-edge-id="kafka-flink" data-source="kafka" data-target="flink-jobs" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Kafka" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="5" data-route-stretch="1.061" data-bridges="1074,280" d="M 1056,280 L 1069,280 A 5 5 0 0 0 1079,280 L 1084,280 L 1084,379 L 550,379 L 550,429.6 L 315,429.6 L 315,450" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="flink-write-review-stroke" data-graph-role="decoration" data-owner="flink-write" d="M 315,570 L 315,590.4 L 40,590.4 L 40,842.86 L 315,842.86 L 315,850" fill="none" stroke="#a44a3f" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.88"/>
+  <path id="flink-write" data-graph-role="edge" data-edge-id="flink-write" data-source="flink-jobs" data-target="warehouse" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="MySQL protocol" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="2.964" data-bridges="" d="M 315,570 L 315,590.4 L 40,590.4 L 40,842.86 L 315,842.86 L 315,850" fill="none" stroke="#a44a3f" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="operator-config-review-stroke" data-graph-role="decoration" data-owner="operator-config" d="M 1530,270 L 1530,396 L 900,396 L 900,420" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-1.08"/>
+  <path id="operator-config" data-graph-role="edge" data-edge-id="operator-config" data-source="operators" data-target="marketing" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="ConfigHub and gRPC" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 1530,270 L 1530,396 L 900,396 L 900,420" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="marketing-query-review-stroke" data-graph-role="decoration" data-owner="marketing-query" d="M 700,515 L 679.6,515 L 679.6,772 L 701.36,772 L 701.36,898 L 550,898" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.21"/>
+  <path id="marketing-query" data-graph-role="edge" data-edge-id="marketing-query" data-source="marketing" data-target="warehouse" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="MySQL / TiFlash" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="1.082" data-bridges="" d="M 700,515 L 679.6,515 L 679.6,772 L 701.36,772 L 701.36,898 L 550,898" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="lifecycle-reach-review-stroke" data-graph-role="decoration" data-owner="lifecycle-reach" d="M 1100,515 L 1330,515" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.53"/>
+  <path id="lifecycle-reach" data-graph-role="edge" data-edge-id="lifecycle-reach" data-source="marketing" data-target="reach" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Kafka topic" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1100,515 L 1330,515" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="reach-send-review-stroke" data-graph-role="decoration" data-owner="reach-send" d="M 1475,610 L 1475,670" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.24"/>
+  <path id="reach-send" data-graph-role="edge" data-edge-id="reach-send" data-source="reach" data-target="email-provider" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="SMTP / provider API" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1475,610 L 1475,670" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <g id="node-operators" data-graph-role="node" data-node-id="operators" data-semantic-role="person" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1400,160,1660,270">
+  <rect x="1400.0" y="160.0" width="260.0" height="110.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 1408.439 161.89 H 1654.439 Q 1659.439 161.89 1659.439 167.89 V 262.89" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="PERSON" data-text-max-width="232.0" x="1414.0" y="178.0" class="node-type" font-size="10.0">PERSON</text>
+  <text data-text-role="title" data-full-text="Operations / Product" data-text-max-width="232.0" x="1414.0" y="201.0" class="node-title" font-size="15" text-anchor="start">Operations / Product</text>
+  <text data-text-role="description" data-line="1" data-full-text="defines lifecycle predicates and email tasks" x="1414.0" y="216.0" class="node-sub" font-size="11.5" text-anchor="start">defines lifecycle</text>
+  <text data-text-role="description" data-line="2" data-full-text="defines lifecycle predicates and email tasks" x="1414.0" y="230.0" class="node-sub" font-size="11.5" text-anchor="start">predicates and email tasks</text>
+  </g>
+  <g id="node-business-tables" data-graph-role="node" data-node-id="business-tables" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="80,180,520,300">
+  <rect x="80.0" y="180.0" width="440.0" height="120.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 86.51 180.888 H 512.51 Q 517.51 180.888 517.51 186.888 V 291.888" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="412.0" x="94.0" y="198.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Business tables" data-text-max-width="412.0" x="94.0" y="221.0" class="node-title" font-size="15" text-anchor="start">Business tables</text>
+  <text data-text-role="description" data-line="1" data-full-text="transactions, registration, game, sport, VIP, and bonus state" x="94.0" y="240.0" class="node-sub" font-size="11.5" text-anchor="start">transactions, registration, game, sport, VIP, and bonus state</text>
+  <text data-text-role="technology" data-full-text="TiDB / TiKV" data-text-max-width="416.0" x="508.0" y="291.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">TiDB / TiKV</text>
+  </g>
+  <g id="node-track-service" data-graph-role="node" data-node-id="track-service" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="80,300,550,420">
+  <rect x="80.0" y="300.0" width="470.0" height="120.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 87.948 301.08 H 543.948 Q 548.948 301.08 548.948 307.08 V 412.08" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="442.0" x="94.0" y="318.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Track service" data-text-max-width="442.0" x="94.0" y="341.0" class="node-title" font-size="15" text-anchor="start">Track service</text>
+  <text data-text-role="description" data-line="1" data-full-text="accepts user events and publishes behavior events" x="94.0" y="360.0" class="node-sub" font-size="11.5" text-anchor="start">accepts user events and publishes behavior events</text>
+  <text data-text-role="technology" data-full-text="Go · Sarama async producer" data-text-max-width="446.0" x="538.0" y="411.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Go · Sarama async producer</text>
+  </g>
+  <g id="node-flink-jobs" data-graph-role="node" data-node-id="flink-jobs" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="80,450,550,570">
+  <rect x="80.0" y="450.0" width="470.0" height="120.0" rx="7" fill="#fffdf7" stroke="#a44a3f" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 88.103 452.619 H 544.103 Q 549.103 452.619 549.103 458.619 V 563.619" fill="none" stroke="#a44a3f" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="442.0" x="94.0" y="468.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Flink jobs" data-text-max-width="442.0" x="94.0" y="491.0" class="node-title" font-size="15" text-anchor="start">Flink jobs</text>
+  <text data-text-role="description" data-line="1" data-full-text="normalize events, enrich dimensions, and build DWD/DWS features" x="94.0" y="510.0" class="node-sub" font-size="11.5" text-anchor="start">normalize events, enrich dimensions, and build DWD/DWS features</text>
+  <text data-text-role="technology" data-full-text="Flink SQL + DataStream" data-text-max-width="446.0" x="538.0" y="561.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Flink SQL + DataStream</text>
+  </g>
+  <g id="node-warehouse" data-graph-role="node" data-node-id="warehouse" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="80,850,550,946">
+  <rect x="80.0" y="850.0" width="470.0" height="96.0" rx="7" fill="#fffdf7" stroke="#c06b35" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 86.112 851.036 H 542.112 Q 547.112 851.036 547.112 857.036 V 938.036" fill="none" stroke="#c06b35" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="442.0" x="94.0" y="868.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="DWD / DWS / ADS tables" data-text-max-width="442.0" x="94.0" y="891.0" class="node-title" font-size="15" text-anchor="start">DWD / DWS / ADS tables</text>
+  <text data-text-role="description" data-line="1" data-full-text="layered user, event, asset, and aggregate tables" x="94.0" y="910.0" class="node-sub" font-size="11.5" text-anchor="start">layered user, event, asset, and aggregate tables</text>
+  <text data-text-role="technology" data-full-text="TiDB / TiKV + TiFlash" data-text-max-width="446.0" x="538.0" y="937.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">TiDB / TiKV + TiFlash</text>
+  </g>
+  <g id="node-ticdc" data-graph-role="node" data-node-id="ticdc" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="700,160,880,280">
+  <rect x="700.0" y="160.0" width="180.0" height="120.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 707.386 161.157 H 873.386 Q 878.386 161.157 878.386 167.157 V 272.157" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="152.0" x="714.0" y="178.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="TiCDC" data-text-max-width="152.0" x="714.0" y="201.0" class="node-title" font-size="15" text-anchor="start">TiCDC</text>
+  <text data-text-role="description" data-line="1" data-full-text="captures selected business-table changes" x="714.0" y="216.0" class="node-sub" font-size="11.5" text-anchor="start">captures selected</text>
+  <text data-text-role="description" data-line="2" data-full-text="captures selected business-table changes" x="714.0" y="230.0" class="node-sub" font-size="11.5" text-anchor="start">business-table changes</text>
+  <text data-text-role="technology" data-full-text="TiCDC changefeed" data-text-max-width="156.0" x="868.0" y="271.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">TiCDC changefeed</text>
+  </g>
+  <g id="node-kafka" data-graph-role="node" data-node-id="kafka" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="970,160,1160,280">
+  <rect x="970.0" y="160.0" width="190.0" height="120.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 976.151 162.002 H 1152.151 Q 1157.151 162.002 1157.151 168.002 V 273.002" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="162.0" x="984.0" y="178.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Kafka" data-text-max-width="162.0" x="984.0" y="201.0" class="node-title" font-size="15" text-anchor="start">Kafka</text>
+  <text data-text-role="description" data-line="1" data-full-text="carries behavior events and domain changes" x="984.0" y="216.0" class="node-sub" font-size="11.5" text-anchor="start">carries behavior events</text>
+  <text data-text-role="description" data-line="2" data-full-text="carries behavior events and domain changes" x="984.0" y="230.0" class="node-sub" font-size="11.5" text-anchor="start">and domain changes</text>
+  <text data-text-role="technology" data-full-text="user and domain topics" data-text-max-width="166.0" x="1148.0" y="271.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">user and domain topics</text>
+  </g>
+  <g id="node-marketing" data-graph-role="node" data-node-id="marketing" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="700,420,1100,610">
+  <rect x="700.0" y="420.0" width="400.0" height="190.0" rx="7" fill="#fffdf7" stroke="#a44a3f" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 708.386 421.35 H 1094.386 Q 1099.386 421.35 1099.386 427.35 V 602.35" fill="none" stroke="#a44a3f" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="372.0" x="714.0" y="438.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Marketing service" data-text-max-width="372.0" x="714.0" y="461.0" class="node-title" font-size="15" text-anchor="start">Marketing service</text>
+  <text data-text-role="description" data-line="1" data-full-text="stores predicates, compiles ASTs, reuses segments, and runs lifecycle plans" x="714.0" y="476.0" class="node-sub" font-size="11.5" text-anchor="start">stores predicates, compiles ASTs, reuses</text>
+  <text data-text-role="description" data-line="2" data-full-text="stores predicates, compiles ASTs, reuses segments, and runs lifecycle plans" x="714.0" y="490.0" class="node-sub" font-size="11.5" text-anchor="start">segments, and runs lifecycle plans</text>
+  <text data-text-role="technology" data-full-text="Go · ConfigHub · CronHub" data-text-max-width="376.0" x="1088.0" y="601.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Go · ConfigHub · CronHub</text>
+  </g>
+  <g id="node-reach" data-graph-role="node" data-node-id="reach" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1330,420,1620,610">
+  <rect x="1330.0" y="420.0" width="290.0" height="190.0" rx="7" fill="#fffdf7" stroke="#a44a3f" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 1337.683 420.582 H 1613.683 Q 1618.683 420.582 1618.683 426.582 V 601.582" fill="none" stroke="#a44a3f" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="262.0" x="1344.0" y="438.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Reach service" data-text-max-width="262.0" x="1344.0" y="461.0" class="node-title" font-size="15" text-anchor="start">Reach service</text>
+  <text data-text-role="description" data-line="1" data-full-text="renders templates, records delivery, and sends lifecycle email" x="1344.0" y="476.0" class="node-sub" font-size="11.5" text-anchor="start">renders templates, records</text>
+  <text data-text-role="description" data-line="2" data-full-text="renders templates, records delivery, and sends lifecycle email" x="1344.0" y="490.0" class="node-sub" font-size="11.5" text-anchor="start">delivery, and sends lifecycle email</text>
+  <text data-text-role="technology" data-full-text="Go · Kafka consumer + JDBC" data-text-max-width="266.0" x="1608.0" y="601.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Go · Kafka consumer + JDBC</text>
+  </g>
+  <g id="node-email-provider" data-graph-role="node" data-node-id="email-provider" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1330,670,1620,780">
+  <rect x="1330.0" y="670.0" width="290.0" height="110.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 1337.476 673.061 H 1613.476 Q 1618.476 673.061 1618.476 679.061 V 774.061" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="262.0" x="1344.0" y="688.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Email provider" data-text-max-width="262.0" x="1344.0" y="711.0" class="node-title" font-size="15" text-anchor="start">Email provider</text>
+  <text data-text-role="description" data-line="1" data-full-text="configured SMTP or provider adapter" x="1344.0" y="730.0" class="node-sub" font-size="11.5" text-anchor="start">configured SMTP or provider adapter</text>
+  <text data-text-role="technology" data-full-text="SMTP / provider API" data-text-max-width="266.0" x="1608.0" y="771.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">SMTP / provider API</text>
+  </g>
+  <g id="business-capture-label" data-graph-role="label" data-owner="business-capture" data-graph-bounds="579.31,183,661.1,215">
+  <rect x="579.31" y="183.0" width="81.79" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="620.2" y="198.0" text-anchor="middle" class="arrow-label" font-size="11.5">changes</text>
+  <text x="620.2" y="210.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[TiKV change log]</text>
+  </g>
+  <g id="cdc-publish-label" data-graph-role="label" data-owner="cdc-publish" data-graph-bounds="894.39,183,955.61,215">
+  <rect x="894.39" y="183.0" width="61.22" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="925.0" y="198.0" text-anchor="middle" class="arrow-label" font-size="11.5">sink</text>
+  <text x="925.0" y="210.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Kafka sink]</text>
+  </g>
+  <g id="track-publish-label" data-graph-role="label" data-owner="track-publish" data-graph-bounds="742.13,323,881.87,355">
+  <rect x="742.13" y="323.0" width="139.74" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="812.0" y="338.0" text-anchor="middle" class="arrow-label" font-size="11.5">user_behavior_event</text>
+  <text x="812.0" y="350.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Kafka]</text>
+  </g>
+  <g id="kafka-flink-label" data-graph-role="label" data-owner="kafka-flink" data-graph-bounds="785.65,364,848.35,396">
+  <rect x="785.65" y="364.0" width="62.69" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="817.0" y="379.0" text-anchor="middle" class="arrow-label" font-size="11.5">consume</text>
+  <text x="817.0" y="391.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Kafka]</text>
+  </g>
+  <g id="flink-write-label" data-graph-role="label" data-owner="flink-write" data-graph-bounds="121.78,677.4,233.23,709.4">
+  <rect x="121.78" y="677.4" width="111.45" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="177.5" y="692.4" text-anchor="middle" class="arrow-label" font-size="11.5">DWD / DWS / ADS</text>
+  <text x="177.5" y="704.4" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[MySQL protocol]</text>
+  </g>
+  <g id="operator-config-label" data-graph-role="label" data-owner="operator-config" data-graph-bounds="1138.58,359,1291.42,391">
+  <rect x="1138.58" y="359.0" width="152.85" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1215.0" y="374.0" text-anchor="middle" class="arrow-label" font-size="11.5">predicate / plan config</text>
+  <text x="1215.0" y="386.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[ConfigHub and gRPC]</text>
+  </g>
+  <g id="marketing-query-label" data-graph-role="label" data-owner="marketing-query" data-graph-bounds="576.46,623.5,666.98,655.5">
+  <rect x="576.46" y="623.5" width="90.52" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="621.72" y="638.5" text-anchor="middle" class="arrow-label" font-size="11.5">audience SQL</text>
+  <text x="621.72" y="650.5" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[MySQL / TiFlash]</text>
+  </g>
+  <g id="lifecycle-reach-label" data-graph-role="label" data-owner="lifecycle-reach" data-graph-bounds="1171.58,478,1258.42,510">
+  <rect x="1171.58" y="478.0" width="86.84" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1215.0" y="493.0" text-anchor="middle" class="arrow-label" font-size="11.5">reach batch</text>
+  <text x="1215.0" y="505.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Kafka topic]</text>
+  </g>
+  <g id="reach-send-label" data-graph-role="label" data-owner="reach-send" data-graph-bounds="1353.68,620,1455.36,652">
+  <rect x="1353.68" y="620.0" width="101.68" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1404.52" y="635.0" text-anchor="middle" class="arrow-label" font-size="11.5">rendered email</text>
+  <text x="1404.52" y="647.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[SMTP / provider API]</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="40" y="796" width="637.36" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="50.0" y1="810.0" x2="80.0" y2="810.0" stroke="#7a5c99" stroke-width="2.0" marker-end="url(#arrowF)"/>
+    <text data-graph-role="decoration" x="90.0" y="814.0" class="legend">event stream</text>
+    <line data-graph-role="decoration" x1="198.88" y1="810.0" x2="228.88" y2="810.0" stroke="#a44a3f" stroke-width="2.0" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="238.88" y="814.0" class="legend">warehouse write</text>
+    <line data-graph-role="decoration" x1="365.52" y1="810.0" x2="395.52" y2="810.0" stroke="#356a8a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="405.52" y="814.0" class="legend">audience query</text>
+    <line data-graph-role="decoration" x1="525.2" y1="810.0" x2="555.2" y2="810.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="565.2" y="814.0" class="legend">message / send</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,970,629,986">
+  <text x="48.0" y="982.0" class="footnote">Edward Shen · Distributed Systems Series · TiDB layers + Flink + predicate compiler</text>
+  </g>
+</svg>
