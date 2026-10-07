@@ -29,13 +29,13 @@
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/architecture.png">
 <meta property="article:published_time" content="2026-02-14T04:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-07T03:15:18.014Z">
+<meta property="article:modified_time" content="2026-10-07T06:30:42.617Z">
 <meta property="article:author" content="Edward Shen">
-<meta property="article:tag" content="flink">
-<meta property="article:tag" content="data-platform">
 <meta property="article:tag" content="go">
+<meta property="article:tag" content="flink">
 <meta property="article:tag" content="kafka">
 <meta property="article:tag" content="ticdc">
+<meta property="article:tag" content="data-platform">
 <meta property="article:tag" content="lifecycle-marketing">
 <meta property="article:tag" content="audience-segmentation">
 <meta name="twitter:card" content="summary">
@@ -112,7 +112,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏">
+    <div class="toggle" aria-label="Toggle navigation bar">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -142,32 +142,32 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
 
   </li>
         <li class="menu-item menu-item-about">
 
-    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
 
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
 
   </li>
         <li class="menu-item menu-item-categories">
 
-    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
 
   </li>
         <li class="menu-item menu-item-commonweal">
 
-    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
 
   </li>
   </ul>
@@ -372,18 +372,6 @@ IDs.</p>
 two layers. This was the mechanism that made the warehouse-layered
 implementation work: business predicates did not have to target one
 canonical audience table.</p>
-<h3 id="atomic-predicates">Atomic predicates</h3>
-<p>Atomic predicates described physical routing only: the physical
-table, alias, key column, value column, value type, and optional fixed
-key. For example, a deposit-stage predicate could route to
-<code>dws_user_latest_traits</code> with <code>trait_key</code> as the
-key column and a parameterized fixed key such as:</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">activity_deposit_asset_idx_&#123;&#123;stage&#125;&#125;</span><br></pre></td></tr></table></figure>
-<p>Another predicate could route to an event-history table and compare
-<code>occurred_at</code>, while an asset predicate could route to a DWD
-table carrying <code>asset_type</code>, <code>asset_sub_type</code>, and
-<code>expire_at</code>. The compiler treated each atomic predicate as a
-route to the table best suited to that condition.</p>
 <h3 id="composite-predicates">Composite predicates</h3>
 <p>Composite predicates were the only business-facing layer. They
 carried labels, categories, parameter definitions, operators, UI hints,
@@ -402,6 +390,18 @@ and expansion templates.</p>
 <p>The frontend or RPC caller sent an AST. The backend expanded
 composite predicates into atomic predicates, validated that no composite
 remained, and compiled the result into SQL.</p>
+<h3 id="atomic-predicates">Atomic predicates</h3>
+<p>Atomic predicates described physical routing only: the physical
+table, alias, key column, value column, value type, and optional fixed
+key. For example, a deposit-stage predicate could route to
+<code>dws_user_latest_traits</code> with <code>trait_key</code> as the
+key column and a parameterized fixed key such as:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">activity_deposit_asset_idx_&#123;&#123;stage&#125;&#125;</span><br></pre></td></tr></table></figure>
+<p>Another predicate could route to an event-history table and compare
+<code>occurred_at</code>, while an asset predicate could route to a DWD
+table carrying <code>asset_type</code>, <code>asset_sub_type</code>, and
+<code>expire_at</code>. The compiler treated each atomic predicate as a
+route to the table best suited to that condition.</p>
 <h2 id="predicate-compiler">Predicate Compiler</h2>
 <p>The compiler had three stages:</p>
 <pre class="mermaid" style="text-align: center;">
@@ -583,11 +583,11 @@ a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/flink/" rel="tag"># flink</a>
-              <a href="/tags/data-platform/" rel="tag"># data-platform</a>
               <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/flink/" rel="tag"># flink</a>
               <a href="/tags/kafka/" rel="tag"># kafka</a>
               <a href="/tags/ticdc/" rel="tag"># ticdc</a>
+              <a href="/tags/data-platform/" rel="tag"># data-platform</a>
               <a href="/tags/lifecycle-marketing/" rel="tag"># lifecycle-marketing</a>
               <a href="/tags/audience-segmentation/" rel="tag"># audience-segmentation</a>
           </div>
@@ -660,7 +660,7 @@ a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#context"><span class="nav-number">1.</span> <span class="nav-text">Context</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem"><span class="nav-number">2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#constraints"><span class="nav-number">3.</span> <span class="nav-text">Constraints</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#requirements"><span class="nav-number">4.</span> <span class="nav-text">Requirements</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-sources"><span class="nav-number">5.</span> <span class="nav-text">Data Sources</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#track-events"><span class="nav-number">5.1.</span> <span class="nav-text">Track events</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ticdc-domain-changes"><span class="nav-number">5.2.</span> <span class="nav-text">TiCDC domain changes</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-layering"><span class="nav-number">6.</span> <span class="nav-text">Data Layering</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#dwd"><span class="nav-number">6.1.</span> <span class="nav-text">DWD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dws-ads"><span class="nav-number">6.2.</span> <span class="nav-text">DWS &#x2F; ADS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#serving"><span class="nav-number">6.3.</span> <span class="nav-text">Serving</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#audience-model"><span class="nav-number">7.</span> <span class="nav-text">Audience Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#atomic-predicates"><span class="nav-number">7.1.</span> <span class="nav-text">Atomic predicates</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#composite-predicates"><span class="nav-number">7.2.</span> <span class="nav-text">Composite predicates</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#predicate-compiler"><span class="nav-number">8.</span> <span class="nav-text">Predicate Compiler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#segment-lifecycle"><span class="nav-number">9.</span> <span class="nav-text">Segment Lifecycle</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lifecycle-email-reach"><span class="nav-number">10.</span> <span class="nav-text">Lifecycle Email Reach</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#user-behavior-feature-job"><span class="nav-number">11.</span> <span class="nav-text">User Behavior Feature Job</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">12.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">13.</span> <span class="nav-text">Trade-offs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">14.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">15.</span> <span class="nav-text">What I Would Change Today</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#context"><span class="nav-number">1.</span> <span class="nav-text">Context</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem"><span class="nav-number">2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#constraints"><span class="nav-number">3.</span> <span class="nav-text">Constraints</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#requirements"><span class="nav-number">4.</span> <span class="nav-text">Requirements</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-sources"><span class="nav-number">5.</span> <span class="nav-text">Data Sources</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#track-events"><span class="nav-number">5.1.</span> <span class="nav-text">Track events</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ticdc-domain-changes"><span class="nav-number">5.2.</span> <span class="nav-text">TiCDC domain changes</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#data-layering"><span class="nav-number">6.</span> <span class="nav-text">Data Layering</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#dwd"><span class="nav-number">6.1.</span> <span class="nav-text">DWD</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dws-ads"><span class="nav-number">6.2.</span> <span class="nav-text">DWS &#x2F; ADS</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#serving"><span class="nav-number">6.3.</span> <span class="nav-text">Serving</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#audience-model"><span class="nav-number">7.</span> <span class="nav-text">Audience Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#composite-predicates"><span class="nav-number">7.1.</span> <span class="nav-text">Composite predicates</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#atomic-predicates"><span class="nav-number">7.2.</span> <span class="nav-text">Atomic predicates</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#predicate-compiler"><span class="nav-number">8.</span> <span class="nav-text">Predicate Compiler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#segment-lifecycle"><span class="nav-number">9.</span> <span class="nav-text">Segment Lifecycle</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lifecycle-email-reach"><span class="nav-number">10.</span> <span class="nav-text">Lifecycle Email Reach</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#user-behavior-feature-job"><span class="nav-number">11.</span> <span class="nav-text">User Behavior Feature Job</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">12.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">13.</span> <span class="nav-text">Trade-offs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">14.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">15.</span> <span class="nav-text">What I Would Change Today</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -677,20 +677,20 @@ a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
           <a href="/archives/">
         
           <span class="site-state-item-count">4</span>
-          <span class="site-state-item-name">日志</span>
+          <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
         <span class="site-state-item-count">1</span>
-        <span class="site-state-item-name">分类</span></a>
+        <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
         <span class="site-state-item-count">18</span>
-        <span class="site-state-item-name">标签</span></a>
+        <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
 </div>
@@ -730,14 +730,14 @@ a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">11k</span>
+    <span title="Symbols count total">11k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">40 分钟</span>
+    <span title="Reading time total">39 mins.</span>
 </div>
-  <div class="powered-by">由 <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span> 强力驱动
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
   </div>
 
         

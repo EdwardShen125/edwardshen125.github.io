@@ -102,7 +102,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="切换导航栏">
+    <div class="toggle" aria-label="Toggle navigation bar">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -132,32 +132,32 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
 
   </li>
         <li class="menu-item menu-item-about">
 
-    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
 
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
 
   </li>
         <li class="menu-item menu-item-categories">
 
-    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
 
   </li>
         <li class="menu-item menu-item-commonweal">
 
-    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
 
   </li>
   </ul>
@@ -355,18 +355,6 @@ IDs.</p>
 two layers. This was the mechanism that made the warehouse-layered
 implementation work: business predicates did not have to target one
 canonical audience table.</p>
-<h3 id="atomic-predicates">Atomic predicates</h3>
-<p>Atomic predicates described physical routing only: the physical
-table, alias, key column, value column, value type, and optional fixed
-key. For example, a deposit-stage predicate could route to
-<code>dws_user_latest_traits</code> with <code>trait_key</code> as the
-key column and a parameterized fixed key such as:</p>
-<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">activity_deposit_asset_idx_&#123;&#123;stage&#125;&#125;</span><br></pre></td></tr></table></figure>
-<p>Another predicate could route to an event-history table and compare
-<code>occurred_at</code>, while an asset predicate could route to a DWD
-table carrying <code>asset_type</code>, <code>asset_sub_type</code>, and
-<code>expire_at</code>. The compiler treated each atomic predicate as a
-route to the table best suited to that condition.</p>
 <h3 id="composite-predicates">Composite predicates</h3>
 <p>Composite predicates were the only business-facing layer. They
 carried labels, categories, parameter definitions, operators, UI hints,
@@ -385,6 +373,18 @@ and expansion templates.</p>
 <p>The frontend or RPC caller sent an AST. The backend expanded
 composite predicates into atomic predicates, validated that no composite
 remained, and compiled the result into SQL.</p>
+<h3 id="atomic-predicates">Atomic predicates</h3>
+<p>Atomic predicates described physical routing only: the physical
+table, alias, key column, value column, value type, and optional fixed
+key. For example, a deposit-stage predicate could route to
+<code>dws_user_latest_traits</code> with <code>trait_key</code> as the
+key column and a parameterized fixed key such as:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">activity_deposit_asset_idx_&#123;&#123;stage&#125;&#125;</span><br></pre></td></tr></table></figure>
+<p>Another predicate could route to an event-history table and compare
+<code>occurred_at</code>, while an asset predicate could route to a DWD
+table carrying <code>asset_type</code>, <code>asset_sub_type</code>, and
+<code>expire_at</code>. The compiler treated each atomic predicate as a
+route to the table best suited to that condition.</p>
 <h2 id="predicate-compiler">Predicate Compiler</h2>
 <p>The compiler had three stages:</p>
 <pre class="mermaid" style="text-align: center;">
@@ -1178,7 +1178,7 @@ team, the same product, a different layer of the platform.</em></p>
               <span class="post-meta-item-icon">
                 <i class="far fa-file-word"></i>
               </span>
-              <span>2.9k</span>
+              <span>3.1k</span>
             </span>
             <span class="post-meta-item" title="Reading time">
               <span class="post-meta-item-icon">
@@ -1246,6 +1246,9 @@ all derive.</li>
 it.</li>
 <li>Platform-wide error codes, auth, and context propagation as
 libraries.</li>
+<li>Gateway-managed response caching for consumer-facing interfaces,
+configured at the interface level rather than rebuilt inside each
+service.</li>
 <li>CI and tracing by default on every service.</li>
 <li>Services production-grade at their first commit; there was no
 move-fast-and-fix-later phase to lean on.</li>
@@ -1271,12 +1274,13 @@ target="_blank" rel="noopener" href="https://kubernetes.io/docs/concepts/service
 EndpointSlices</a>. Services keep per-service schemas in <a
 target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a> over the
 MySQL protocol, cache in Redis, and export spans to <a
-target="_blank" rel="noopener" href="https://zipkin.io/">Zipkin</a>. ws-hub terminates websockets and
-fans pushes out to clients on behalf of the services. The gateway card
-carries the piece I would highlight: an i18n hook on the response chain
-that localizes response content per user locale, so services stay
-locale-blind.</p>
-<img data-src="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-architecture-c4.png" class="" title="C4 container view of the Go Microservice Platform: clients, API gateway with i18n and jwt, nineteen domain services on go-zero with onion&#x2F;DDD scaffold, TiDB per-service schemas, Redis caching, Kubernetes discovery, Zipkin tracing, and ws-hub websocket fan-out">
+target="_blank" rel="noopener" href="https://zipkin.io/">Zipkin</a>. The gateway can also cache
+responses for configured consumer-facing interfaces in Redis. ws-hub
+terminates websockets and fans pushes out to clients on behalf of the
+services. The gateway card carries the piece I would highlight: an i18n
+hook on the response chain that localizes response content per user
+locale, so services stay locale-blind.</p>
+<img data-src="/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-architecture-c4.png" class="" title="C4 container view of the Go Microservice Platform: clients, API gateway with jwt, i18n, and configurable response caching, nineteen domain services on go-zero with onion&#x2F;DDD scaffold, TiDB per-service schemas, Redis caching, Zipkin tracing, and ws-hub websocket fan-out">
 <h2 id="key-technical-decisions">Key Technical Decisions</h2>
 <h3 id="dsl-as-the-single-contract-entry">DSL as the single contract
 entry</h3>
@@ -1298,19 +1302,6 @@ more than any single service, holding fifty-five <code>.api</code>
 contract files and sixty-eight generated proto schemas, with four
 hundred to seven hundred commits landing every month. Every interface
 change in the platform flowed through that one repository.</p>
-<h3 id="domain-boundaries-and-data-ownership">Domain boundaries and data
-ownership</h3>
-<p>All nineteen services shared one TiDB cluster, so the boundary that
-mattered was drawn at the table level: every service owned a disjoint
-set of tables — the user service held its auth, KYC, and
-customer-profile tables; the ledger service held currency orders,
-account balances, and token metadata. Each service's data layer reached
-only its own tables. Cross-service access ran exclusively over gRPC,
-with service discovery through Kubernetes EndpointSlices and the
-dependency graph explicit in every service's configuration; a
-repository-layer scan confirmed zero cross-domain table access. Shared
-infrastructure, owned data: one operational cluster, hard logical
-boundaries.</p>
 <h3 id="fill-the-generation-gaps-with-plugins">Fill the generation gaps
 with plugins</h3>
 <p>Vanilla goctl generated HTTP handlers from <code>.api</code> but not
@@ -1329,6 +1320,19 @@ generated from the template starts compliant: the layering, the event
 outbox, and the repository seams all exist before the first line of
 business code. The README stayed the reference; the template did the
 enforcing.</p>
+<h3 id="domain-boundaries-and-data-ownership">Domain boundaries and data
+ownership</h3>
+<p>All nineteen services shared one TiDB cluster, so the boundary that
+mattered was drawn at the table level: every service owned a disjoint
+set of tables — the user service held its auth, KYC, and
+customer-profile tables; the ledger service held currency orders,
+account balances, and token metadata. Each service's data layer reached
+only its own tables. Cross-service access ran exclusively over gRPC,
+with service discovery through Kubernetes EndpointSlices and the
+dependency graph explicit in every service's configuration; a
+repository-layer scan confirmed zero cross-domain table access. Shared
+infrastructure, owned data: one operational cluster, hard logical
+boundaries.</p>
 <h3 id="platform-wide-error-codes">Platform-wide error codes</h3>
 <p>bizerr encodes every error as a six-digit code: two digits of service
 ID, two of function, two of error. Clients match on the prefix; anyone
@@ -1341,11 +1345,23 @@ using an unregistered code panics at runtime.</p>
 <h3 id="gateway-as-the-composition-edge">Gateway as the composition
 edge</h3>
 <p>The gateway wrapped a maintained go-zero fork and owned everything
-cross-cutting: JWT auth, header processing, response wrapping, CORS, and
-an i18n hook on the response chain that localizes response content per
-user locale. Because localization lived in the gateway, services stayed
-locale-blind — adding a language was a gateway change, not nineteen
-service changes.</p>
+cross-cutting: JWT auth, header processing, response wrapping, CORS,
+response caching, and an i18n hook on the response chain that localizes
+response content per user locale. Consumer-facing interfaces enabled
+caching through gateway configuration, so a service did not have to
+implement its own response-cache path. Because localization also lived
+in the gateway, services stayed locale-blind — adding a language was a
+gateway change, not nineteen service changes.</p>
+<p>The cache setting stayed in the same interface contract. A
+consumer-facing banner route looked like this:</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">@server</span>(</span><br><span class="line"> <span class="attribute">prefix</span>: /v1/banner/noauth</span><br><span class="line"> <span class="attribute">auth</span>: none</span><br><span class="line"> <span class="attribute">i18n</span>: enabled</span><br><span class="line">)</span><br><span class="line">service BannerService &#123;</span><br><span class="line"> <span class="variable">@doc</span>(</span><br><span class="line"> <span class="attribute">summary</span>: <span class="string">&quot;get banner list for web&quot;</span></span><br><span class="line"> <span class="attribute">cache</span>: <span class="string">&quot;expiresIn=300&quot;</span></span><br><span class="line"> )</span><br><span class="line"> <span class="variable">@handler</span> GetBannerListForWeb</span><br><span class="line"> post /get/banner/list (GetBannerListRequest) returns (GetBannerListResponse)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The proto plugin emitted this route as a per-method cache option with
+a 300-second TTL and <code>CACHESCOPE_GLOBAL</code>. At startup, the
+gateway read the method descriptor and installed its Redis cache
+middleware only for routes with a positive TTL. The cache key covered
+the HTTP method, path, query, JSON body, <code>Accept-Language</code>,
+and <code>User-Agent</code>; when an authenticated identity was present,
+the key also included the provider and user ID.</p>
 <p>The i18n hook localized the CMS's dynamic content — product
 descriptions, promotions, and operational copy — per user locale,
 managed by operations through the language service. Error messages took
@@ -1602,20 +1618,20 @@ built before this platform.</em></p>
           <a href="/archives/">
         
           <span class="site-state-item-count">4</span>
-          <span class="site-state-item-name">日志</span>
+          <span class="site-state-item-name">posts</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
         <span class="site-state-item-count">1</span>
-        <span class="site-state-item-name">分类</span></a>
+        <span class="site-state-item-name">categories</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
         <span class="site-state-item-count">18</span>
-        <span class="site-state-item-name">标签</span></a>
+        <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
 </div>
@@ -1655,14 +1671,14 @@ built before this platform.</em></p>
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="站点总字数">11k</span>
+    <span title="Symbols count total">11k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="站点阅读时长">40 分钟</span>
+    <span title="Reading time total">39 mins.</span>
 </div>
-  <div class="powered-by">由 <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span> 强力驱动
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
   </div>
 
         
