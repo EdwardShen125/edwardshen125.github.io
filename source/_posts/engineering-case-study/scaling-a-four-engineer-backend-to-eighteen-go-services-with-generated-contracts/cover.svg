@@ -56,17 +56,17 @@
   <rect x="380.0" y="180.0" width="280.0" height="120.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="2.0"/>
   <rect x="386.0" y="186.0" width="268.0" height="108.0" rx="5.0" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.65"/>
   <text data-text-role="title" data-full-text="API Gateway" data-text-max-width="248.0" x="520.0" y="240.0" text-anchor="middle" class="node-title" font-size="18">API Gateway</text>
-  <text data-text-role="subtitle" data-full-text="i18n · jwt · pb×14" data-text-max-width="248.0" x="520.0" y="262.0" text-anchor="middle" class="node-sub" font-size="12">i18n · jwt · pb×14</text>
+  <text data-text-role="subtitle" data-full-text="i18n · jwt · descriptor sets" data-text-max-width="248.0" x="520.0" y="262.0" text-anchor="middle" class="node-sub" font-size="12">i18n · jwt · descriptor sets</text>
   </g>
   <g id="node-services" data-graph-role="node" data-node-id="services" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="760,180,1080,300">
   <rect x="760.0" y="180.0" width="320.0" height="120.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="1.8"/>
-  <text data-text-role="title" data-full-text="Domain Services ×19" data-text-max-width="296.0" x="920.0" y="240.0" text-anchor="middle" class="node-title" font-size="18">Domain Services ×19</text>
+  <text data-text-role="title" data-full-text="Domain Services ×17" data-text-max-width="296.0" x="920.0" y="240.0" text-anchor="middle" class="node-title" font-size="18">Domain Services ×17</text>
   <text data-text-role="subtitle" data-full-text="go-zero · onion/DDD" data-text-max-width="296.0" x="920.0" y="262.0" text-anchor="middle" class="node-sub" font-size="12">go-zero · onion/DDD</text>
   </g>
   <g id="node-wshub" data-graph-role="node" data-node-id="wshub" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="380,500,660,610">
   <rect x="380.0" y="500.0" width="280.0" height="110.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
   <text data-text-role="title" data-full-text="ws-hub" data-text-max-width="256.0" x="520.0" y="555.0" text-anchor="middle" class="node-title" font-size="18">ws-hub</text>
-  <text data-text-role="subtitle" data-full-text="websocket fan-out" data-text-max-width="256.0" x="520.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">websocket fan-out</text>
+  <text data-text-role="subtitle" data-full-text="Kafka consumer · websocket fan-out" data-text-max-width="256.0" x="520.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">Kafka consumer · websocket fan-out</text>
   </g>
   <g id="node-tidb" data-graph-role="node" data-node-id="tidb" data-semantic-role="cylinder" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="760,500,1080,610">
   <ellipse cx="920.0" cy="513.75" rx="160.0" ry="13.75" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
@@ -85,9 +85,9 @@
   <rect x="689.08" y="209.0" width="41.839999999999996" height="20" rx="6" fill="#082f49" opacity="0.9"/>
   <text x="710.0" y="223.0" text-anchor="middle" class="arrow-label">gRPC</text>
   </g>
-  <g id="notify-label" data-graph-role="label" data-owner="notify" data-graph-bounds="673.1,311,757.9,331">
-  <rect x="673.1" y="311.0" width="84.80000000000001" height="20" rx="6" fill="#082f49" opacity="0.9"/>
-  <text x="715.5" y="325.0" text-anchor="middle" class="arrow-label">push notify</text>
+  <g id="notify-label" data-graph-role="label" data-owner="notify" data-graph-bounds="664.58,311,766.42,331">
+  <rect x="664.58" y="311.0" width="101.84" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="715.5" y="325.0" text-anchor="middle" class="arrow-label">Kafka pub/sub</text>
   </g>
   <g id="sql-label" data-graph-role="label" data-owner="sql" data-graph-bounds="880,396.2,916,416.2">
   <rect x="880.0" y="396.2" width="36.0" height="20" rx="6" fill="#082f49" opacity="0.9"/>

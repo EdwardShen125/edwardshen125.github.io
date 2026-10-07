@@ -1,7 +1,7 @@
 {
   "canvas": {
     "height": 800.0,
-    "width": 1260.0
+    "width": 1600.0
   },
   "composition": {
     "limits": {
@@ -19,13 +19,13 @@
       "bridged_crossings": 0,
       "max_route_stretch": 1.0,
       "minimum_container_gutter": 30.0,
-      "minimum_node_gap": 70.0,
+      "minimum_node_gap": 80.0,
       "shortest_segment": 5.0,
       "total_bends": 7
     },
     "ok": true,
     "profile": "standard",
-    "score": 98,
+    "score": 96,
     "violations": []
   },
   "edges": [
@@ -71,7 +71,7 @@
       "bridges": [],
       "crossings": [],
       "id": "acquire",
-      "length": 376.0,
+      "length": 361.0,
       "route": [
         [
           726.0,
@@ -82,11 +82,11 @@
           284.0
         ],
         [
-          420.0,
+          435.0,
           284.0
         ],
         [
-          420.0,
+          435.0,
           340.0
         ]
       ],
@@ -98,25 +98,29 @@
       ],
       "target": "tidb",
       "target_port": [
-        420.0,
+        435.0,
         340.0
       ],
       "waypoints": []
     },
     {
-      "bends": 0,
+      "bends": 1,
       "bridges": [],
       "crossings": [],
-      "id": "handoff",
-      "length": 90.0,
+      "id": "publish",
+      "length": 340.0,
       "route": [
         [
           860.0,
           210.0
         ],
         [
-          950.0,
+          1070.0,
           210.0
+        ],
+        [
+          1070.0,
+          340.0
         ]
       ],
       "route_stretch": 1.0,
@@ -125,76 +129,43 @@
         860.0,
         210.0
       ],
-      "target": "fire",
-      "target_port": [
-        950.0,
-        210.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 2,
-      "bridges": [],
-      "crossings": [],
-      "id": "publish",
-      "length": 140.0,
-      "route": [
-        [
-          1080.0,
-          270.0
-        ],
-        [
-          1080.0,
-          284.0
-        ],
-        [
-          1010.0,
-          284.0
-        ],
-        [
-          1010.0,
-          340.0
-        ]
-      ],
-      "route_stretch": 1.0,
-      "source": "fire",
-      "source_port": [
-        1080.0,
-        270.0
-      ],
       "target": "pulsar",
       "target_port": [
-        1010.0,
+        1070.0,
         340.0
       ],
       "waypoints": []
     },
     {
-      "bends": 0,
+      "bends": 1,
       "bridges": [],
       "crossings": [],
       "id": "consume",
-      "length": 70.0,
+      "length": 370.0,
       "route": [
         [
-          1010.0,
-          460.0
+          1220.0,
+          400.0
         ],
         [
-          1010.0,
-          530.0
+          1430.0,
+          400.0
+        ],
+        [
+          1430.0,
+          560.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "pulsar",
       "source_port": [
-        1010.0,
-        460.0
+        1220.0,
+        400.0
       ],
       "target": "sdk",
       "target_port": [
-        1010.0,
-        530.0
+        1430.0,
+        560.0
       ],
       "waypoints": []
     },
@@ -203,15 +174,15 @@
       "bridges": [],
       "crossings": [],
       "id": "callback",
-      "length": 451.0,
+      "length": 901.0,
       "route": [
         [
-          880.0,
-          585.0
+          1300.0,
+          615.0
         ],
         [
           744.0,
-          585.0
+          615.0
         ],
         [
           744.0,
@@ -221,8 +192,8 @@
       "route_stretch": 1.0,
       "source": "sdk",
       "source_port": [
-        880.0,
-        585.0
+        1300.0,
+        615.0
       ],
       "target": "schedulers",
       "target_port": [
@@ -270,7 +241,7 @@
   "schema_version": 1,
   "semantics": {
     "details": {
-      "elements": 6,
+      "elements": 5,
       "level": "container",
       "rough_seed": 20261006
     },
@@ -285,8 +256,8 @@
   },
   "summary": {
     "bridged_crossings": 0,
-    "edges": 6,
-    "nodes": 6
+    "edges": 5,
+    "nodes": 5
   },
   "text_metrics": "heuristic-v1",
   "typography": {

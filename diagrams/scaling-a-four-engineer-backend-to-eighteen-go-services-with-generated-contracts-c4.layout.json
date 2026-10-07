@@ -16,53 +16,67 @@
       "profile": "standard"
     },
     "metrics": {
-      "bridged_crossings": 1,
-      "max_route_stretch": 1.586,
-      "minimum_container_gutter": 40.0,
-      "minimum_node_gap": 80.0,
-      "shortest_segment": 1.5,
-      "total_bends": 18
+      "bridged_crossings": 3,
+      "max_route_stretch": 1.895,
+      "minimum_container_gutter": 20.0,
+      "minimum_node_gap": 10.0,
+      "shortest_segment": 4.0,
+      "total_bends": 22
     },
     "ok": true,
     "profile": "standard",
-    "score": 72,
+    "score": 50,
     "violations": []
   },
   "edges": [
     {
-      "bends": 2,
-      "bridges": [],
-      "crossings": [],
+      "bends": 3,
+      "bridges": [
+        [
+          451.0,
+          274.0
+        ]
+      ],
+      "crossings": [
+        [
+          451.0,
+          274.0
+        ]
+      ],
       "id": "http",
-      "length": 371.0,
+      "length": 357.0,
       "route": [
         [
           200.0,
-          431.0
-        ],
-        [
-          220.4,
-          431.0
+          200.0
         ],
         [
           220.4,
           200.0
         ],
         [
-          340.0,
-          200.0
+          220.4,
+          274.0
+        ],
+        [
+          469.0,
+          274.0
+        ],
+        [
+          469.0,
+          260.0
         ]
       ],
-      "route_stretch": 1.0,
+      "route_stretch": 1.085,
       "source": "clients",
       "source_port": [
         200.0,
-        431.0
+        200.0
       ],
       "target": "gateway",
       "target_port": [
-        340.0,
-        200.0
+        469.0,
+        260.0
       ],
       "waypoints": []
     },
@@ -71,7 +85,7 @@
       "bridges": [],
       "crossings": [],
       "id": "grpc-route",
-      "length": 104.0,
+      "length": 105.0,
       "route": [
         [
           580.0,
@@ -83,11 +97,11 @@
         ],
         [
           600.4,
-          196.0
+          205.0
         ],
         [
           680.0,
-          196.0
+          205.0
         ]
       ],
       "route_stretch": 1.0,
@@ -99,7 +113,7 @@
       "target": "services",
       "target_port": [
         680.0,
-        196.0
+        205.0
       ],
       "waypoints": []
     },
@@ -108,34 +122,34 @@
       "bridges": [],
       "crossings": [],
       "id": "sql",
-      "length": 411.0,
+      "length": 432.0,
       "route": [
         [
-          829.0,
+          838.0,
           270.0
         ],
         [
-          829.0,
+          838.0,
           274.0
         ],
         [
-          1130.0,
+          1160.0,
           274.0
         ],
         [
-          1130.0,
+          1160.0,
           380.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "services",
       "source_port": [
-        829.0,
+        838.0,
         270.0
       ],
       "target": "tidb",
       "target_port": [
-        1130.0,
+        1160.0,
         380.0
       ],
       "waypoints": []
@@ -152,11 +166,11 @@
           205.0
         ],
         [
-          976.0,
+          980.4,
           205.0
         ],
         [
-          976.0,
+          980.4,
           195.0
         ],
         [
@@ -182,177 +196,224 @@
       "bridges": [],
       "crossings": [],
       "id": "cache",
-      "length": 121.0,
+      "length": 248.0,
       "route": [
         [
-          811.0,
+          802.0,
           270.0
         ],
         [
-          811.0,
-          271.5
+          802.0,
+          349.0
         ],
         [
-          800.0,
-          271.5
+          940.0,
+          349.0
         ],
         [
-          800.0,
+          940.0,
           380.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "services",
       "source_port": [
-        811.0,
+        802.0,
         270.0
       ],
       "target": "redis",
       "target_port": [
-        800.0,
+        940.0,
         380.0
       ],
       "waypoints": []
     },
     {
-      "bends": 4,
+      "bends": 8,
       "bridges": [],
       "crossings": [],
       "id": "gateway-cache",
-      "length": 920.0,
+      "length": 1097.0,
       "route": [
         [
-          460.0,
+          451.0,
           260.0
         ],
         [
+          451.0,
+          280.4
+        ],
+        [
+          524.0,
+          280.4
+        ],
+        [
+          524.0,
+          535.0
+        ],
+        [
           460.0,
-          274.0
+          535.0
         ],
         [
-          330.0,
-          274.0
+          460.0,
+          545.0
         ],
         [
-          330.0,
-          540.0
+          940.0,
+          545.0
         ],
         [
-          800.0,
-          540.0
+          940.0,
+          535.0
         ],
         [
-          800.0,
-          500.0
+          850.0,
+          535.0
+        ],
+        [
+          850.0,
+          440.0
         ]
       ],
-      "route_stretch": 1.586,
+      "route_stretch": 1.895,
       "source": "gateway",
       "source_port": [
-        460.0,
+        451.0,
         260.0
       ],
       "target": "redis",
       "target_port": [
-        800.0,
-        500.0
+        850.0,
+        440.0
       ],
       "waypoints": [
         [
-          330.0,
-          540.0
+          460.0,
+          535.0
         ],
         [
-          800.0,
-          540.0
+          940.0,
+          535.0
         ]
       ]
     },
     {
-      "bends": 3,
-      "bridges": [],
-      "crossings": [],
+      "bends": 2,
+      "bridges": [
+        [
+          802.0,
+          274.0
+        ]
+      ],
+      "crossings": [
+        [
+          802.0,
+          274.0
+        ]
+      ],
       "id": "push-notify",
-      "length": 356.0,
+      "length": 180.0,
       "route": [
         [
-          680.0,
-          214.0
+          820.0,
+          270.0
         ],
         [
-          604.0,
-          214.0
+          820.0,
+          274.0
         ],
         [
-          604.0,
-          359.6
+          750.0,
+          274.0
         ],
         [
-          490.0,
-          359.6
-        ],
-        [
-          490.0,
+          750.0,
           380.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "services",
       "source_port": [
-        680.0,
-        214.0
+        820.0,
+        270.0
       ],
-      "target": "wshub",
+      "target": "kafka",
       "target_port": [
-        490.0,
+        750.0,
         380.0
       ],
       "waypoints": []
     },
     {
-      "bends": 1,
+      "bends": 0,
       "bridges": [
         [
-          330.0,
+          524.0,
           440.0
         ]
       ],
       "crossings": [
         [
-          330.0,
+          524.0,
           440.0
         ]
       ],
-      "id": "websocket-push",
-      "length": 189.0,
+      "id": "kafka-consume",
+      "length": 160.0,
       "route": [
         [
-          380.0,
+          660.0,
           440.0
         ],
         [
-          200.0,
+          500.0,
+          440.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "kafka",
+      "source_port": [
+        660.0,
+        440.0
+      ],
+      "target": "wshub",
+      "target_port": [
+        500.0,
+        440.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "websocket-push",
+      "length": 390.0,
+      "route": [
+        [
+          320.0,
           440.0
         ],
         [
-          200.0,
-          449.0
+          110.0,
+          440.0
         ],
         [
-          200.0,
-          449.0
+          110.0,
+          260.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "wshub",
       "source_port": [
-        380.0,
+        320.0,
         440.0
       ],
       "target": "clients",
       "target_port": [
-        200.0,
-        449.0
+        110.0,
+        260.0
       ],
       "waypoints": []
     }
@@ -363,11 +424,33 @@
       "code": "EDGE_CROSSING_BRIDGED",
       "coordinates": [
         [
-          330.0,
+          451.0,
+          274.0
+        ]
+      ],
+      "element": "http",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          802.0,
+          274.0
+        ]
+      ],
+      "element": "push-notify",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          524.0,
           440.0
         ]
       ],
-      "element": "websocket-push",
+      "element": "kafka-consume",
       "severity": "info"
     }
   ],
@@ -394,7 +477,7 @@
       "bounds": [
         40.0,
         556.0,
-        382.08,
+        666.64,
         602.0
       ],
       "moved": true,
@@ -407,7 +490,7 @@
   "schema_version": 1,
   "semantics": {
     "details": {
-      "elements": 7,
+      "elements": 8,
       "level": "container",
       "rough_seed": 20261003
     },
@@ -421,9 +504,9 @@
     "name": "C4 Review Canvas"
   },
   "summary": {
-    "bridged_crossings": 1,
-    "edges": 8,
-    "nodes": 7
+    "bridged_crossings": 3,
+    "edges": 9,
+    "nodes": 8
   },
   "text_metrics": "heuristic-v1",
   "typography": {

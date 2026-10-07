@@ -50,7 +50,7 @@
       "width": 360,
       "height": 140,
       "label": "Business tables",
-      "description": "transactions, registration, game, sport, VIP, and bonus state",
+      "description": "user, transfer, reward, game, and sport tables",
       "technology": "TiDB / TiKV",
       "stroke": "#356a8a"
     },
@@ -76,8 +76,8 @@
       "width": 340,
       "height": 150,
       "label": "Kafka",
-      "description": "carries behavior events and domain changes",
-      "technology": "user and domain topics",
+      "description": "carries behavior events and selected table changes",
+      "technology": "behavior and CDC topics",
       "stroke": "#356a8a"
     },
     {
@@ -101,7 +101,7 @@
       "width": 340,
       "height": 230,
       "label": "Marketing service",
-      "description": "stores predicates, compiles ASTs, reuses segments, and runs lifecycle plans",
+      "description": "stores predicates, compiles ASTs, reuses segments, and triggers lifecycle tasks",
       "technology": "Go · ConfigHub · CronHub",
       "stroke": "#a44a3f"
     },
@@ -141,7 +141,7 @@
       "height": 130,
       "label": "Track service",
       "description": "accepts user events and publishes behavior events",
-      "technology": "Go · Sarama async producer",
+      "technology": "Go · async Kafka producer",
       "stroke": "#356a8a"
     },
     {
@@ -241,7 +241,7 @@
       "target_port": "top",
       "flow": "control",
       "label": "predicate / plan config",
-      "protocol": "ConfigHub and gRPC"
+      "protocol": "ConfigHub / RPC"
     },
     {
       "id": "marketing-reach",
@@ -251,7 +251,7 @@
       "target_port": "top",
       "flow": "control",
       "label": "reach batch",
-      "protocol": "Kafka topic"
+      "protocol": "domain_event_reach"
     },
     {
       "id": "reach-send",

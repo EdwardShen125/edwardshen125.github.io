@@ -30,6 +30,10 @@
     {
       "flow": "read",
       "label": "query"
+    },
+    {
+      "flow": "control",
+      "label": "dashboard request"
     }
   ],
   "footer": "Edward Shen · Distributed Systems Series · TiDB CDC + Flink jobs",
@@ -130,8 +134,8 @@
       "width": 380,
       "height": 120,
       "label": "Flink jobs",
-      "description": "9 streaming + 4 batch SQL jobs; Java DataStream JAR",
-      "technology": "Flink 1.15.4 · EXACTLY_ONCE",
+      "description": "SQL aggregation jobs; Java DataStream JAR",
+      "technology": "Flink SQL · DataStream",
       "stroke": "#a44a3f"
     },
     {
@@ -170,7 +174,7 @@
       "target_port": "left",
       "flow": "async",
       "label": "changes",
-      "protocol": "TiKV change log"
+      "protocol": "TiKV changes"
     },
     {
       "id": "publish",

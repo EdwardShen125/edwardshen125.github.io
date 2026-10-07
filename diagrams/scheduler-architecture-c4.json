@@ -8,12 +8,12 @@
   "c4_level": "container",
   "review_state": "PRODUCTION VALIDATED",
   "rough_seed": 20261006,
-  "scope": "Distributed Scheduling Center",
+  "scope": "Lightweight Scheduling Center",
   "quality_profile": "standard",
   "text_policy": "strict",
-  "width": 1260,
+  "width": 1600,
   "height": 800,
-  "title": "Distributed Scheduling Center · Container Review",
+  "title": "Lightweight Scheduling Center · Container Review",
   "subtitle": "final topology after topic isolation",
   "legend_orientation": "horizontal",
   "legend_x": 48,
@@ -46,7 +46,7 @@
       "y": 100,
       "width": 970,
       "height": 570,
-      "label": "Distributed Scheduling Center"
+      "label": "Lightweight Scheduling Center"
     }
   ],
   "nodes": [
@@ -73,21 +73,8 @@
       "width": 250,
       "height": 120,
       "label": "Scheduler Leader",
-      "description": "runs one partition scheduler per HASH partition",
+      "description": "partition schedulers plus in-process fire pool",
       "technology": "Go · CAS acquisition"
-    },
-    {
-      "id": "fire",
-      "kind": "review_card",
-      "c4_type": "container",
-      "parent": "sched-boundary",
-      "x": 950,
-      "y": 150,
-      "width": 260,
-      "height": 120,
-      "label": "Fire Pipeline",
-      "description": "in-process worker pool; expands items into commands",
-      "technology": "Go · worker pool"
     },
     {
       "id": "tidb",
@@ -96,10 +83,10 @@
       "parent": "sched-boundary",
       "x": 320,
       "y": 340,
-      "width": 200,
+      "width": 230,
       "height": 120,
-      "label": "dus_job_trigger",
-      "description": "holds trigger state in HASH(id) partitions",
+      "label": "Trigger Store",
+      "description": "dus_job_trigger in HASH(id) partitions",
       "technology": "TiDB"
     },
     {
@@ -107,25 +94,24 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "sched-boundary",
-      "x": 880,
+      "x": 920,
       "y": 340,
-      "width": 260,
+      "width": 300,
       "height": 120,
-      "label": "Pulsar Topics",
-      "description": "delivers commands per business domain",
+      "label": "Command Topics ×N",
+      "description": "one topic per business domain",
       "technology": "Pulsar · deliver-at"
     },
     {
       "id": "sdk",
       "kind": "review_card",
       "c4_type": "container",
-      "parent": "sched-boundary",
-      "x": 880,
-      "y": 530,
+      "x": 1300,
+      "y": 560,
       "width": 260,
       "height": 110,
-      "label": "Executor SDK",
-      "description": "consumes topics and reports callbacks",
+      "label": "Business Executors",
+      "description": "embedded SDK consumes its domain topic",
       "technology": "Go SDK · consumer groups"
     }
   ],
@@ -151,20 +137,10 @@
       "protocol": "SQL CAS"
     },
     {
-      "id": "handoff",
-      "source": "schedulers",
-      "target": "fire",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "write",
-      "label": "handoff",
-      "protocol": "in-process"
-    },
-    {
       "id": "publish",
-      "source": "fire",
+      "source": "schedulers",
       "target": "pulsar",
-      "source_port": "bottom",
+      "source_port": "right",
       "target_port": "top",
       "flow": "write",
       "label": "publish",
@@ -174,7 +150,7 @@
       "id": "consume",
       "source": "pulsar",
       "target": "sdk",
-      "source_port": "bottom",
+      "source_port": "right",
       "target_port": "top",
       "flow": "async",
       "label": "consume",

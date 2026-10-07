@@ -14,7 +14,7 @@
   "width": 1360,
   "height": 660,
   "title": "Go Microservice Platform · Container Review",
-  "subtitle": "one DSL contract entry, gateway composition, onion/DDD services",
+  "subtitle": "one DSL contract entry, gateway composition, onion/DDD services, Kafka push delivery",
   "legend_orientation": "horizontal",
   "legend_x": 48,
   "legend_y": 580,
@@ -30,6 +30,14 @@
     {
       "flow": "async",
       "label": "telemetry"
+    },
+    {
+      "flow": "data",
+      "label": "event stream"
+    },
+    {
+      "flow": "feedback",
+      "label": "client push"
     }
   ],
   "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
@@ -51,7 +59,7 @@
       "kind": "review_card",
       "c4_type": "external_system",
       "x": 20,
-      "y": 380,
+      "y": 140,
       "width": 180,
       "height": 120,
       "label": "Clients",
@@ -79,8 +87,8 @@
       "y": 140,
       "width": 280,
       "height": 130,
-      "label": "Domain Services ×19",
-      "description": "onion/DDD scaffold with outbox domain events",
+      "label": "Domain Services ×17",
+      "description": "onion/DDD scaffold; publish user-facing push events",
       "technology": "go-zero · Redis · Zipkin"
     },
     {
@@ -88,9 +96,9 @@
       "kind": "review_card",
       "c4_type": "container",
       "parent": "platform-boundary",
-      "x": 1000,
+      "x": 1060,
       "y": 380,
-      "width": 260,
+      "width": 200,
       "height": 120,
       "label": "TiDB",
       "description": "per-service schemas via MySQL protocol",
@@ -117,9 +125,9 @@
       "label": "Redis",
       "description": "gateway responses and hot service data",
       "technology": "Redis",
-      "x": 680,
+      "x": 850,
       "y": 380,
-      "width": 240,
+      "width": 180,
       "height": 120
     },
     {
@@ -130,9 +138,22 @@
       "label": "ws-hub",
       "description": "terminates websockets and fans out pushes",
       "technology": "ws-hub",
-      "x": 380,
+      "x": 320,
       "y": 380,
-      "width": 220,
+      "width": 180,
+      "height": 120
+    },
+    {
+      "id": "kafka",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "platform-boundary",
+      "label": "Kafka",
+      "description": "buffers notification events for ws-hub",
+      "technology": "domain_event_wshub topic",
+      "x": 660,
+      "y": 380,
+      "width": 180,
       "height": 120
     }
   ],
@@ -142,7 +163,7 @@
       "source": "clients",
       "target": "gateway",
       "source_port": "right",
-      "target_port": "left",
+      "target_port": "bottom",
       "flow": "control",
       "label": "HTTPS",
       "protocol": "HTTPS"
@@ -193,13 +214,13 @@
       "source": "gateway",
       "target": "redis",
       "source_port": "bottom",
-      "target_port": "bottom",
+      "target_port": "left",
       "flow": "read",
       "label": "response cache",
       "protocol": "RESP",
       "route_points": [
-        [330, 540],
-        [800, 540]
+        [460, 535],
+        [940, 535]
       ],
       "label_dy": -34,
       "label_dx": 130
@@ -207,20 +228,31 @@
     {
       "id": "push-notify",
       "source": "services",
-      "target": "wshub",
-      "source_port": "left",
+      "target": "kafka",
+      "source_port": "bottom",
       "target_port": "top",
       "flow": "data",
-      "label": "push",
-      "protocol": "event",
-      "label_dy": 14
+      "label": "publish",
+      "protocol": "Kafka",
+      "label_dy": -34,
+      "label_dx": 130
+    },
+    {
+      "id": "kafka-consume",
+      "source": "kafka",
+      "target": "wshub",
+      "source_port": "left",
+      "target_port": "right",
+      "flow": "data",
+      "label": "consume",
+      "protocol": "Kafka"
     },
     {
       "id": "websocket-push",
       "source": "wshub",
       "target": "clients",
       "source_port": "left",
-      "target_port": "right",
+      "target_port": "bottom",
       "flow": "feedback",
       "label": "push",
       "protocol": "WebSocket"
