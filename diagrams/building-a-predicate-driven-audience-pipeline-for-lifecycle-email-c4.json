@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 9,
+  "semantic_profile": "c4-review",
+  "diagram_type": "c4",
+  "c4_level": "container",
+  "review_state": "PRODUCTION VALIDATED",
+  "rough_seed": 20261007,
+  "scope": "Predicate-Driven Audience Pipeline",
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "width": 1850,
+  "height": 1030,
+  "title": "Predicate-Driven Audience Pipeline · Container Review",
+  "subtitle": "Track and TiCDC events feed Flink layers; Marketing compiles predicates and Reach sends lifecycle email",
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 940,
+  "legend": [
+    {
+      "flow": "async",
+      "label": "event stream"
+    },
+    {
+      "flow": "write",
+      "label": "warehouse write"
+    },
+    {
+      "flow": "read",
+      "label": "audience query"
+    },
+    {
+      "flow": "control",
+      "label": "message / send"
+    }
+  ],
+  "footer": "Edward Shen · Distributed Systems Series · TiDB layers + Flink + predicate compiler",
+  "footer_x": 48,
+  "footer_y": 982,
+  "containers": [],
+  "nodes": [
+    {
+      "id": "operators",
+      "kind": "review_card",
+      "c4_type": "person",
+      "x": 1400,
+      "y": 160,
+      "width": 260,
+      "height": 110,
+      "label": "Operations / Product",
+      "description": "defines lifecycle predicates and email tasks",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "business-tables",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 80,
+      "y": 180,
+      "width": 440,
+      "height": 120,
+      "label": "Business tables",
+      "description": "transactions, registration, game, sport, VIP, and bonus state",
+      "technology": "TiDB / TiKV",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "track-service",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 80,
+      "y": 300,
+      "width": 470,
+      "height": 120,
+      "label": "Track service",
+      "description": "accepts user events and publishes behavior events",
+      "technology": "Go · Sarama async producer",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "flink-jobs",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 80,
+      "y": 450,
+      "width": 470,
+      "height": 120,
+      "label": "Flink jobs",
+      "description": "normalize events, enrich dimensions, and build DWD/DWS features",
+      "technology": "Flink SQL + DataStream",
+      "stroke": "#a44a3f"
+    },
+    {
+      "id": "warehouse",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 80,
+      "y": 850,
+      "width": 470,
+      "height": 96,
+      "label": "DWD / DWS / ADS tables",
+      "description": "layered user, event, asset, and aggregate tables",
+      "technology": "TiDB / TiKV + TiFlash",
+      "stroke": "#c06b35"
+    },
+    {
+      "id": "ticdc",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 700,
+      "y": 160,
+      "width": 180,
+      "height": 120,
+      "label": "TiCDC",
+      "description": "captures selected business-table changes",
+      "technology": "TiCDC changefeed",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "kafka",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 970,
+      "y": 160,
+      "width": 190,
+      "height": 120,
+      "label": "Kafka",
+      "description": "carries behavior events and domain changes",
+      "technology": "user and domain topics",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "marketing",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 700,
+      "y": 420,
+      "width": 400,
+      "height": 190,
+      "label": "Marketing service",
+      "description": "stores predicates, compiles ASTs, reuses segments, and runs lifecycle plans",
+      "technology": "Go · ConfigHub · CronHub",
+      "stroke": "#a44a3f"
+    },
+    {
+      "id": "reach",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 1330,
+      "y": 420,
+      "width": 290,
+      "height": 190,
+      "label": "Reach service",
+      "description": "renders templates, records delivery, and sends lifecycle email",
+      "technology": "Go · Kafka consumer + JDBC",
+      "stroke": "#a44a3f"
+    },
+    {
+      "id": "email-provider",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 1330,
+      "y": 670,
+      "width": 290,
+      "height": 110,
+      "label": "Email provider",
+      "description": "configured SMTP or provider adapter",
+      "technology": "SMTP / provider API",
+      "stroke": "#356a8a"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "business-capture",
+      "source": "business-tables",
+      "target": "ticdc",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "changes",
+      "protocol": "TiKV change log"
+    },
+    {
+      "id": "cdc-publish",
+      "source": "ticdc",
+      "target": "kafka",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "sink",
+      "protocol": "Kafka sink"
+    },
+    {
+      "id": "track-publish",
+      "source": "track-service",
+      "target": "kafka",
+      "source_port": "right",
+      "target_port": "bottom",
+      "flow": "async",
+      "label": "user_behavior_event",
+      "protocol": "Kafka"
+    },
+    {
+      "id": "kafka-flink",
+      "source": "kafka",
+      "target": "flink-jobs",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "async",
+      "label": "consume",
+      "protocol": "Kafka",
+      "label_dy": 18
+    },
+    {
+      "id": "flink-write",
+      "source": "flink-jobs",
+      "target": "warehouse",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "DWD / DWS / ADS",
+      "protocol": "MySQL protocol",
+      "label_dy": 120
+    },
+    {
+      "id": "operator-config",
+      "source": "operators",
+      "target": "marketing",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "predicate / plan config",
+      "protocol": "ConfigHub and gRPC"
+    },
+    {
+      "id": "marketing-query",
+      "source": "marketing",
+      "target": "warehouse",
+      "source_port": "left",
+      "target_port": "right",
+      "flow": "read",
+      "label": "audience SQL",
+      "protocol": "MySQL / TiFlash"
+    },
+    {
+      "id": "lifecycle-reach",
+      "source": "marketing",
+      "target": "reach",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "reach batch",
+      "protocol": "Kafka topic"
+    },
+    {
+      "id": "reach-send",
+      "source": "reach",
+      "target": "email-provider",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "rendered email",
+      "protocol": "SMTP / provider API"
+    }
+  ]
+}
