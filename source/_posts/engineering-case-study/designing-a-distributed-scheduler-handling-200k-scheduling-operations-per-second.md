@@ -14,13 +14,11 @@ tags:
 
 Adding scheduler instances made the contention worse, not better. The legacy batch center and [xxl-job](https://github.com/xuxueli/xxl-job) had already flatlined, and every new instance multiplied lock contention on the same task table. This is the retrospective of their replacement — a scheduling center on [TiDB](https://docs.pingcap.com/tidb/stable/overview), [etcd](https://etcd.io/), and [Apache Pulsar](https://pulsar.apache.org/) whose daily on-the-hour workload peaked above 200K execution commands per second — and of the incidents that forced its isolation model to be redesigned.
 
-{% asset_img architecture.png Final Distributed Scheduling Center architecture after topic isolation: etcd election, partition schedulers, TiDB CAS state machine, fire pipeline, Pulsar topics per business domain, and executor SDK %}
-
 ## Context
 
 At my previous company, the SCRM (Social CRM) platform served enterprise marketing teams. Much of the product depended on delayed execution: marketing SOP (standard operating procedure) sequences, follow-up reminders, and large one-shot jobs. Two legacy components—the in-house batch center and xxl-job—covered more than twenty business scenarios and carried a continuously active scheduling workload.
 
-I owned the design and delivery of their replacement: a Go scheduling center on TiDB, etcd, and Pulsar, followed by migration of existing scenarios onto it. It reused established storage, coordination, and delivery primitives instead of inventing new infrastructure.
+I owned the design and delivery of their replacement: a Go scheduling center on TiDB, etcd, and Pulsar, followed by migration of existing scenarios onto it. The mechanisms below describe the deployed system; the production sections distinguish what we observed from what changed as a result. It reused established storage, coordination, and delivery primitives instead of inventing new infrastructure.
 
 Four terms recur below. A *job* was a registered business definition. A *trigger* was the durable schedule for that job: a one-shot trigger represented one run, while a cron trigger maintained the next occurrence in `next_fire_at`. A *sharding item* was a fan-out unit inside a run. An *execution command* was one sharding item handed to the executor through Pulsar. Throughput counts published commands, not database scans, trigger rows, or downstream handler completion.
 
@@ -32,14 +30,13 @@ Scaling out made contention worse: every instance polled and updated the same ta
 
 {% mermaid %}
 flowchart LR
-    D([due task]):::trigger
-    W["worker occupied<br/>until callback returns"]:::pressure
     H["handler: ms to minutes"]:::pressure
-    S["pool saturated<br/>few thousand ops/s"]:::impact
+    W["worker occupied<br/>until callback returns"]:::pressure
+    S["pool saturated<br/>a few thousand per second"]:::impact
 
-    D --> W
-    W --> H
-    H --> S
+    D([due task]):::trigger --> H
+    H --> W
+    W --> S
 
     classDef trigger fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
     classDef pressure fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px;
@@ -101,23 +98,16 @@ The trigger table was hash-partitioned by ID in TiDB, with the partition count s
 Persistent transitions used conditional updates. `waiting -> acquired` gated fire preparation; `acquired -> waiting` or `acquired -> completed` recorded the outcome. The domain model used `triggered` only as a transient state while preparing a fire batch; it was not separately persisted. With a single owner per partition this rarely contended, but correctness never depended on election being perfect. Pause and resume moved triggers through the same conditional-update API, so a manual operation could not leave a state the scheduler would misread.
 
 {% mermaid %}
-flowchart LR
-    R([trigger created]):::event
-    W([waiting]):::state
-    A([acquired]):::state
-    C([completed]):::state
-    P([paused]):::state
-    F([fire prepared]):::event
-    D([dispatch failed]):::event
-
-    R --> W
-    W -->|CAS acquire| A
-    A --> F
-    F -->|cron has next| W
-    F -->|one-shot complete| C
-    A -.->|dispatch failed| D
-    D -->|release| W
-    W -->|pause| P
+flowchart TD
+    R([trigger created]):::event --> W([waiting]):::state
+    W -->|CAS acquire| A([acquired]):::state
+    A --> F[fire prepared]:::event
+    F -->|one-shot complete| C([completed]):::state
+    F -->|cron has next| N[cron next fire]:::event
+    N --> W
+    A -.->|dispatch failed| D[dispatch failed]:::event
+    D -.->|release| W
+    W -->|pause| P([paused]):::state
     P -->|resume| W
 
     classDef state fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
@@ -131,26 +121,19 @@ The scheduler admitted triggers from a configurable lookahead and published each
 For one trigger, `T` was its scheduled trigger time, not the acquire or publish time: `T = trigger_at = next_fire_at` in TiDB and `T = deliver-at` in Pulsar. `Δ = T - acquire_time` was its remaining lead time. In the diagram, `T - 30m 30.5s` and `T + 2h` are wall-clock offsets from `T`; the maximum early-admission lead is `30m 30.5s` (30s idle wait + 30m acquisition window + 0.5s jitter). The diagram shows the normal early-admission path, where `Δ` was positive.
 
 {% mermaid %}
-flowchart LR
-    subgraph timeaxis["Normal early admission around trigger_at (not to scale)"]
-        direction LR
-        L(["Lookahead reaches trigger<br/>T - 30m 30.5s max lead"]):::stage
-        A(["Acquire / CAS<br/>acquire_time = T - Δ<br/>Δ = remaining lead"]):::action
-        T(["Scheduled trigger time<br/>trigger_at = T<br/>DB: next_fire_at<br/>Pulsar: deliver-at"]):::trigger
-        M(["Misfire horizon<br/>now = T + 2h"]):::boundary
-        L --> A
-        A --> T
-        T --> M
-    end
+sequenceDiagram
+    participant L as Lookahead
+    participant S as Scheduler
+    participant DB as TiDB
+    participant Q as Pulsar
+    participant E as Executor SDK
 
-    A -->|"CAS acquire<br/>waiting → acquired"| P["Publish command<br/>deliver-at = T"]:::action
-    P --> E["Pulsar delivers<br/>at trigger_at"]:::delivery
-
-    classDef stage fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
-    classDef action fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px;
-    classDef trigger fill:#f0fdf4,stroke:#2f7d4f,stroke-width:2px;
-    classDef boundary fill:#fdecea,stroke:#a44a3f,stroke-width:2px;
-    classDef delivery fill:#f3e8ff,stroke:#6b46c1,stroke-width:2px;
+    Note over L,S: Lookahead reaches trigger at most 30m 30.5s before T
+    L->>S: due trigger within acquisition window
+    S->>DB: CAS acquire<br/>waiting -> acquired
+    S->>Q: publish command<br/>deliver-at = T
+    Q->>E: deliver at trigger_at = T
+    Note over S,DB: Misfire horizon: now = T + 2h
 {% endmermaid %}
 
 This split the timing contract: TiDB retained the long-horizon `waiting` row; Pulsar held only the admitted slice and delivered it at `next_fire_at`.
@@ -165,7 +148,7 @@ Legacy business services exposed HTTP callback endpoints; every integration need
 
 ## Implementation
 
-Within the leader, each partition scheduler handed acquired batches to a bounded in-process fire pool—not a separate service. Its acquire loop ran once per tick:
+Within the leader, each partition scheduler handed acquired batches to a bounded in-process fire pool—not a separate service. The fire pool provided up to 6,000 concurrent batch workers and served as the scheduler-side backpressure boundary. Its acquire loop ran once per tick:
 
 1. Compute the acquisition window: from the misfire floor — the older of the partition's tracked latest `next_fire_at` and two hours before now — to now plus the lookahead. The startup floor could reach seven days back.
 2. Select `waiting` triggers in that window, ordered by due time, limited to the batch size — and capped by available capacity in the fire pool, so the scheduler never acquired more than it could hand off.
@@ -246,10 +229,10 @@ Production did not justify that complexity. Redis load rose, the lock-and-state 
 
 - Peak publish rate above 200K execution commands per second during daily on-the-hour workload peaks.
 - Trough traffic in the thousands of execution commands per second.
-- Coverage of more than 20 business scenarios across a two-year production workload.
+- Coverage of more than 20 business scenarios over the system's production lifetime.
 - Full replacement of both the batch center and xxl-job, with a gradual per-business cutover and no big-bang migration.
 
-The 200K+ figure came from the Pulsar Manager publish-rate panel: messages per second on the execution-command topics. For the SOP workload that drove the peak, one sharding item produced one command; larger fan-outs produced proportionally more. The fire pool provided up to 6,000 concurrent batch workers and served as the scheduler-side backpressure boundary, but the publish-rate panel — not pool size — was the source of the claim. On the acquisition side, each partition goroutine pulled up to 300 triggers per loop, so admission capacity scaled with provisioned partitions.
+The 200K+ figure came from the Pulsar Manager publish-rate panel: messages per second on the execution-command topics. For the SOP workload that drove the peak, one sharding item produced one command; larger fan-outs produced proportionally more. The publish-rate panel — not fire-pool size — was the source of the claim.
 
 ## Trade-offs
 

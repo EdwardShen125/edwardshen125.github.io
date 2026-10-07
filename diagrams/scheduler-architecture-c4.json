@@ -33,7 +33,7 @@
     },
     {
       "flow": "async",
-      "label": "callback"
+      "label": "async messaging"
     }
   ],
   "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
@@ -50,17 +50,6 @@
     }
   ],
   "nodes": [
-    {
-      "id": "business",
-      "kind": "review_card",
-      "c4_type": "external_system",
-      "x": 50,
-      "y": 330,
-      "width": 190,
-      "height": 110,
-      "label": "Business Scenarios",
-      "description": "20+ scenarios creating and consuming tasks"
-    },
     {
       "id": "etcd",
       "kind": "review_card",
@@ -187,7 +176,7 @@
       "target": "sdk",
       "source_port": "bottom",
       "target_port": "top",
-      "flow": "read",
+      "flow": "async",
       "label": "consume",
       "protocol": "consumer groups"
     },

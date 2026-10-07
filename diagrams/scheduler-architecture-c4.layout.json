@@ -257,7 +257,7 @@
       "bounds": [
         38.0,
         716.0,
-        523.44,
+        572.64,
         762.0
       ],
       "moved": false,
@@ -270,7 +270,7 @@
   "schema_version": 1,
   "semantics": {
     "details": {
-      "elements": 7,
+      "elements": 6,
       "level": "container",
       "rough_seed": 20261006
     },
@@ -286,7 +286,7 @@
   "summary": {
     "bridged_crossings": 0,
     "edges": 6,
-    "nodes": 7
+    "nodes": 6
   },
   "text_metrics": "heuristic-v1",
   "typography": {
