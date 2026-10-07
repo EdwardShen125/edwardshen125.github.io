@@ -1,7 +1,7 @@
 {
   "canvas": {
-    "height": 1030.0,
-    "width": 1850.0
+    "height": 1080.0,
+    "width": 1840.0
   },
   "composition": {
     "limits": {
@@ -16,16 +16,16 @@
       "profile": "standard"
     },
     "metrics": {
-      "bridged_crossings": 1,
-      "max_route_stretch": 2.964,
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.0,
       "minimum_container_gutter": null,
-      "minimum_node_gap": 0.0,
-      "shortest_segment": 7.14,
-      "total_bends": 18
+      "minimum_node_gap": 60.0,
+      "shortest_segment": 1.0,
+      "total_bends": 14
     },
     "ok": true,
     "profile": "standard",
-    "score": 74,
+    "score": 90,
     "violations": []
   },
   "edges": [
@@ -34,201 +34,35 @@
       "bridges": [],
       "crossings": [],
       "id": "business-capture",
-      "length": 200.0,
+      "length": 165.0,
       "route": [
         [
-          520.0,
-          240.0
+          400.0,
+          290.0
         ],
         [
-          540.4,
-          240.0
+          420.4,
+          290.0
         ],
         [
-          540.4,
-          220.0
+          420.4,
+          285.0
         ],
         [
-          700.0,
-          220.0
+          560.0,
+          285.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "business-tables",
       "source_port": [
-        520.0,
-        240.0
+        400.0,
+        290.0
       ],
       "target": "ticdc",
       "target_port": [
-        700.0,
-        220.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 0,
-      "bridges": [],
-      "crossings": [],
-      "id": "cdc-publish",
-      "length": 90.0,
-      "route": [
-        [
-          880.0,
-          220.0
-        ],
-        [
-          970.0,
-          220.0
-        ]
-      ],
-      "route_stretch": 1.0,
-      "source": "ticdc",
-      "source_port": [
-        880.0,
-        220.0
-      ],
-      "target": "kafka",
-      "target_port": [
-        970.0,
-        220.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 1,
-      "bridges": [],
-      "crossings": [],
-      "id": "track-publish",
-      "length": 604.0,
-      "route": [
-        [
-          550.0,
-          360.0
-        ],
-        [
-          1074.0,
-          360.0
-        ],
-        [
-          1074.0,
-          280.0
-        ]
-      ],
-      "route_stretch": 1.0,
-      "source": "track-service",
-      "source_port": [
-        550.0,
-        360.0
-      ],
-      "target": "kafka",
-      "target_port": [
-        1074.0,
-        280.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 5,
-      "bridges": [
-        [
-          1074.0,
-          280.0
-        ]
-      ],
-      "crossings": [
-        [
-          1074.0,
-          280.0
-        ]
-      ],
-      "id": "kafka-flink",
-      "length": 967.0,
-      "route": [
-        [
-          1056.0,
-          280.0
-        ],
-        [
-          1084.0,
-          280.0
-        ],
-        [
-          1084.0,
-          379.0
-        ],
-        [
-          550.0,
-          379.0
-        ],
-        [
-          550.0,
-          429.6
-        ],
-        [
-          315.0,
-          429.6
-        ],
-        [
-          315.0,
-          450.0
-        ]
-      ],
-      "route_stretch": 1.061,
-      "source": "kafka",
-      "source_port": [
-        1056.0,
-        280.0
-      ],
-      "target": "flink-jobs",
-      "target_port": [
-        315.0,
-        450.0
-      ],
-      "waypoints": []
-    },
-    {
-      "bends": 4,
-      "bridges": [],
-      "crossings": [],
-      "id": "flink-write",
-      "length": 830.0,
-      "route": [
-        [
-          315.0,
-          570.0
-        ],
-        [
-          315.0,
-          590.4
-        ],
-        [
-          40.0,
-          590.4
-        ],
-        [
-          40.0,
-          842.86
-        ],
-        [
-          315.0,
-          842.86
-        ],
-        [
-          315.0,
-          850.0
-        ]
-      ],
-      "route_stretch": 2.964,
-      "source": "flink-jobs",
-      "source_port": [
-        315.0,
-        570.0
-      ],
-      "target": "warehouse",
-      "target_port": [
-        315.0,
-        850.0
+        560.0,
+        285.0
       ],
       "waypoints": []
     },
@@ -236,36 +70,36 @@
       "bends": 2,
       "bridges": [],
       "crossings": [],
-      "id": "operator-config",
-      "length": 780.0,
+      "id": "cdc-publish",
+      "length": 141.0,
       "route": [
         [
-          1530.0,
-          270.0
+          860.0,
+          285.0
         ],
         [
-          1530.0,
-          396.0
+          880.4,
+          285.0
         ],
         [
-          900.0,
-          396.0
+          880.4,
+          286.0
         ],
         [
-          900.0,
-          420.0
+          1000.0,
+          286.0
         ]
       ],
       "route_stretch": 1.0,
-      "source": "operators",
+      "source": "ticdc",
       "source_port": [
-        1530.0,
-        270.0
+        860.0,
+        285.0
       ],
-      "target": "marketing",
+      "target": "kafka",
       "target_port": [
-        900.0,
-        420.0
+        1000.0,
+        286.0
       ],
       "waypoints": []
     },
@@ -273,44 +107,155 @@
       "bends": 4,
       "bridges": [],
       "crossings": [],
-      "id": "marketing-query",
-      "length": 576.52,
+      "id": "track-publish",
+      "length": 881.0,
       "route": [
         [
-          700.0,
-          515.0
+          420.0,
+          605.0
         ],
         [
-          679.6,
-          515.0
+          440.4,
+          605.0
         ],
         [
-          679.6,
-          772.0
+          440.4,
+          374.0
         ],
         [
-          701.36,
-          772.0
+          979.6,
+          374.0
         ],
         [
-          701.36,
-          898.0
+          979.6,
+          304.0
         ],
         [
-          550.0,
-          898.0
+          1000.0,
+          304.0
         ]
       ],
-      "route_stretch": 1.082,
-      "source": "marketing",
+      "route_stretch": 1.0,
+      "source": "track-service",
       "source_port": [
-        700.0,
-        515.0
+        420.0,
+        605.0
+      ],
+      "target": "kafka",
+      "target_port": [
+        1000.0,
+        304.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "kafka-flink",
+      "length": 680.0,
+      "route": [
+        [
+          1170.0,
+          370.0
+        ],
+        [
+          1170.0,
+          411.0
+        ],
+        [
+          640.0,
+          411.0
+        ],
+        [
+          640.0,
+          520.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "kafka",
+      "source_port": [
+        1170.0,
+        370.0
+      ],
+      "target": "flink-jobs",
+      "target_port": [
+        640.0,
+        520.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "flink-write",
+      "length": 165.0,
+      "route": [
+        [
+          800.0,
+          610.0
+        ],
+        [
+          803.87,
+          610.0
+        ],
+        [
+          803.87,
+          615.0
+        ],
+        [
+          960.0,
+          615.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "flink-jobs",
+      "source_port": [
+        800.0,
+        610.0
       ],
       "target": "warehouse",
       "target_port": [
-        550.0,
-        898.0
+        960.0,
+        615.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "warehouse-query",
+      "length": 320.0,
+      "route": [
+        [
+          1300.0,
+          615.0
+        ],
+        [
+          1320.4,
+          615.0
+        ],
+        [
+          1320.4,
+          435.0
+        ],
+        [
+          1440.0,
+          435.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "warehouse",
+      "source_port": [
+        1300.0,
+        615.0
+      ],
+      "target": "marketing",
+      "target_port": [
+        1440.0,
+        435.0
       ],
       "waypoints": []
     },
@@ -318,28 +263,57 @@
       "bends": 0,
       "bridges": [],
       "crossings": [],
-      "id": "lifecycle-reach",
-      "length": 230.0,
+      "id": "operator-config",
+      "length": 80.0,
       "route": [
         [
-          1100.0,
-          515.0
+          1610.0,
+          240.0
         ],
         [
-          1330.0,
-          515.0
+          1610.0,
+          320.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "operators",
+      "source_port": [
+        1610.0,
+        240.0
+      ],
+      "target": "marketing",
+      "target_port": [
+        1610.0,
+        320.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "marketing-reach",
+      "length": 110.0,
+      "route": [
+        [
+          1610.0,
+          550.0
+        ],
+        [
+          1610.0,
+          660.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "marketing",
       "source_port": [
-        1100.0,
-        515.0
+        1610.0,
+        550.0
       ],
       "target": "reach",
       "target_port": [
-        1330.0,
-        515.0
+        1610.0,
+        660.0
       ],
       "waypoints": []
     },
@@ -348,45 +322,33 @@
       "bridges": [],
       "crossings": [],
       "id": "reach-send",
-      "length": 60.0,
+      "length": 80.0,
       "route": [
         [
-          1475.0,
-          610.0
+          1610.0,
+          830.0
         ],
         [
-          1475.0,
-          670.0
+          1610.0,
+          910.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "reach",
       "source_port": [
-        1475.0,
-        610.0
+        1610.0,
+        830.0
       ],
       "target": "email-provider",
       "target_port": [
-        1475.0,
-        670.0
+        1610.0,
+        910.0
       ],
       "waypoints": []
     }
   ],
   "input_schema": "v1",
-  "issues": [
-    {
-      "code": "EDGE_CROSSING_BRIDGED",
-      "coordinates": [
-        [
-          1074.0,
-          280.0
-        ]
-      ],
-      "element": "kafka-flink",
-      "severity": "info"
-    }
-  ],
+  "issues": [],
   "mode": "architecture",
   "ok": true,
   "palette": {
@@ -404,19 +366,19 @@
   "placements": {
     "legend": {
       "actual": [
-        50.0,
-        810.0
+        42.0,
+        1002.0
       ],
       "bounds": [
-        40.0,
-        796.0,
-        677.36,
-        842.0
+        32.0,
+        988.0,
+        669.36,
+        1034.0
       ],
       "moved": true,
       "requested": [
-        48.0,
-        940.0
+        40.0,
+        1010.0
       ]
     }
   },
@@ -437,7 +399,7 @@
     "name": "C4 Review Canvas"
   },
   "summary": {
-    "bridged_crossings": 1,
+    "bridged_crossings": 0,
     "edges": 9,
     "nodes": 10
   },
