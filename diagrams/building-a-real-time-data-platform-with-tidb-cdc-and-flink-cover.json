@@ -6,11 +6,11 @@
   "quality_profile": "standard",
   "text_policy": "strict",
   "title": "",
-  "width": 1260,
-  "height": 675,
+  "width": 1330,
+  "height": 700,
   "legend_orientation": "horizontal",
   "legend_x": 48,
-  "legend_y": 590,
+  "legend_y": 610,
   "legend_locked": true,
   "legend": [
     {
@@ -32,22 +32,22 @@
     "center_caption": "SQL · JAVA · GO",
     "left_caption": "REV: 1.0",
     "right_caption": "DWG: DATA-002",
-    "width": 220,
+    "width": 230,
     "height": 76,
-    "x": 980,
+    "x": 1040,
     "y": 560
   },
   "footer": "Edward Shen · Distributed Systems Series · TiDB CDC + Flink jobs",
   "footer_x": 48,
-  "footer_y": 645,
+  "footer_y": 660,
   "nodes": [
     {
       "id": "oltp",
       "kind": "cylinder",
-      "x": 50,
-      "y": 220,
-      "width": 210,
-      "height": 90,
+      "x": 60,
+      "y": 210,
+      "width": 220,
+      "height": 100,
       "label": "Business tables",
       "sublabel": "production · TiKV",
       "fill": "#0b3b5e",
@@ -57,10 +57,10 @@
     {
       "id": "ticdc",
       "kind": "rect",
-      "x": 330,
-      "y": 220,
-      "width": 180,
-      "height": 90,
+      "x": 400,
+      "y": 210,
+      "width": 190,
+      "height": 100,
       "label": "TiCDC",
       "sublabel": "selected changes",
       "fill": "#0b3b5e",
@@ -70,10 +70,10 @@
     {
       "id": "kafka",
       "kind": "rect",
-      "x": 580,
-      "y": 220,
-      "width": 180,
-      "height": 90,
+      "x": 710,
+      "y": 210,
+      "width": 190,
+      "height": 100,
       "label": "Kafka",
       "sublabel": "change stream",
       "fill": "#0b3b5e",
@@ -83,10 +83,10 @@
     {
       "id": "flink",
       "kind": "double_rect",
-      "x": 870,
-      "y": 220,
-      "width": 210,
-      "height": 90,
+      "x": 1020,
+      "y": 210,
+      "width": 230,
+      "height": 100,
       "label": "Flink jobs",
       "sublabel": "SQL + DataStream",
       "fill": "#0a4b78",
@@ -96,10 +96,10 @@
     {
       "id": "olap",
       "kind": "cylinder",
-      "x": 870,
-      "y": 400,
-      "width": 210,
-      "height": 90,
+      "x": 1020,
+      "y": 440,
+      "width": 230,
+      "height": 100,
       "label": "Analytics tables",
       "sublabel": "derived · TiFlash",
       "fill": "#0b3b5e",
@@ -109,10 +109,10 @@
     {
       "id": "queryhub",
       "kind": "rect",
-      "x": 500,
-      "y": 400,
-      "width": 210,
-      "height": 90,
+      "x": 630,
+      "y": 440,
+      "width": 220,
+      "height": 100,
       "label": "QueryHub",
       "sublabel": "SQL templates",
       "fill": "#0b3b5e",
@@ -122,10 +122,10 @@
     {
       "id": "dashboards",
       "kind": "rect",
-      "x": 180,
-      "y": 400,
-      "width": 220,
-      "height": 90,
+      "x": 240,
+      "y": 440,
+      "width": 230,
+      "height": 100,
       "label": "Dashboards",
       "sublabel": "operations · product",
       "fill": "#0b3b5e",
@@ -159,7 +159,7 @@
       "source_port": "right",
       "target_port": "left",
       "flow": "async",
-      "label": "read"
+      "label": "consume"
     },
     {
       "id": "write",
@@ -177,7 +177,7 @@
       "source_port": "left",
       "target_port": "right",
       "flow": "read",
-      "label": "SQL"
+      "label": "query"
     },
     {
       "id": "query",
@@ -186,7 +186,7 @@
       "source_port": "left",
       "target_port": "right",
       "flow": "read",
-      "label": "templates"
+      "label": "rendered view"
     }
   ]
 }

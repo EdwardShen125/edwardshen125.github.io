@@ -13,7 +13,7 @@
   "text_policy": "strict",
   "width": 1260,
   "height": 800,
-  "title": "Distributed Scheduling Center \u00b7 Container Review",
+  "title": "Distributed Scheduling Center · Container Review",
   "subtitle": "final topology after topic isolation",
   "legend_orientation": "horizontal",
   "legend_x": 48,
@@ -36,7 +36,7 @@
       "label": "callback"
     }
   ],
-  "footer": "Edward Shen \u00b7 Distributed Systems Series \u00b7 container-level semantics",
+  "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
   "footer_x": 48,
   "footer_y": 780,
   "containers": [
@@ -85,7 +85,7 @@
       "height": 120,
       "label": "Scheduler Leader",
       "description": "runs one partition scheduler per HASH partition",
-      "technology": "Go \u00b7 CAS acquisition"
+      "technology": "Go · CAS acquisition"
     },
     {
       "id": "fire",
@@ -97,8 +97,8 @@
       "width": 260,
       "height": 120,
       "label": "Fire Pipeline",
-      "description": "pages sharding items and submits delivery commands",
-      "technology": "Go \u00b7 worker pool"
+      "description": "in-process worker pool; expands items into commands",
+      "technology": "Go · worker pool"
     },
     {
       "id": "tidb",
@@ -124,7 +124,7 @@
       "height": 120,
       "label": "Pulsar Topics",
       "description": "delivers commands per business domain",
-      "technology": "Pulsar \u00b7 deliver-at"
+      "technology": "Pulsar · deliver-at"
     },
     {
       "id": "sdk",
@@ -137,7 +137,7 @@
       "height": 110,
       "label": "Executor SDK",
       "description": "consumes topics and reports callbacks",
-      "technology": "Go SDK \u00b7 consumer groups"
+      "technology": "Go SDK · consumer groups"
     }
   ],
   "arrows": [

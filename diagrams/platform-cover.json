@@ -6,16 +6,16 @@
   "quality_profile": "standard",
   "text_policy": "strict",
   "title": "",
-  "width": 960,
-  "height": 560,
+  "width": 1200,
+  "height": 740,
   "nodes": [
     {
       "id": "clients",
       "kind": "rect",
       "x": 60,
-      "y": 140,
-      "width": 180,
-      "height": 80,
+      "y": 500,
+      "width": 240,
+      "height": 110,
       "label": "Clients",
       "sublabel": "web · app",
       "fill": "#0b3b5e",
@@ -25,10 +25,10 @@
     {
       "id": "gateway",
       "kind": "double_rect",
-      "x": 340,
-      "y": 130,
-      "width": 220,
-      "height": 70,
+      "x": 380,
+      "y": 180,
+      "width": 280,
+      "height": 120,
       "label": "API Gateway",
       "sublabel": "i18n · jwt · pb×14",
       "fill": "#0a4b78",
@@ -38,10 +38,10 @@
     {
       "id": "services",
       "kind": "rect",
-      "x": 620,
-      "y": 130,
-      "width": 240,
-      "height": 70,
+      "x": 760,
+      "y": 180,
+      "width": 320,
+      "height": 120,
       "label": "Domain Services ×19",
       "sublabel": "go-zero · onion/DDD",
       "fill": "#0a4b78",
@@ -51,10 +51,10 @@
     {
       "id": "wshub",
       "kind": "rect",
-      "x": 340,
-      "y": 260,
-      "width": 220,
-      "height": 70,
+      "x": 380,
+      "y": 500,
+      "width": 280,
+      "height": 110,
       "label": "ws-hub",
       "sublabel": "websocket fan-out",
       "fill": "#0b3b5e",
@@ -64,10 +64,10 @@
     {
       "id": "tidb",
       "kind": "cylinder",
-      "x": 620,
-      "y": 260,
-      "width": 220,
-      "height": 70,
+      "x": 760,
+      "y": 500,
+      "width": 320,
+      "height": 110,
       "label": "TiDB",
       "sublabel": "per-service schemas",
       "fill": "#0b3b5e",
@@ -80,7 +80,7 @@
       "id": "http",
       "source": "clients",
       "target": "gateway",
-      "source_port": "right",
+      "source_port": "top",
       "target_port": "left",
       "flow": "control",
       "label": "HTTPS"
@@ -101,25 +101,7 @@
       "source_port": "bottom",
       "target_port": "top",
       "flow": "data",
-      "label": "push notify",
-      "route_points": [
-        [
-          640,
-          200
-        ],
-        [
-          640,
-          230
-        ],
-        [
-          450,
-          230
-        ],
-        [
-          450,
-          260
-        ]
-      ]
+      "label": "push notify"
     },
     {
       "id": "sql",
@@ -128,47 +110,30 @@
       "source_port": "bottom",
       "target_port": "top",
       "flow": "read",
-      "label": "SQL",
-      "route_points": [
-        [
-          730,
-          200
-        ],
-        [
-          730,
-          260
-        ]
-      ]
+      "label": "SQL"
     },
     {
       "id": "ws",
       "source": "wshub",
       "target": "clients",
-      "source_port": "bottom",
-      "target_port": "bottom",
+      "source_port": "left",
+      "target_port": "right",
       "flow": "feedback",
-      "label": "websocket push",
-      "route_points": [
-        [
-          390,
-          330
-        ],
-        [
-          390,
-          355
-        ],
-        [
-          150,
-          355
-        ],
-        [
-          150,
-          220
-        ]
-      ]
+      "label": "push"
     }
   ],
+  "blueprint_title_block": {
+    "title": "GO MICROSERVICE",
+    "subtitle": "API DSL · GATEWAY",
+    "center_caption": "GO · GO-ZERO · TIDB",
+    "left_caption": "REV: 1.0",
+    "right_caption": "DWG: PLAT-002",
+    "width": 230,
+    "height": 76,
+    "x": 910,
+    "y": 620
+  },
   "footer": "Edward Shen · Distributed Systems Series · Go microservice platform",
   "footer_x": 48,
-  "footer_y": 530
+  "footer_y": 700
 }

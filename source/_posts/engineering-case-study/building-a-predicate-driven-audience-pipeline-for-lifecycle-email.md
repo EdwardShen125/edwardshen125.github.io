@@ -127,16 +127,6 @@ QueryHub continued to serve report-style queries. The audience engine had a diff
 
 Predicate configuration was stored through ConfigHub and split into two layers. This was the mechanism that made the warehouse-layered implementation work: business predicates did not have to target one canonical audience table.
 
-### Atomic predicates
-
-Atomic predicates described physical routing only: the physical table, alias, key column, value column, value type, and optional fixed key. For example, a deposit-stage predicate could route to `dws_user_latest_traits` with `trait_key` as the key column and a parameterized fixed key such as:
-
-```text
-activity_deposit_asset_idx_{{stage}}
-```
-
-Another predicate could route to an event-history table and compare `occurred_at`, while an asset predicate could route to a DWD table carrying `asset_type`, `asset_sub_type`, and `expire_at`. The compiler treated each atomic predicate as a route to the table best suited to that condition.
-
 ### Composite predicates
 
 Composite predicates were the only business-facing layer. They carried labels, categories, parameter definitions, operators, UI hints, and expansion templates.
@@ -153,6 +143,16 @@ Examples included:
 - asset validity.
 
 The frontend or RPC caller sent an AST. The backend expanded composite predicates into atomic predicates, validated that no composite remained, and compiled the result into SQL.
+
+### Atomic predicates
+
+Atomic predicates described physical routing only: the physical table, alias, key column, value column, value type, and optional fixed key. For example, a deposit-stage predicate could route to `dws_user_latest_traits` with `trait_key` as the key column and a parameterized fixed key such as:
+
+```text
+activity_deposit_asset_idx_{{stage}}
+```
+
+Another predicate could route to an event-history table and compare `occurred_at`, while an asset predicate could route to a DWD table carrying `asset_type`, `asset_sub_type`, and `expire_at`. The compiler treated each atomic predicate as a route to the table best suited to that condition.
 
 ## Predicate Compiler
 

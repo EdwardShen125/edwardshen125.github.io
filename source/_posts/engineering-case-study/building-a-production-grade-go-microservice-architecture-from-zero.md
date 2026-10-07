@@ -32,6 +32,7 @@ Four Go engineers for the entire backend. The product's benchmark was the top pl
 - One contract entry per service, from which handlers, RPC, and docs all derive.
 - A scaffold that enforced the architecture instead of documenting it.
 - Platform-wide error codes, auth, and context propagation as libraries.
+- Gateway-managed response caching for consumer-facing interfaces, configured at the interface level rather than rebuilt inside each service.
 - CI and tracing by default on every service.
 - Services production-grade at their first commit; there was no move-fast-and-fix-later phase to lean on.
 - An onboarding cost we could measure.
@@ -42,9 +43,9 @@ The serious decision was not which framework but how deep to standardize on the 
 
 ## Architecture / Design
 
-The [C4](https://c4model.com/) container view below shows the platform as it runs today. Clients speak HTTPS to a single API Gateway, which routes to the domain services over gRPC. Service descriptors live on the gateway side; discovery runs through [Kubernetes EndpointSlices](https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/). Services keep per-service schemas in [TiDB](https://docs.pingcap.com/tidb/stable/overview) over the MySQL protocol, cache in Redis, and export spans to [Zipkin](https://zipkin.io/). ws-hub terminates websockets and fans pushes out to clients on behalf of the services. The gateway card carries the piece I would highlight: an i18n hook on the response chain that localizes response content per user locale, so services stay locale-blind.
+The [C4](https://c4model.com/) container view below shows the platform as it runs today. Clients speak HTTPS to a single API Gateway, which routes to the domain services over gRPC. Service descriptors live on the gateway side; discovery runs through [Kubernetes EndpointSlices](https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/). Services keep per-service schemas in [TiDB](https://docs.pingcap.com/tidb/stable/overview) over the MySQL protocol, cache in Redis, and export spans to [Zipkin](https://zipkin.io/). The gateway can also cache responses for configured consumer-facing interfaces in Redis. ws-hub terminates websockets and fans pushes out to clients on behalf of the services. The gateway card carries the piece I would highlight: an i18n hook on the response chain that localizes response content per user locale, so services stay locale-blind.
 
-{% asset_img platform-architecture-c4.png C4 container view of the Go Microservice Platform: clients, API gateway with i18n and jwt, nineteen domain services on go-zero with onion/DDD scaffold, TiDB per-service schemas, Redis caching, Kubernetes discovery, Zipkin tracing, and ws-hub websocket fan-out %}
+{% asset_img platform-architecture-c4.png C4 container view of the Go Microservice Platform: clients, API gateway with jwt, i18n, and configurable response caching, nineteen domain services on go-zero with onion/DDD scaffold, TiDB per-service schemas, Redis caching, Zipkin tracing, and ws-hub websocket fan-out %}
 
 ## Key Technical Decisions
 
@@ -113,10 +114,6 @@ Three access tiers in one contract: public login flow, admin-jwt verification, p
 
 The git history made the same point quantitatively. The contract repository absorbed 3,568 commits in the platform's first seven months — more than any single service, holding fifty-five `.api` contract files and sixty-eight generated proto schemas, with four hundred to seven hundred commits landing every month. Every interface change in the platform flowed through that one repository.
 
-### Domain boundaries and data ownership
-
-All nineteen services shared one TiDB cluster, so the boundary that mattered was drawn at the table level: every service owned a disjoint set of tables — the user service held its auth, KYC, and customer-profile tables; the ledger service held currency orders, account balances, and token metadata. Each service's data layer reached only its own tables. Cross-service access ran exclusively over gRPC, with service discovery through Kubernetes EndpointSlices and the dependency graph explicit in every service's configuration; a repository-layer scan confirmed zero cross-domain table access. Shared infrastructure, owned data: one operational cluster, hard logical boundaries.
-
 ### Fill the generation gaps with plugins
 
 Vanilla goctl generated HTTP handlers from `.api` but not proto or Swagger, and the platform needed both. We wrote two goctl plugins, goctl-proto and goctl-swagger, so one `.api` file produces handlers, proto, and Swagger in the same commit. Both install with `go install` and run in goctl's plugin mode: they extend the standard toolchain instead of replacing it.
@@ -124,6 +121,10 @@ Vanilla goctl generated HTTP handlers from `.api` but not proto or Swagger, and 
 ### The scaffold as specification
 
 The onion/DDD structure (application, domain, infrastructure, and service-context layers; repository interfaces in the domain with implementations injected from infrastructure; outbox-pattern domain events) lived in a README and in custom goctl templates. A service generated from the template starts compliant: the layering, the event outbox, and the repository seams all exist before the first line of business code. The README stayed the reference; the template did the enforcing.
+
+### Domain boundaries and data ownership
+
+All nineteen services shared one TiDB cluster, so the boundary that mattered was drawn at the table level: every service owned a disjoint set of tables — the user service held its auth, KYC, and customer-profile tables; the ledger service held currency orders, account balances, and token metadata. Each service's data layer reached only its own tables. Cross-service access ran exclusively over gRPC, with service discovery through Kubernetes EndpointSlices and the dependency graph explicit in every service's configuration; a repository-layer scan confirmed zero cross-domain table access. Shared infrastructure, owned data: one operational cluster, hard logical boundaries.
 
 ### Platform-wide error codes
 
@@ -146,7 +147,27 @@ return errUserNotFound.Build(err)
 
 ### Gateway as the composition edge
 
-The gateway wrapped a maintained go-zero fork and owned everything cross-cutting: JWT auth, header processing, response wrapping, CORS, and an i18n hook on the response chain that localizes response content per user locale. Because localization lived in the gateway, services stayed locale-blind — adding a language was a gateway change, not nineteen service changes.
+The gateway wrapped a maintained go-zero fork and owned everything cross-cutting: JWT auth, header processing, response wrapping, CORS, response caching, and an i18n hook on the response chain that localizes response content per user locale. Consumer-facing interfaces enabled caching through gateway configuration, so a service did not have to implement its own response-cache path. Because localization also lived in the gateway, services stayed locale-blind — adding a language was a gateway change, not nineteen service changes.
+
+The cache setting stayed in the same interface contract. A consumer-facing banner route looked like this:
+
+```
+@server(
+ prefix: /v1/banner/noauth
+ auth: none
+ i18n: enabled
+)
+service BannerService {
+ @doc(
+ summary: "get banner list for web"
+ cache: "expiresIn=300"
+ )
+ @handler GetBannerListForWeb
+ post /get/banner/list (GetBannerListRequest) returns (GetBannerListResponse)
+}
+```
+
+The proto plugin emitted this route as a per-method cache option with a 300-second TTL and `CACHESCOPE_GLOBAL`. At startup, the gateway read the method descriptor and installed its Redis cache middleware only for routes with a positive TTL. The cache key covered the HTTP method, path, query, JSON body, `Accept-Language`, and `User-Agent`; when an authenticated identity was present, the key also included the provider and user ID.
 
 The i18n hook localized the CMS's dynamic content — product descriptions, promotions, and operational copy — per user locale, managed by operations through the language service. Error messages took a different path by design: services return language-neutral error codes, and the frontend maps each code to a localized string through its own static i18n library — no backend round-trip for error localization.
 

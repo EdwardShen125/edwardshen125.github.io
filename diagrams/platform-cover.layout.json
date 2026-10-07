@@ -1,7 +1,7 @@
 {
   "canvas": {
-    "height": 560.0,
-    "width": 960.0
+    "height": 740.0,
+    "width": 1200.0
   },
   "composition": {
     "limits": {
@@ -16,53 +16,49 @@
       "profile": "standard"
     },
     "metrics": {
-      "bridged_crossings": 2,
-      "max_route_stretch": 2.251,
+      "bridged_crossings": 0,
+      "max_route_stretch": 1.0,
       "minimum_container_gutter": null,
-      "minimum_node_gap": 60.0,
-      "shortest_segment": 6.0,
-      "total_bends": 26
+      "minimum_node_gap": 80.0,
+      "shortest_segment": 9.0,
+      "total_bends": 5
     },
     "ok": true,
     "profile": "standard",
-    "score": 42,
+    "score": 100,
     "violations": []
   },
   "edges": [
     {
-      "bends": 2,
+      "bends": 1,
       "bridges": [],
       "crossings": [],
       "id": "http",
-      "length": 115.0,
+      "length": 460.0,
       "route": [
         [
-          240.0,
-          180.0
+          180.0,
+          500.0
         ],
         [
-          260.4,
-          180.0
+          180.0,
+          240.0
         ],
         [
-          260.4,
-          165.0
-        ],
-        [
-          340.0,
-          165.0
+          380.0,
+          240.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "clients",
       "source_port": [
-        240.0,
-        180.0
+        180.0,
+        500.0
       ],
       "target": "gateway",
       "target_port": [
-        340.0,
-        165.0
+        380.0,
+        240.0
       ],
       "waypoints": []
     },
@@ -71,297 +67,136 @@
       "bridges": [],
       "crossings": [],
       "id": "grpc",
-      "length": 60.0,
+      "length": 100.0,
       "route": [
         [
-          560.0,
-          165.0
+          660.0,
+          240.0
         ],
         [
-          620.0,
-          165.0
+          760.0,
+          240.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "gateway",
       "source_port": [
-        560.0,
-        165.0
+        660.0,
+        240.0
       ],
       "target": "services",
       "target_port": [
-        620.0,
-        165.0
+        760.0,
+        240.0
       ],
       "waypoints": []
     },
     {
-      "bends": 11,
+      "bends": 2,
       "bridges": [],
       "crossings": [],
       "id": "notify",
-      "length": 413.4,
+      "length": 591.0,
       "route": [
         [
-          731.0,
-          200.0
+          911.0,
+          300.0
         ],
         [
-          731.0,
-          210.2
+          911.0,
+          324.0
         ],
         [
-          640.0,
-          210.2
+          520.0,
+          324.0
         ],
         [
-          640.0,
-          200.0
-        ],
-        [
-          630.0,
-          200.0
-        ],
-        [
-          630.0,
-          230.0
-        ],
-        [
-          640.0,
-          230.0
-        ],
-        [
-          640.0,
-          236.0
-        ],
-        [
-          450.0,
-          236.0
-        ],
-        [
-          450.0,
-          230.0
-        ],
-        [
-          440.0,
-          230.0
-        ],
-        [
-          440.0,
-          260.0
-        ],
-        [
-          450.0,
-          260.0
+          520.0,
+          500.0
         ]
       ],
-      "route_stretch": 1.212,
+      "route_stretch": 1.0,
       "source": "services",
       "source_port": [
-        731.0,
-        200.0
+        911.0,
+        300.0
       ],
       "target": "wshub",
       "target_port": [
-        450.0,
-        260.0
+        520.0,
+        500.0
       ],
-      "waypoints": [
-        [
-          640.0,
-          200.0
-        ],
-        [
-          640.0,
-          230.0
-        ],
-        [
-          450.0,
-          230.0
-        ],
-        [
-          450.0,
-          260.0
-        ]
-      ]
+      "waypoints": []
     },
     {
-      "bends": 5,
-      "bridges": [
-        [
-          730.0,
-          210.2
-        ],
-        [
-          731.0,
-          200.0
-        ]
-      ],
-      "crossings": [
-        [
-          730.0,
-          210.2
-        ],
-        [
-          731.0,
-          200.0
-        ]
-      ],
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
       "id": "sql",
-      "length": 177.8,
+      "length": 209.0,
       "route": [
         [
-          749.0,
-          200.0
+          929.0,
+          300.0
         ],
         [
-          749.0,
-          220.4
+          929.0,
+          320.4
         ],
         [
-          730.0,
-          220.4
+          920.0,
+          320.4
         ],
         [
-          730.0,
-          200.0
-        ],
-        [
-          759.0,
-          200.0
-        ],
-        [
-          759.0,
-          260.0
-        ],
-        [
-          730.0,
-          260.0
+          920.0,
+          500.0
         ]
       ],
-      "route_stretch": 2.251,
+      "route_stretch": 1.0,
       "source": "services",
       "source_port": [
-        749.0,
-        200.0
+        929.0,
+        300.0
       ],
       "target": "tidb",
       "target_port": [
-        730.0,
-        260.0
+        920.0,
+        500.0
       ],
-      "waypoints": [
-        [
-          730.0,
-          200.0
-        ],
-        [
-          730.0,
-          260.0
-        ]
-      ]
+      "waypoints": []
     },
     {
-      "bends": 8,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "ws",
-      "length": 520.4,
+      "length": 80.0,
       "route": [
         [
-          450.0,
-          330.0
-        ],
-        [
-          450.0,
-          340.2
-        ],
-        [
-          390.0,
-          340.2
-        ],
-        [
-          390.0,
-          330.0
-        ],
-        [
           380.0,
-          330.0
+          555.0
         ],
         [
-          380.0,
-          355.0
-        ],
-        [
-          390.0,
-          355.0
-        ],
-        [
-          390.0,
-          365.0
-        ],
-        [
-          150.0,
-          365.0
-        ],
-        [
-          150.0,
-          355.0
-        ],
-        [
-          150.0,
-          220.0
+          300.0,
+          555.0
         ]
       ],
-      "route_stretch": 1.269,
+      "route_stretch": 1.0,
       "source": "wshub",
       "source_port": [
-        450.0,
-        330.0
+        380.0,
+        555.0
       ],
       "target": "clients",
       "target_port": [
-        150.0,
-        220.0
+        300.0,
+        555.0
       ],
-      "waypoints": [
-        [
-          390.0,
-          330.0
-        ],
-        [
-          390.0,
-          355.0
-        ],
-        [
-          150.0,
-          355.0
-        ],
-        [
-          150.0,
-          220.0
-        ]
-      ]
+      "waypoints": []
     }
   ],
   "input_schema": "v1",
-  "issues": [
-    {
-      "code": "EDGE_CROSSING_BRIDGED",
-      "coordinates": [
-        [
-          730.0,
-          210.2
-        ],
-        [
-          731.0,
-          200.0
-        ]
-      ],
-      "element": "sql",
-      "severity": "info"
-    }
-  ],
+  "issues": [],
   "mode": "architecture",
   "ok": true,
   "palette": {
@@ -392,7 +227,7 @@
     "name": "Blueprint"
   },
   "summary": {
-    "bridged_crossings": 2,
+    "bridged_crossings": 0,
     "edges": 5,
     "nodes": 5
   },

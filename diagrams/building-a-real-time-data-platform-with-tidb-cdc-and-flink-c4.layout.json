@@ -1,6 +1,6 @@
 {
   "canvas": {
-    "height": 820.0,
+    "height": 860.0,
     "width": 1460.0
   },
   "composition": {
@@ -17,15 +17,15 @@
     },
     "metrics": {
       "bridged_crossings": 1,
-      "max_route_stretch": 1.047,
-      "minimum_container_gutter": 40.0,
+      "max_route_stretch": 1.105,
+      "minimum_container_gutter": 20.0,
       "minimum_node_gap": 40.0,
       "shortest_segment": 4.0,
-      "total_bends": 11
+      "total_bends": 7
     },
     "ok": true,
     "profile": "standard",
-    "score": 84,
+    "score": 92,
     "violations": []
   },
   "edges": [
@@ -100,7 +100,7 @@
       "bridges": [],
       "crossings": [],
       "id": "consume",
-      "length": 390.0,
+      "length": 440.0,
       "route": [
         [
           1030.0,
@@ -111,12 +111,12 @@
           284.0
         ],
         [
-          830.0,
+          850.0,
           284.0
         ],
         [
-          830.0,
-          470.0
+          850.0,
+          540.0
         ]
       ],
       "route_stretch": 1.0,
@@ -127,137 +127,117 @@
       ],
       "target": "flink-jobs",
       "target_port": [
-        830.0,
-        470.0
+        850.0,
+        540.0
       ],
       "waypoints": []
     },
     {
-      "bends": 1,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "write-ads",
-      "length": 271.0,
+      "length": 120.0,
       "route": [
         [
-          620.0,
-          530.0
+          660.0,
+          600.0
         ],
         [
-          460.0,
-          530.0
-        ],
-        [
-          460.0,
-          419.0
-        ],
-        [
-          460.0,
-          419.0
+          540.0,
+          600.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "flink-jobs",
       "source_port": [
-        620.0,
-        530.0
+        660.0,
+        600.0
       ],
       "target": "analytics-data",
       "target_port": [
-        460.0,
-        419.0
+        540.0,
+        600.0
       ],
       "waypoints": []
     },
     {
-      "bends": 4,
+      "bends": 3,
       "bridges": [
         [
-          830.0,
-          382.0
+          850.0,
+          390.0
         ]
       ],
       "crossings": [
         [
-          830.0,
-          382.0
+          850.0,
+          390.0
         ]
       ],
       "id": "query-ads",
-      "length": 847.0,
+      "length": 1050.0,
       "route": [
         [
           1160.0,
-          510.0
+          440.0
         ],
         [
           1139.6,
-          510.0
+          440.0
         ],
         [
           1139.6,
-          382.0
+          390.0
         ],
         [
-          480.4,
-          382.0
+          310.0,
+          390.0
         ],
         [
-          480.4,
-          401.0
-        ],
-        [
-          460.0,
-          401.0
+          310.0,
+          540.0
         ]
       ],
-      "route_stretch": 1.047,
+      "route_stretch": 1.105,
       "source": "queryhub",
       "source_port": [
         1160.0,
-        510.0
+        440.0
       ],
       "target": "analytics-data",
       "target_port": [
-        460.0,
-        401.0
+        310.0,
+        540.0
       ],
       "waypoints": []
     },
     {
-      "bends": 2,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "cache-result",
-      "length": 70.0,
+      "length": 90.0,
       "route": [
         [
           1280.0,
-          580.0
+          510.0
         ],
         [
           1280.0,
-          600.4
-        ],
-        [
-          1290.0,
-          600.4
-        ],
-        [
-          1290.0,
-          640.0
+          600.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "queryhub",
       "source_port": [
         1280.0,
-        580.0
+        510.0
       ],
       "target": "cache",
       "target_port": [
-        1290.0,
-        640.0
+        1280.0,
+        600.0
       ],
       "waypoints": []
     },
@@ -266,7 +246,7 @@
       "bridges": [],
       "crossings": [],
       "id": "dashboard-query",
-      "length": 180.0,
+      "length": 110.0,
       "route": [
         [
           1280.0,
@@ -274,7 +254,7 @@
         ],
         [
           1280.0,
-          440.0
+          370.0
         ]
       ],
       "route_stretch": 1.0,
@@ -286,7 +266,7 @@
       "target": "queryhub",
       "target_port": [
         1280.0,
-        440.0
+        370.0
       ],
       "waypoints": []
     }
@@ -297,8 +277,8 @@
       "code": "EDGE_CROSSING_BRIDGED",
       "coordinates": [
         [
-          830.0,
-          382.0
+          850.0,
+          390.0
         ]
       ],
       "element": "query-ads",
@@ -323,18 +303,18 @@
     "legend": {
       "actual": [
         48.0,
-        730.0
+        770.0
       ],
       "bounds": [
         38.0,
-        716.0,
+        756.0,
         465.28,
-        762.0
+        802.0
       ],
       "moved": false,
       "requested": [
         48.0,
-        730.0
+        770.0
       ]
     }
   },

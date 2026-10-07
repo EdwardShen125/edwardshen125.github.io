@@ -1,7 +1,7 @@
 {
   "canvas": {
-    "height": 580.0,
-    "width": 960.0
+    "height": 640.0,
+    "width": 1560.0
   },
   "composition": {
     "limits": {
@@ -17,15 +17,15 @@
     },
     "metrics": {
       "bridged_crossings": 0,
-      "max_route_stretch": 1.261,
-      "minimum_container_gutter": 20.0,
-      "minimum_node_gap": 80.0,
-      "shortest_segment": 6.0,
-      "total_bends": 22
+      "max_route_stretch": 1.073,
+      "minimum_container_gutter": 10.0,
+      "minimum_node_gap": 70.0,
+      "shortest_segment": 20.4,
+      "total_bends": 4
     },
     "ok": true,
     "profile": "standard",
-    "score": 70,
+    "score": 100,
     "violations": []
   },
   "edges": [
@@ -34,228 +34,147 @@
       "bridges": [],
       "crossings": [],
       "id": "elects",
-      "length": 120.0,
+      "length": 160.0,
       "route": [
         [
-          280.0,
-          170.0
+          310.0,
+          195.0
         ],
         [
-          400.0,
-          170.0
+          470.0,
+          195.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "etcd",
       "source_port": [
-        280.0,
-        170.0
+        310.0,
+        195.0
       ],
       "target": "schedulers",
       "target_port": [
-        400.0,
-        170.0
+        470.0,
+        195.0
       ],
       "waypoints": []
     },
     {
-      "bends": 11,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "acquire",
-      "length": 506.4,
+      "length": 70.0,
       "route": [
         [
-          531.0,
-          198.0
+          585.0,
+          230.0
         ],
         [
-          531.0,
-          208.2
-        ],
-        [
-          470.0,
-          208.2
-        ],
-        [
-          470.0,
-          198.0
-        ],
-        [
-          460.0,
-          198.0
-        ],
-        [
-          460.0,
-          240.0
-        ],
-        [
-          470.0,
-          240.0
-        ],
-        [
-          470.0,
-          250.0
-        ],
-        [
-          185.0,
-          250.0
-        ],
-        [
-          185.0,
-          240.0
-        ],
-        [
-          175.0,
-          240.0
-        ],
-        [
-          175.0,
-          278.0
-        ],
-        [
-          185.0,
-          278.0
+          585.0,
+          300.0
         ]
       ],
-      "route_stretch": 1.189,
+      "route_stretch": 1.0,
       "source": "schedulers",
       "source_port": [
-        531.0,
-        198.0
+        585.0,
+        230.0
       ],
       "target": "tidb",
       "target_port": [
-        185.0,
-        278.0
+        585.0,
+        300.0
       ],
-      "waypoints": [
-        [
-          470.0,
-          198.0
-        ],
-        [
-          470.0,
-          240.0
-        ],
-        [
-          185.0,
-          240.0
-        ],
-        [
-          185.0,
-          278.0
-        ]
-      ]
+      "waypoints": []
     },
     {
-      "bends": 2,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "job-items",
-      "length": 106.0,
+      "length": 160.0,
       "route": [
         [
-          310.0,
-          312.0
+          700.0,
+          335.0
         ],
         [
-          330.4,
-          312.0
-        ],
-        [
-          330.4,
-          306.0
-        ],
-        [
-          410.0,
-          306.0
+          860.0,
+          335.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "tidb",
       "source_port": [
-        310.0,
-        312.0
+        700.0,
+        335.0
       ],
       "target": "fire",
       "target_port": [
-        410.0,
-        306.0
+        860.0,
+        335.0
       ],
       "waypoints": []
     },
     {
-      "bends": 2,
+      "bends": 1,
       "bridges": [],
       "crossings": [],
       "id": "submit",
-      "length": 89.0,
+      "length": 386.0,
       "route": [
         [
-          549.0,
-          198.0
+          700.0,
+          204.0
         ],
         [
-          549.0,
-          218.4
+          990.0,
+          204.0
         ],
         [
-          540.0,
-          218.4
-        ],
-        [
-          540.0,
-          278.0
+          990.0,
+          300.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "schedulers",
       "source_port": [
-        549.0,
-        198.0
+        700.0,
+        204.0
       ],
       "target": "fire",
       "target_port": [
-        540.0,
-        278.0
+        990.0,
+        300.0
       ],
       "waypoints": []
     },
     {
-      "bends": 2,
+      "bends": 0,
       "bridges": [],
       "crossings": [],
       "id": "publish",
-      "length": 388.0,
+      "length": 130.0,
       "route": [
         [
-          540.0,
-          334.0
-        ],
-        [
-          540.0,
+          990.0,
           370.0
         ],
         [
-          270.0,
-          370.0
-        ],
-        [
-          270.0,
-          452.0
+          990.0,
+          500.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "fire",
       "source_port": [
-        540.0,
-        334.0
+        990.0,
+        370.0
       ],
       "target": "pulsar",
       "target_port": [
-        270.0,
-        452.0
+        990.0,
+        500.0
       ],
       "waypoints": []
     },
@@ -264,99 +183,70 @@
       "bridges": [],
       "crossings": [],
       "id": "consume",
-      "length": 190.0,
+      "length": 160.0,
       "route": [
         [
-          390.0,
-          482.0
+          1120.0,
+          535.0
         ],
         [
-          580.0,
-          482.0
+          1280.0,
+          535.0
         ]
       ],
       "route_stretch": 1.0,
       "source": "pulsar",
       "source_port": [
-        390.0,
-        482.0
+        1120.0,
+        535.0
       ],
       "target": "sdk",
       "target_port": [
-        580.0,
-        482.0
+        1280.0,
+        535.0
       ],
       "waypoints": []
     },
     {
-      "bends": 5,
+      "bends": 3,
       "bridges": [],
       "crossings": [],
       "id": "callback",
-      "length": 399.8,
+      "length": 1083.0,
       "route": [
         [
-          715.0,
-          452.0
+          1395.0,
+          500.0
         ],
         [
-          715.0,
-          431.6
+          1395.0,
+          149.0
         ],
         [
-          704.0,
-          431.6
+          720.4,
+          149.0
         ],
         [
-          704.0,
-          452.0
+          720.4,
+          186.0
         ],
         [
-          715.0,
-          452.0
-        ],
-        [
-          725.0,
-          452.0
-        ],
-        [
-          725.0,
-          170.0
-        ],
-        [
-          715.0,
-          170.0
-        ],
-        [
-          680.0,
-          170.0
+          700.0,
+          186.0
         ]
       ],
-      "route_stretch": 1.261,
+      "route_stretch": 1.073,
       "source": "sdk",
       "source_port": [
-        715.0,
-        452.0
+        1395.0,
+        500.0
       ],
       "target": "schedulers",
       "target_port": [
-        680.0,
-        170.0
+        700.0,
+        186.0
       ],
-      "waypoints": [
-        [
-          715.0,
-          452.0
-        ],
-        [
-          715.0,
-          170.0
-        ],
-        [
-          680.0,
-          170.0
-        ]
-      ]
+      "waypoints": []
     }
   ],
   "input_schema": "v1",

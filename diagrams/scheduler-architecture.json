@@ -9,24 +9,24 @@
     "profile": "standard",
     "max_route_stretch": 1.4
   },
-  "width": 960,
-  "height": 580,
+  "width": 1560,
+  "height": 640,
   "containers": [
     {
       "id": "control_plane",
       "x": 60,
-      "y": 104,
-      "width": 840,
-      "height": 118,
+      "y": 100,
+      "width": 660,
+      "height": 170,
       "label": "Scheduler Leader",
       "header_prefix": "01"
     },
     {
       "id": "message_bus",
-      "x": 60,
-      "y": 410,
-      "width": 840,
-      "height": 130,
+      "x": 820,
+      "y": 430,
+      "width": 700,
+      "height": 170,
       "label": "Message Bus",
       "header_prefix": "02"
     }
@@ -35,10 +35,10 @@
     {
       "id": "etcd",
       "kind": "double_rect",
-      "x": 80,
-      "y": 142,
-      "width": 200,
-      "height": 56,
+      "x": 90,
+      "y": 160,
+      "width": 220,
+      "height": 70,
       "label": "etcd Election",
       "sublabel": "leader · lease",
       "fill": "#0b3b5e",
@@ -48,10 +48,10 @@
     {
       "id": "schedulers",
       "kind": "rect",
-      "x": 400,
-      "y": 142,
-      "width": 280,
-      "height": 56,
+      "x": 470,
+      "y": 160,
+      "width": 230,
+      "height": 70,
       "label": "Partition Schedulers",
       "sublabel": "one goroutine per partition",
       "fill": "#0a4b78",
@@ -61,10 +61,10 @@
     {
       "id": "tidb",
       "kind": "cylinder",
-      "x": 60,
-      "y": 278,
-      "width": 250,
-      "height": 68,
+      "x": 470,
+      "y": 300,
+      "width": 230,
+      "height": 70,
       "label": "dus_job_trigger",
       "sublabel": "TiDB · HASH(id) · CAS states",
       "fill": "#0b3b5e",
@@ -74,10 +74,10 @@
     {
       "id": "fire",
       "kind": "double_rect",
-      "x": 410,
-      "y": 278,
+      "x": 860,
+      "y": 300,
       "width": 260,
-      "height": 56,
+      "height": 70,
       "label": "Fire Pipeline",
       "sublabel": "worker pool · fan-out",
       "fill": "#0a4b78",
@@ -87,10 +87,10 @@
     {
       "id": "pulsar",
       "kind": "rect",
-      "x": 150,
-      "y": 452,
-      "width": 240,
-      "height": 60,
+      "x": 860,
+      "y": 500,
+      "width": 260,
+      "height": 70,
       "label": "Pulsar Topics",
       "sublabel": "per business domain",
       "fill": "#0b3b5e",
@@ -100,10 +100,10 @@
     {
       "id": "sdk",
       "kind": "rect",
-      "x": 580,
-      "y": 452,
-      "width": 270,
-      "height": 60,
+      "x": 1280,
+      "y": 500,
+      "width": 230,
+      "height": 70,
       "label": "Executor SDK",
       "sublabel": "per-business consumers",
       "fill": "#0b3b5e",
@@ -128,25 +128,7 @@
       "source_port": "bottom",
       "target_port": "top",
       "flow": "read",
-      "label": "scan · CAS acquire",
-      "route_points": [
-        [
-          470,
-          198
-        ],
-        [
-          470,
-          240
-        ],
-        [
-          185,
-          240
-        ],
-        [
-          185,
-          278
-        ]
-      ]
+      "label": "scan · CAS acquire"
     },
     {
       "id": "job-items",
@@ -161,7 +143,7 @@
       "id": "submit",
       "source": "schedulers",
       "target": "fire",
-      "source_port": "bottom",
+      "source_port": "right",
       "target_port": "top",
       "flow": "data",
       "label": "acquired batch"
@@ -191,25 +173,11 @@
       "source_port": "top",
       "target_port": "right",
       "flow": "feedback",
-      "label": "execution callback",
-      "route_points": [
-        [
-          715,
-          452
-        ],
-        [
-          715,
-          170
-        ],
-        [
-          680,
-          170
-        ]
-      ]
+      "label": "execution callback"
     }
   ],
   "title": "",
   "footer": "Edward Shen · Distributed Systems Series · scheduler topology",
   "footer_x": 48,
-  "footer_y": 570
+  "footer_y": 630
 }
