@@ -30,7 +30,7 @@
 <meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-cover.png">
 <meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/building-a-production-grade-go-microservice-architecture-from-zero/platform-architecture-c4.png">
 <meta property="article:published_time" content="2025-10-03T04:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-07T07:33:15.339Z">
+<meta property="article:modified_time" content="2026-10-07T08:02:13.367Z">
 <meta property="article:author" content="Edward Shen">
 <meta property="article:tag" content="go">
 <meta property="article:tag" content="microservices">
@@ -244,7 +244,7 @@
               <span class="post-meta-item-icon">
                 <i class="far fa-file-word"></i>
               </span>
-              <span>3.1k</span>
+              <span>3k</span>
             </span>
             <span class="post-meta-item" title="Reading time">
               <span class="post-meta-item-icon">
@@ -579,19 +579,6 @@ independently fetched catalog providers, payment metadata, or localized
 labels to build dropdowns and display names. A change to one visible
 page could therefore cross multiple domain contracts even when the
 business change was small.</p>
-<h2 id="a-closing-note-from-the-agent-era">A Closing Note from the Agent
-Era</h2>
-<p>This platform was built before AI coding agents entered our workflow,
-and it turned out to be exactly what they needed. Agents amplify
-whatever the codebase already is: the contract repository, the
-per-service table ownership, and the generated scaffold got amplified
-into consistent, fast agent output, while a weak top-level design would
-have been amplified just as fast into something unmaintainable. What
-made the boundaries work was not the act of splitting services but
-encoding them into contract files, table ownership, and generated
-structure. When a boundary lives in a contract file, every future change
-automatically respects it. When it lives only in a meeting discussion,
-the next sprint forgets it.</p>
 <p><em>Previous in this series: <a
 href="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/">Designing
 a Distributed Scheduler Handling 200K+ Scheduling Operations per
@@ -693,8 +680,7 @@ edge</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#
 build</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#implementation"><span class="nav-number">8.</span> <span class="nav-text">Implementation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#adoption"><span class="nav-number">9.</span> <span class="nav-text">Adoption</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">10.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#was-it-worth-it-for-four-people"><span class="nav-number">11.</span> <span class="nav-text">Was It Worth It for Four
 People?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">12.</span> <span class="nav-text">Trade-offs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">13.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">14.</span> <span class="nav-text">What I Would Change Today</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#chaos-test-the-failover-paths"><span class="nav-number">14.1.</span> <span class="nav-text">Chaos-test the failover
 paths</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#alert-on-api-contract-changes"><span class="nav-number">14.2.</span> <span class="nav-text">Alert on API contract
-changes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#introduce-a-bff-boundary"><span class="nav-number">14.3.</span> <span class="nav-text">Introduce a BFF boundary</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#a-closing-note-from-the-agent-era"><span class="nav-number">15.</span> <span class="nav-text">A Closing Note from the Agent
-Era</span></a></li></ol></div>
+changes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#introduce-a-bff-boundary"><span class="nav-number">14.3.</span> <span class="nav-text">Introduce a BFF boundary</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
