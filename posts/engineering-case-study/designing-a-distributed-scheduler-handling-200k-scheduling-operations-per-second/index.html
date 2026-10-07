@@ -20,20 +20,20 @@
     var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="Adding scheduler instances made the contention worse, not better. The legacy batch center and xxl-job flatlined at a few thousand operations per second, and every new instance multiplied lock contenti">
+  <meta name="description" content="Adding scheduler instances made the contention worse, not better. The legacy batch center and xxl-job flatlined at a few thousand legacy dispatches per second, and every new instance multiplied lock c">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Designing a Distributed Scheduler Handling 200K+ Scheduling Operations per Second">
+<meta property="og:title" content="Designing a Distributed Scheduler Handling 200K+ Execution Commands per Second">
 <meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/">
 <meta property="og:site_name" content="Edward Shen">
-<meta property="og:description" content="Adding scheduler instances made the contention worse, not better. The legacy batch center and xxl-job flatlined at a few thousand operations per second, and every new instance multiplied lock contenti">
+<meta property="og:description" content="Adding scheduler instances made the contention worse, not better. The legacy batch center and xxl-job flatlined at a few thousand legacy dispatches per second, and every new instance multiplied lock c">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture.png">
 <meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture-c4.png">
 <meta property="article:published_time" content="2025-01-01T06:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-07T02:51:21.660Z">
+<meta property="article:modified_time" content="2026-10-07T04:40:01.092Z">
 <meta property="article:author" content="Edward Shen">
-<meta property="article:tag" content="go">
 <meta property="article:tag" content="tidb">
+<meta property="article:tag" content="go">
 <meta property="article:tag" content="distributed-systems">
 <meta property="article:tag" content="pulsar">
 <meta property="article:tag" content="etcd">
@@ -54,7 +54,7 @@
   };
 </script>
 
-  <title>Designing a Distributed Scheduler Handling 200K+ Scheduling Operations per Second | Edward Shen</title>
+  <title>Designing a Distributed Scheduler Handling 200K+ Execution Commands per Second | Edward Shen</title>
   
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
     <script>
@@ -112,7 +112,7 @@
     <header class="header" itemscope itemtype="http://schema.org/WPHeader">
       <div class="header-inner"><div class="site-brand-container">
   <div class="site-nav-toggle">
-    <div class="toggle" aria-label="Toggle navigation bar">
+    <div class="toggle" aria-label="切换导航栏">
       <span class="toggle-line toggle-line-first"></span>
       <span class="toggle-line toggle-line-middle"></span>
       <span class="toggle-line toggle-line-last"></span>
@@ -142,32 +142,32 @@
   <ul id="menu" class="main-menu menu">
         <li class="menu-item menu-item-home">
 
-    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
 
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
 
   </li>
         <li class="menu-item menu-item-about">
 
-    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
 
   </li>
         <li class="menu-item menu-item-tags">
 
-    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
 
   </li>
         <li class="menu-item menu-item-categories">
 
-    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
 
   </li>
         <li class="menu-item menu-item-commonweal">
 
-    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>Commonweal 404</a>
+    <a href="/404/" rel="section"><i class="fa fa-heartbeat fa-fw"></i>公益 404</a>
 
   </li>
   </ul>
@@ -211,7 +211,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Designing a Distributed Scheduler Handling 200K+ Scheduling Operations per Second
+          Designing a Distributed Scheduler Handling 200K+ Execution Commands per Second
         </h1>
 
         <div class="post-meta">
@@ -245,13 +245,13 @@
               <span class="post-meta-item-icon">
                 <i class="far fa-file-word"></i>
               </span>
-              <span>2.7k</span>
+              <span>3.2k</span>
             </span>
             <span class="post-meta-item" title="Reading time">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
-              <span>10 mins.</span>
+              <span>12 mins.</span>
             </span>
 
         </div>
@@ -266,16 +266,17 @@
         <p>Adding scheduler instances made the contention worse, not better. The
 legacy batch center and <a
 target="_blank" rel="noopener" href="https://github.com/xuxueli/xxl-job">xxl-job</a> flatlined at a few
-thousand operations per second, and every new instance multiplied lock
-contention on the same task table. This is the retrospective of their
-replacement — a scheduling center on <a
+thousand legacy dispatches per second, and every new instance multiplied
+lock contention on the same task table. This is the retrospective of
+their replacement — a scheduling center on <a
 target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a>, <a
 target="_blank" rel="noopener" href="https://etcd.io/">etcd</a>, and <a
-target="_blank" rel="noopener" href="https://pulsar.apache.org/">Apache Pulsar</a> that peaked above
-200K operations per second — and of the incident that forced its
-isolation model to be redesigned. Here, a scheduling operation means one
-execution command published to Pulsar; the term does not measure
-downstream handler completion.</p>
+target="_blank" rel="noopener" href="https://pulsar.apache.org/">Apache Pulsar</a> whose on-the-hour
+workload peaked above 200K execution commands per second — and of the
+incidents that forced its isolation model to be redesigned. For the
+replacement, a scheduling operation means one execution command
+published to Pulsar; it does not measure downstream handler
+completion.</p>
 <img data-src="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture.png" class="" title="Final Distributed Scheduling Center architecture after topic isolation: etcd election, partition schedulers, TiDB CAS state machine, fire pipeline, Pulsar topics per business domain, and executor SDK">
 <h2 id="context">Context</h2>
 <p>At my previous company, the SCRM (Social CRM) platform served
@@ -285,7 +286,7 @@ procedure) sequences that touched segmented audiences at scheduled
 moments, follow-up reminders, and large one-shot jobs created by
 operations. Two legacy components carried this load: an in-house batch
 center and xxl-job. Together they covered more than twenty business
-scenarios and were approaching a hundred million scheduled tasks.</p>
+scenarios and carried a continuously active scheduling workload.</p>
 <p>I owned the design and delivery of their replacement: a distributed
 scheduling center built in Go on top of those systems, and later the
 migration of existing business scenarios onto it. The design was
@@ -308,7 +309,7 @@ until the callback returned. For fast handlers this was fine. But real
 business handlers took anywhere from milliseconds to minutes, and every
 slow task held its worker hostage. Under load, the worker pool saturated
 and throughput collapsed. Production hit a ceiling at a few thousand
-scheduling operations per second.</p>
+legacy dispatches per second.</p>
 <p>Scaling out made things worse, not better. Every instance polled and
 updated the same task table, so adding instances multiplied read/write
 lock contention on it. The system could not grow horizontally at exactly
@@ -341,9 +342,7 @@ both old and new systems ran against production traffic.</li>
 <li>Second-level scheduling precision for delayed tasks, plus cron
 support for recurring ones.</li>
 <li>Peak throughput well beyond the old ceiling.</li>
-<li>Failure isolation between business scenarios. This became a hard
-requirement after the SOP workload showed that a slow consumer could
-affect the shared delivery path.</li>
+<li>Failure isolation between business scenarios.</li>
 <li>Full replacement of the batch center and xxl-job with a gradual,
 verifiable cutover.</li>
 </ul>
@@ -354,7 +353,7 @@ and the shared-table contention remained, so the ceiling would only move
 slightly.</p>
 <p>Moving the entire task lifecycle into the message queue, holding
 every task as a delayed message, would have removed the database from
-the scheduling path. We rejected it because pausing, cancelling,
+the scheduling path. We rejected it because pausing, canceling,
 migrating, and auditing tasks then mean reading and rewriting messages.
 We wanted the database to remain the single source of truth for task
 state.</p>
@@ -364,13 +363,11 @@ state.</p>
 precision.</p>
 <h2 id="architecture-design">Architecture / Design</h2>
 <p>The <span class="exturl" data-url="aHR0cHM6Ly9jNG1vZGVsLmNvbS8=">C4<i class="fa fa-external-link-alt"></i></span> container view below shows
-the final system after topic isolation. Inside the boundary sat the
-containers we operated: etcd election, the scheduler leader, the fire
-pipeline, the TiDB trigger store, Pulsar topics per business domain, and
-the executor SDK embedded in each business service. Every arrow carries
-its protocol as a badge — lease, SQL CAS, deliver-at, consumer groups,
-and event — because each of those protocols is a design decision
-explained in the next section.</p>
+the final system after topic isolation: etcd election; the leader's
+partition schedulers and in-process fire pipeline; the TiDB trigger
+store; per-domain Pulsar topics; and the executor SDK. Arrow badges
+carry the protocol for each hop — lease, SQL CAS, deliver-at, consumer
+groups, or event.</p>
 <img data-src="/posts/engineering-case-study/designing-a-distributed-scheduler-handling-200k-scheduling-operations-per-second/architecture-c4.png" class="" title="C4 container view of the final Distributed Scheduling Center: etcd election, scheduler leader and fire pipeline, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar topics, executor SDK consumer groups, and execution callback events">
 <h2 id="key-technical-decisions">Key Technical Decisions</h2>
 <h3 id="partition-serial-scheduling">Partition-serial scheduling</h3>
@@ -382,7 +379,8 @@ metadata</a> and ran exactly one scheduling goroutine per partition
 inside the leader process. Within a partition, acquisition was serial:
 scan due triggers, acquire, fire. Because each goroutine touched only
 its own partition, there was no cross-goroutine contention in the common
-case, and partition pruning kept every scan cheap.</p>
+case, and partition pruning kept every scan cheap. Hash partitioning
+balanced rows by ID, however; it did not balance load by due time.</p>
 <h3 id="cas-as-a-safety-net">CAS as a safety net</h3>
 <p>Persistent transitions used conditional updates.
 <code>waiting -&gt; acquired</code> gated fire preparation;
@@ -412,13 +410,16 @@ misread.</p>
           </pre>
 <h3 id="coarse-acquisition-precise-delivery">Coarse acquisition, precise
 delivery</h3>
-<p>The scheduling loop acquired triggers in a lookahead window of
-roughly forty seconds (configurable), in batches of up to 500, ordered
-by due time. Each execution command was then published with a deliver-at
-timestamp equal to the trigger's fire time, so the message bus held it
-until the right moment. This decoupled the database polling frequency
-from scheduling precision: the DB loop could be lazy and batchy while
-precision stayed at the second level.</p>
+<p>The scheduling loop acquired triggers in a configurable lookahead
+window. After the first on-the-hour contention incident, production used
+a 30-minute window: an empty partition could sleep for 30 seconds, while
+the scan covered enough future work to absorb a large scheduled burst
+before it became urgent. Triggers were selected in batches of up to 300
+and ordered by due time. Each execution command was then published with
+a deliver-at timestamp equal to the trigger's fire time, so the message
+bus held it until the right moment. This decoupled the database polling
+frequency from scheduling precision: the DB loop could be lazy and
+batchy while precision stayed at the second level.</p>
 <h3 id="a-single-leader-for-partition-schedulers">A single leader for
 partition schedulers</h3>
 <p>I considered distributing partitions across nodes, but that adds
@@ -442,30 +443,35 @@ and a bounded fire pool; the fire pipeline was that in-process pool plus
 its batch-to-command path, not a separate service. The acquire loop of
 each partition scheduler did the following, once per tick:</p>
 <ol type="1">
-<li>Compute the acquisition window: from the misfire floor — normally 30
-minutes before now, but lowered to the tracked trigger high-water mark
-if that mark had fallen further behind — to now plus the lookahead.</li>
+<li>Compute the acquisition window: from the misfire floor — the older
+of the partition's tracked latest <code>next_fire_at</code> and two
+hours before now — to now plus the lookahead. The startup floor could
+reach seven days back.</li>
 <li>Select <code>waiting</code> triggers in that window, ordered by due
 time, limited to the batch size — and capped by available capacity in
 the fire pool, so the scheduler never acquired more than it could hand
 off.</li>
 <li>CAS the batch from <code>waiting</code> to <code>acquired</code>,
-confirm winners by re-reading state, then submit groups of up to 200
+confirm winners by re-reading state, then submit groups of up to 100
 acquired triggers to the fire pipeline with retries.</li>
 <li>If the fire pipeline rejected work repeatedly, release the triggers
 back to <code>waiting</code> so nothing was lost.</li>
 </ol>
 <p>The admission boundary was the important code path. The scheduler
-computed a short look-ahead horizon from its idle poll interval,
-configured acquisition window, and jitter:</p>
-<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">upper := time.Now().UnixMilli() +</span><br><span class="line">	s.getIdleWaitTimeMilli() + <span class="comment">// 30s idle wait</span></span><br><span class="line">	s.getBatchTimeWindow() + <span class="comment">// 10s acquisition window</span></span><br><span class="line">	randSleepMaxDuration.Milliseconds()</span><br><span class="line"></span><br><span class="line">acquired, err := s.jobAppSvc.AcquireNextJobTriggers(</span><br><span class="line">	ctx, s.PartitionName,</span><br><span class="line">	s.getMisfireTime(latestNextFireAt), <span class="comment">// overdue-trigger floor</span></span><br><span class="line">	upper,                              <span class="comment">// now + ~40.5s</span></span><br><span class="line">	s.getBatchSize(),                   <span class="comment">// min(free fire slots, 500)</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
-<p>The idle wait belonged in the upper bound because an empty partition
-could sleep for roughly 30 seconds before its next scan. The extra
-ten-second window and jitter made the query cover that sleep plus
-operating margin, while still keeping the candidate set small.</p>
-<p>The repository selected only the small due-soon slice from each
+computed the lookahead horizon from its idle poll interval, configured
+acquisition window, and jitter. The production values were:</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="punctuation">&#123;</span></span><br><span class="line">  <span class="attr">&quot;time_window_milli&quot;</span><span class="punctuation">:</span> <span class="number">1800000</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;idle_wait_time_milli&quot;</span><span class="punctuation">:</span> <span class="number">30000</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;max_batch_size&quot;</span><span class="punctuation">:</span> <span class="number">300</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;chunk_size&quot;</span><span class="punctuation">:</span> <span class="number">100</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;misfire_threshold_milli&quot;</span><span class="punctuation">:</span> <span class="number">7200000</span><span class="punctuation">,</span></span><br><span class="line">  <span class="attr">&quot;misfire_threshold_min_launch&quot;</span><span class="punctuation">:</span> <span class="number">-10080</span></span><br><span class="line"><span class="punctuation">&#125;</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">upper := time.Now().UnixMilli() +</span><br><span class="line">	s.getIdleWaitTimeMilli() + <span class="comment">// production: 30s idle wait</span></span><br><span class="line">	s.getBatchTimeWindow() + <span class="comment">// production: 30m acquisition window</span></span><br><span class="line">	randSleepMaxDuration.Milliseconds()</span><br><span class="line"></span><br><span class="line">acquired, err := s.jobAppSvc.AcquireNextJobTriggers(</span><br><span class="line">	ctx, s.PartitionName,</span><br><span class="line">	s.getMisfireTime(latestNextFireAt), <span class="comment">// overdue-trigger floor</span></span><br><span class="line">	upper,                              <span class="comment">// now + ~30m30.5s</span></span><br><span class="line">	s.getBatchSize(),                   <span class="comment">// min(free fire slots, 300)</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+<p>The two-hour recovery allowance appears from two directions: in a
+scan, the misfire floor reaches two hours behind <code>now</code>; for
+one late trigger, the same allowance becomes a misfire horizon at
+<code>trigger_at + 2h</code>.</p>
+<p>The repository selected only the bounded due-soon slice from each
 partition:</p>
 <figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">WHERE</span> state <span class="operator">=</span> <span class="string">&#x27;waiting&#x27;</span></span><br><span class="line">  <span class="keyword">AND</span> next_fire_at <span class="keyword">BETWEEN</span> ? <span class="keyword">AND</span> ?</span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> next_fire_at <span class="keyword">ASC</span></span><br><span class="line">LIMIT ?</span><br></pre></td></tr></table></figure>
+<p>The SQL admitted by due time first. Trigger priority then acted as an
+in-memory tie-breaker when selected triggers shared the same
+<code>next_fire_at</code>; it was not a separate scheduling lane.</p>
 <p>For one trigger, <code>T</code> was its scheduled trigger time —
 <code>next_fire_at</code> in TiDB and the command's deliver-at time in
 Pulsar. <code>Δ = T - acquire_time</code> was the remaining lead time
@@ -479,10 +485,10 @@ command with a delayed-delivery timestamp:</p>
             flowchart LR
     subgraph timeaxis["Normal early admission around trigger_at (not to scale)"]
         direction LR
-        L["Enters lookahead<br/>T - ~40.5s"]
+        L["Enters lookahead<br/>T - ~30m30.5s"]
         A["Acquire / CAS<br/>T - Δ<br/>Δ = T - acquire_time"]
         T["trigger_at = T<br/>DB field: next_fire_at"]
-        M["Misfire horizon<br/>T + 30m"]
+        M["Misfire horizon<br/>T + 2h"]
         L --> A
         A --> T
         T --> M
@@ -491,17 +497,17 @@ command with a delayed-delivery timestamp:</p>
     A -->|"CAS acquire<br/>waiting → acquired"| P["Publish command<br/>deliver-at = T"]
     P --> E["Pulsar delivers<br/>at trigger_at"]
           </pre>
-<p>That made TiDB the durable long-horizon index and Pulsar the
-<strong>short-horizon precision buffer</strong>. A trigger due next
-month stayed as one <code>waiting</code> row; <em>only after</em> CAS
-admission did it become a delayed message whose delivery time was the
-trigger's original fire time.</p>
-<p>The fire pipeline loaded job definitions, computed the next fire time
-(for cron) or marked completion (for one-shot tasks), expanded sharding
-items, persisted fired records, and published execution commands with
-their deliver-at timestamps. Business services integrated through an SDK
-that subscribed with its own consumer group per business and reported
-results back through callback events.</p>
+<p>That split the timing contract concretely: TiDB retained the
+long-horizon <code>waiting</code> row, while Pulsar held only the
+admitted slice and delivered each command at
+<code>next_fire_at</code>.</p>
+<p>The fire pipeline used the job definitions loaded during acquisition,
+computed the next fire time (for cron) or marked completion (for
+one-shot tasks), expanded sharding items, persisted fired records, and
+published execution commands with their deliver-at timestamps. Business
+services integrated through an SDK that subscribed with its own consumer
+group per business and reported results back through callback
+events.</p>
 <p>We migrated the legacy systems with purpose-built tooling: readers
 for the old batch task tables and their change streams, a data flag to
 make migration idempotent, and an SDK for business teams. We load-tested
@@ -509,12 +515,11 @@ and functionally tested against production traffic first, then cut over
 business by business, starting with small, low-value scenarios and
 ending with the critical ones.</p>
 <h2 id="codebase-surface">Codebase Surface</h2>
-<p>The implementation stayed deliberately bounded. The scheduler service
-and executor SDK contained 110 non-test Go files and roughly 8,900 lines
-of code — about 7,100 lines in the scheduler and 1,800 in the SDK. That
-number is not the point by itself; the point is what the design did not
-add: no bespoke coordination service and no custom storage engine. TiDB,
-etcd, Pulsar, and the SDK carried those responsibilities.</p>
+<p>The implementation stayed deliberately bounded: 110 non-test Go files
+and roughly 8,900 lines across the scheduler and SDK. More important was
+what it did not add — no bespoke coordination service and no custom
+storage engine. TiDB, etcd, Pulsar, and the SDK carried those
+responsibilities.</p>
 <p>Maintenance therefore focused on a small set of real complexity:
 partition sizing, leader failover, state-transition correctness, topic
 isolation, SDK compatibility, and executor idempotency. Those were the
@@ -522,39 +527,76 @@ places where a mistake could affect callers; the rest of the
 implementation was deliberately ordinary.</p>
 <h2 id="failure-modes-production-challenges">Failure Modes / Production
 Challenges</h2>
-<p>The most instructive incident came after onboarding the audience-SOP
-scenario. The consumer queues started backing up. The SDK gave each
-business its own consumer group, so handler execution was isolated at
-the subscription level; Pulsar showed exactly which subscription was
-falling behind because its handlers could not keep up with the dispatch
-rate. Delivery infrastructure was not isolated, however: all commands
-still entered one shared topic. As that subscription's backlog grew,
-producers observed backpressure on the shared topic. A problem scoped to
-one business had become a platform-wide stall.</p>
+<h3 id="hot-minute-contention">Hot-minute contention</h3>
+<p>The first production stress pattern came from time alignment, not row
+skew. Hash partitioning spread trigger rows evenly by ID, but a large
+SOP workload placed many trigger runs at exact hour boundaries. Just
+before those boundaries, the acquisition scan found the burst and the
+partition-serial path became dominated by that workload. Other triggers
+behind it in the same partitions waited; the lookahead fell behind and
+the system spent subsequent ticks catching up.</p>
+<p>Monitoring exposed the falling lookahead rather than a single failed
+request. We made three changes: production increased the acquisition
+window to 30 minutes; the business team replaced exact <code>:00</code>
+fire times with randomized seconds; and trigger priority broke ties
+among triggers with the same fire time. The last change improved
+ordering within a selected batch, but the SQL still admitted by due time
+first, so it was not full isolation.</p>
+<p>After the window and workload changes, scheduled trigger delivery
+stayed on time; the remaining pressure moved to downstream
+consumers.</p>
+<h3 id="shared-topic-backpressure">Shared-topic backpressure</h3>
+<p>The next isolation failure came after onboarding the audience-SOP
+scenario. The SDK gave each business its own consumer group, so handler
+execution was isolated at the subscription level; Pulsar showed exactly
+which subscription was falling behind because its handlers could not
+keep up with the dispatch rate. Delivery infrastructure was not
+isolated, however: all commands still entered one shared topic. As that
+subscription's backlog grew, producers observed backpressure on the
+shared topic. A problem scoped to one business had become a
+platform-wide stall.</p>
 <p>We split the topic per business domain. After that, a slow consumer
 could only delay its own domain; other businesses kept flowing, and the
 offending business could be throttled or scaled independently. The
 diagrams show this final topology after topic isolation.</p>
+<h3 id="a-cancellation-design-we-removed">A cancellation design we
+removed</h3>
+<p>Early admission created another contract problem: once a command was
+published to Pulsar with a future deliver-at time, the queue did not
+support canceling that message. To hide that from callers, we tried
+tracking in-flight commands in Redis: publish set a state, consumption
+updated it, and an SDK-side check filtered commands that had been
+canceled. Redis locks and state transitions attempted to keep the two
+systems consistent.</p>
+<p>Production did not justify that complexity. Redis load increased, the
+lock-and-state path became hard to reason about, and debugging required
+correlating TiDB, Pulsar, and Redis. Actual cancel demand proved very
+low, and downstream async handlers already had business-level
+idempotency. We removed the Redis cancellation layer and treated the
+admission window as a cancellation boundary.</p>
 <h2 id="results">Results</h2>
 <ul>
-<li>Peak scheduling throughput above 200K operations per second, up from
-a ceiling of a few thousand in the legacy systems.</li>
-<li>Coverage of more than 20 business scenarios and a task volume
-approaching one hundred million.</li>
+<li>Peak scheduling throughput above 200K execution commands per second
+during daily on-the-hour workload peaks.</li>
+<li>Trough traffic remained in the thousands of execution commands per
+second.</li>
+<li>Coverage of more than 20 business scenarios across a two-year
+production workload.</li>
 <li>Full replacement of both the batch center and xxl-job, with a
 gradual per-business cutover and no big-bang migration.</li>
 </ul>
 <p>The 200K+ figure came from the Pulsar Manager publish-rate panel:
-messages per second on the execution-command topics. For the SOP
-workload that drove the peak, one sharding item produced one execution
-command; jobs with larger fan-out produced proportionally more. The fire
-pool provided up to 6,000 concurrent batch workers, and each worker
-processed up to 200 acquired triggers before command fan-out. That pool
-was a backpressure boundary for the scheduler, but the publish-rate
-panel — not the pool size — was the source of the throughput claim. On
-the acquisition side, each partition goroutine pulled up to 500 triggers
-per loop, so aggregate acquire capacity scaled with the number of
-provisioned partitions.</p>
+messages per second on the execution-command topics. These peaks
+occurred at least once or twice per day. For the SOP workload that drove
+the peak, one sharding item produced one execution command; jobs with
+larger fan-out produced proportionally more. The fire pool provided up
+to 6,000 concurrent batch workers, and each worker processed up to 100
+acquired triggers before command fan-out. That pool was a backpressure
+boundary for the scheduler, but the publish-rate panel — not the pool
+size — was the source of the throughput claim. On the acquisition side,
+each partition goroutine pulled up to 300 triggers per loop, so
+aggregate acquire capacity scaled with the number of provisioned
+partitions.</p>
 <h2 id="trade-offs">Trade-offs</h2>
 <h3 id="what-it-made-better">What it made better</h3>
 <p>Throughput capacity grew with partition count and fire-pool
@@ -570,6 +612,11 @@ count became a capacity-planning burden, since changing it later is not
 free. The single-leader acquire loop had a process ceiling and a
 failover gap during election. At-least-once delivery pushed idempotency
 requirements onto every executor.</p>
+<p>The enlarged lookahead also widened the cancellation boundary. A
+30-minute window absorbed hot-minute bursts better, but once a trigger
+crossed that boundary and became a delayed Pulsar message, the platform
+could not cancel it in the queue. Row-level priority ordering still did
+not provide hard isolation between reliability domains.</p>
 <h2 id="what-i-learned">What I Learned</h2>
 <p>Throughput problems are often execution-model problems, not resource
 problems. The legacy systems did not need more machines; they needed to
@@ -581,7 +628,21 @@ single-topic incident. Both were necessary; only one was planned.</p>
 <p>Decoupling acquisition granularity from delivery precision gave us
 most of the wins: the database stayed transactional and lazy, while the
 message queue absorbed the precision requirement.</p>
+<p>A cancellation contract is a scheduling decision, not an SDK detail.
+Once early admission publishes a non-cancelable delayed message, every
+later attempt to simulate cancellation adds distributed state in the
+wrong place.</p>
 <h2 id="what-i-would-change-today">What I Would Change Today</h2>
+<p>I would separate triggers into explicit reliability or priority
+lanes, each with its own task table, scheduler policy, and capacity
+budget. Priority would be fixed when the trigger is created; supporting
+arbitrary reprioritization would require a much more expensive redesign.
+The lookahead would be adaptive — driven by per-domain fire-time lag and
+burst forecasts — but bounded by the cancellation contract. If callers
+needed true cancellation after admission, I would choose infrastructure
+with cancellation support or require cancellation before admission; I
+would not reconstruct cancelability with Redis state next to a
+non-cancelable queue.</p>
 <p>Topic-per-business-domain would be the initial design, not a
 post-incident fix, and per-business concurrency quotas would ship with
 the first version of the SDK.</p>
@@ -608,8 +669,8 @@ nineteen services would standardize themselves.</em></p>
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/go/" rel="tag"># go</a>
               <a href="/tags/tidb/" rel="tag"># tidb</a>
+              <a href="/tags/go/" rel="tag"># go</a>
               <a href="/tags/distributed-systems/" rel="tag"># distributed-systems</a>
               <a href="/tags/pulsar/" rel="tag"># pulsar</a>
               <a href="/tags/etcd/" rel="tag"># etcd</a>
@@ -688,7 +749,8 @@ nineteen services would standardize themselves.</em></p>
 delivery</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#a-single-leader-for-partition-schedulers"><span class="nav-number">7.4.</span> <span class="nav-text">A single leader for
 partition schedulers</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fan-out-through-sharding-items"><span class="nav-number">7.5.</span> <span class="nav-text">Fan-out through sharding
 items</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#implementation"><span class="nav-number">8.</span> <span class="nav-text">Implementation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#codebase-surface"><span class="nav-number">9.</span> <span class="nav-text">Codebase Surface</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#failure-modes-production-challenges"><span class="nav-number">10.</span> <span class="nav-text">Failure Modes &#x2F; Production
-Challenges</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">11.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">12.</span> <span class="nav-text">Trade-offs</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#what-it-made-better"><span class="nav-number">12.1.</span> <span class="nav-text">What it made better</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#what-it-made-worse"><span class="nav-number">12.2.</span> <span class="nav-text">What it made worse</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">13.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">14.</span> <span class="nav-text">What I Would Change Today</span></a></li></ol></div>
+Challenges</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#hot-minute-contention"><span class="nav-number">10.1.</span> <span class="nav-text">Hot-minute contention</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shared-topic-backpressure"><span class="nav-number">10.2.</span> <span class="nav-text">Shared-topic backpressure</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#a-cancellation-design-we-removed"><span class="nav-number">10.3.</span> <span class="nav-text">A cancellation design we
+removed</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">11.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">12.</span> <span class="nav-text">Trade-offs</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#what-it-made-better"><span class="nav-number">12.1.</span> <span class="nav-text">What it made better</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#what-it-made-worse"><span class="nav-number">12.2.</span> <span class="nav-text">What it made worse</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-learned"><span class="nav-number">13.</span> <span class="nav-text">What I Learned</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-change-today"><span class="nav-number">14.</span> <span class="nav-text">What I Would Change Today</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -705,20 +767,20 @@ Challenges</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" h
           <a href="/archives/">
         
           <span class="site-state-item-count">4</span>
-          <span class="site-state-item-name">posts</span>
+          <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
         <span class="site-state-item-count">1</span>
-        <span class="site-state-item-name">categories</span></a>
+        <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
         <span class="site-state-item-count">18</span>
-        <span class="site-state-item-name">tags</span></a>
+        <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
 </div>
@@ -758,14 +820,14 @@ Challenges</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" h
     <span class="post-meta-item-icon">
       <i class="fa fa-chart-area"></i>
     </span>
-    <span title="Symbols count total">10k</span>
+    <span title="站点总字数">11k</span>
     <span class="post-meta-divider">|</span>
     <span class="post-meta-item-icon">
       <i class="fa fa-coffee"></i>
     </span>
-    <span title="Reading time total">38 mins.</span>
+    <span title="站点阅读时长">40 分钟</span>
 </div>
-  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  <div class="powered-by">由 <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span> 强力驱动
   </div>
 
         
