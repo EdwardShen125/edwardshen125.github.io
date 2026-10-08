@@ -20,12 +20,12 @@
       "max_route_stretch": 1.0,
       "minimum_container_gutter": 30.0,
       "minimum_node_gap": 80.0,
-      "shortest_segment": 5.0,
-      "total_bends": 7
+      "shortest_segment": 4.0,
+      "total_bends": 9
     },
     "ok": true,
     "profile": "standard",
-    "score": 96,
+    "score": 94,
     "violations": []
   },
   "edges": [
@@ -174,19 +174,23 @@
       "bridges": [],
       "crossings": [],
       "id": "callback",
-      "length": 901.0,
+      "length": 455.0,
       "route": [
         [
           1300.0,
           615.0
         ],
         [
-          744.0,
+          870.0,
           615.0
         ],
         [
-          744.0,
-          270.0
+          870.0,
+          590.0
+        ],
+        [
+          870.0,
+          590.0
         ]
       ],
       "route_stretch": 1.0,
@@ -194,6 +198,43 @@
       "source_port": [
         1300.0,
         615.0
+      ],
+      "target": "callback-topic",
+      "target_port": [
+        870.0,
+        590.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "consume-callbacks",
+      "length": 274.0,
+      "route": [
+        [
+          740.0,
+          540.0
+        ],
+        [
+          740.0,
+          284.0
+        ],
+        [
+          744.0,
+          284.0
+        ],
+        [
+          744.0,
+          270.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "callback-topic",
+      "source_port": [
+        740.0,
+        540.0
       ],
       "target": "schedulers",
       "target_port": [
@@ -241,7 +282,7 @@
   "schema_version": 1,
   "semantics": {
     "details": {
-      "elements": 5,
+      "elements": 6,
       "level": "container",
       "rough_seed": 20261006
     },
@@ -256,8 +297,8 @@
   },
   "summary": {
     "bridged_crossings": 0,
-    "edges": 5,
-    "nodes": 5
+    "edges": 6,
+    "nodes": 6
   },
   "text_metrics": "heuristic-v1",
   "typography": {

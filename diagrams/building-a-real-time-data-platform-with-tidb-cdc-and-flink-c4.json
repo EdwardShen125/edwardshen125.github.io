@@ -55,6 +55,14 @@
       "width": 520,
       "height": 240,
       "label": "Business K8s · Flink namespace"
+    },
+    {
+      "id": "queryhub-boundary",
+      "x": 1140,
+      "y": 330,
+      "width": 280,
+      "height": 220,
+      "label": "Business K8s · QueryHub namespace"
     }
   ],
   "nodes": [
@@ -80,7 +88,7 @@
       "width": 350,
       "height": 120,
       "label": "Business tables",
-      "description": "production writes; selected direct TiFlash replicas",
+      "description": "selected production tables; in-place ODS; direct TiFlash replicas",
       "technology": "TiDB/TiKV + TiFlash",
       "stroke": "#356a8a"
     },
@@ -94,7 +102,7 @@
       "width": 460,
       "height": 120,
       "label": "Analytics tables",
-      "description": "ODS/DWD detail tables and ads_* aggregates with TiFlash replicas",
+      "description": "DWD detail and ads_* DWS aggregates with TiFlash replicas",
       "technology": "TiDB/TiKV + TiFlash",
       "stroke": "#c06b35"
     },
@@ -121,7 +129,7 @@
       "height": 120,
       "label": "Kafka",
       "description": "decouples capture from processing",
-      "technology": "per-domain topics",
+      "technology": "TiCDC changefeed topics",
       "stroke": "#356a8a"
     },
     {
@@ -142,6 +150,7 @@
       "id": "queryhub",
       "kind": "review_card",
       "c4_type": "container",
+      "parent": "queryhub-boundary",
       "x": 1160,
       "y": 370,
       "width": 240,
@@ -235,7 +244,8 @@
       "target_port": "top",
       "flow": "control",
       "label": "dashboard request",
-      "protocol": "HTTPS via API Gateway"
+      "protocol": "HTTPS via API Gateway",
+      "label_dy": 24
     }
   ]
 }

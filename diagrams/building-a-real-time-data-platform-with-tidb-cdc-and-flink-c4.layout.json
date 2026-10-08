@@ -17,15 +17,15 @@
     },
     "metrics": {
       "bridged_crossings": 1,
-      "max_route_stretch": 1.105,
+      "max_route_stretch": 3.4,
       "minimum_container_gutter": 20.0,
       "minimum_node_gap": 40.0,
       "shortest_segment": 4.0,
-      "total_bends": 7
+      "total_bends": 10
     },
     "ok": true,
     "profile": "standard",
-    "score": 92,
+    "score": 86,
     "violations": []
   },
   "edges": [
@@ -242,11 +242,11 @@
       "waypoints": []
     },
     {
-      "bends": 0,
+      "bends": 3,
       "bridges": [],
       "crossings": [],
       "id": "dashboard-query",
-      "length": 110.0,
+      "length": 374.0,
       "route": [
         [
           1280.0,
@@ -254,10 +254,22 @@
         ],
         [
           1280.0,
+          280.4
+        ],
+        [
+          1412.0,
+          280.4
+        ],
+        [
+          1412.0,
+          370.0
+        ],
+        [
+          1280.0,
           370.0
         ]
       ],
-      "route_stretch": 1.0,
+      "route_stretch": 3.4,
       "source": "viewers",
       "source_port": [
         1280.0,

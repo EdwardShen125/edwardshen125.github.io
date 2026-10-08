@@ -13,7 +13,7 @@ tags:
   - audience-segmentation
 ---
 
-Two lifecycle campaigns could both ask for "active users" and match different people. The platform already had transactional services and a TiDB/TiCDC/Kafka/Flink data path, but marketing still needed a reusable way to define audiences, materialize them from behavioral and asset data, and trigger email tasks without copying business filters into every campaign.
+Lifecycle campaigns repeatedly combined latest user traits, historical events, and expiring assets. Operations initially assembled those audiences manually; the platform already had transactional services and a TiDB/TiCDC/Kafka/Flink data path, but marketing needed reusable audience definitions and automated email tasks rather than campaign-specific filters.
 
 I wrote the design document and early core demo for predicate expansion, SQL compilation, segment refresh, and the reach handoff. A colleague implemented the production services with my guidance.
 
@@ -23,7 +23,7 @@ I wrote the design document and early core demo for predicate expansion, SQL com
 
 The work ran on the Go microservice platform described earlier in this series. Product and operations needed lifecycle campaigns for registration, activity, transaction behavior, membership progression, and expiring rewards. The data platform already provided TiDB, TiCDC, Kafka, Flink, and layered analytical tables.
 
-The design treated each predicate as a reusable backend contract. Marketing owned predicates, compilation, segments, lifecycle plans, and reach events. Reach owned message delivery, channel policy, frequency control, fallback, receipts, and message persistence. The audience compiler covered targeting; this article follows delivery through the email path.
+The design treated each predicate as a reusable backend contract. Marketing owned predicates, compilation, segments, lifecycle plans, and reach events. Reach owned message delivery, channel policy, frequency control, fallback, receipts, and message persistence.
 
 Audience conditions came from different data shapes:
 
@@ -32,9 +32,9 @@ Audience conditions came from different data shapes:
 - time-sensitive asset state, such as reward or entitlement expiry;
 - combinations of those conditions.
 
-Without a shared model, each campaign could interpret "active user" or "expiring reward" differently. It could also introduce its own scan, filter expression, and audience table. That made definitions difficult to review and impossible to reuse consistently.
+Without a shared predicate model, each campaign would carry its own filter expression, scan, and audience result. That would make audience logic difficult to review and would leave later plans without a stable definition to reuse. Different campaigns could still choose different predicates; the platform made the selected definition explicit and reusable.
 
-The pipeline had to reuse the existing TiDB, TiCDC, Kafka, and Flink platform rather than introduce another warehouse. It also had to keep changing while feature delivery continued.
+The pipeline had to reuse that platform rather than introduce another warehouse. It also had to keep changing while feature delivery continued.
 
 The design had to meet six requirements:
 
@@ -63,7 +63,7 @@ Composite predicates were the only business-facing layer. They carried labels, c
 
 Atomic predicates carried physical routing: table, alias, key column, value column, value type, and optional fixed key. For example, a keyed trait route could point to `dws_user_latest_traits`, compare `trait_key`, and read either `trait_val_str` or `trait_val_num`. An event route could compare `occurred_at`; an asset route could filter `asset_type`, `asset_sub_type`, and `expire_at`.
 
-That split kept business language stable while allowing table routing to change. It also made predicate configuration part of the runtime contract: changing a route, value type, or table meaning changed who matched a segment. Before adding more predicates, I would document each atomic route with a named producer, table owner, refresh semantics, primary-key meaning, and freshness target to expose stale or ambiguous routes during review.
+That split kept business language stable while allowing table routing to change. It also made predicate configuration **runtime-critical configuration**: changing a route, value type, or table meaning changed who matched a segment. Before adding more predicates, I would document each atomic route with a named producer, table owner, refresh semantics, primary-key meaning, and freshness target to expose stale or ambiguous routes during review.
 
 ### Compile the audience AST
 
@@ -89,13 +89,13 @@ Consider an illustrative reward-reminder audience: users who registered at least
 | Membership level meets the configured threshold | Latest-trait route; select the membership trait and compare its numeric value | Latest state |
 | Reward expires within the next two days | Asset route; select the reward type and filter `expire_at` between the refresh time and two days later | Asset state |
 
-Composite expansion resolves the business predicates into atomic conditions. The compiler then produces branches that return distinct user IDs with branch identifiers. A user must match every branch to enter the segment; several qualifying rewards cannot compensate for a missing registration or membership condition because matching counts distinct branches. Both time-based conditions use the same refresh timestamp.
+Composite expansion resolves the business predicates into atomic conditions. Both time-based conditions use the same refresh timestamp, so the registration-age threshold and reward-expiry window do not drift within one refresh.
 
 Operations can adjust the reminder window or membership threshold using the existing predicate definitions. The physical routes remain backend-owned, and another lifecycle plan can reference the same segment when its expanded definition matches. The combination spans three data shapes while keeping their producers and storage semantics separate.
 
 ### Refresh segments and cross the service boundary
 
-A segment stored its original AST, SHA-256 AST hash, reference count, status, and last run time. The hash normalized sorted logical children and parameter maps, so reuse depended on expanded semantics rather than display name. A unique index on `ast_hash` handled concurrent creation; a duplicate-key error caused the service to reread the canonical segment.
+The production segment service stored its original AST, SHA-256 AST hash, reference count, status, and last run time. The hash normalized sorted logical children and parameter maps, so reuse depended on expanded semantics rather than display name. A unique index on `ast_hash` handled concurrent creation; a duplicate-key error caused the service to reread the canonical segment.
 
 CronHub scheduled each segment hourly. Refresh queried old members, executed the compiled query with a fixed current time, classified added and removed users, emitted membership-change events in batches of at most 5,000 UIDs, and replaced membership in batches of 10,000 rows. A lifecycle task then selected tasks for that segment and published a batched `domain_event_reach` event.
 
@@ -118,7 +118,7 @@ flowchart LR
   classDef event fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px
 {% endmermaid %}
 
-Reach consumed the batch, created a per-user record, rendered the template, called the configured provider, and recorded success or failure. Its provider adapters covered log, SMTP, SendCloud, Mailgun, and SendGrid. A rendering or provider failure marked that user's record failed and let the remaining records continue; only if every execution failed did the consumer return an error for retry.
+Reach consumed the batch, created a per-user record, rendered the template, called the configured provider, and recorded success or failure. A rendering or provider failure marked that user's record failed and gave the batch failure isolation; *only if* every execution failed did the consumer return an error for retry.
 
 {% mermaid %}
 sequenceDiagram
@@ -140,17 +140,19 @@ sequenceDiagram
 
 ## Source processing and recovery limits
 
-The source-routing job kept the different data shapes separate. The Track service accepted events over gRPC, normalized event IDs, timestamps, and user context, and published `user_behavior_event` to Kafka through an async producer. TiCDC captured selected business-table changes into topics such as `user_transfer`, `reward_transaction_event`, `settlement_event`, and `order_amount_event`.
+### Source jobs behind the predicates
 
-One Flink SQL path joined user-transfer and reward-transaction streams with user, game, activity, and reward dimensions, normalized amounts and sources, and wrote a daily activity/reward detail table keyed by `(ref_id, type)`. It ran with ten-second exactly-once checkpoints.
+The source-routing jobs fed the atomic-predicate routes. The Track service accepted events over gRPC, normalized event IDs, timestamps, and user context, and published `user_behavior_event` to Kafka through an async producer. TiCDC captured selected business-table changes into topics such as `user_transfer`, `reward_transaction_event`, `settlement_event`, and `order_amount_event`.
 
-A separate DataStream job unified behavior, user, transaction, and settlement events, used bounded out-of-orderness watermarks with idle-source handling, and enriched each user's acquisition dimension. Registration used the promoter channel from the event payload first, then fell back to proxy attribution by invite code and a keyed lookup. A Caffeine cache retained up to 50,000 user dimensions for 30 minutes.
+One Flink SQL path joined user-transfer and reward-transaction streams with user, game, activity, and reward dimensions, normalized amounts and sources, and wrote a daily activity/reward detail table keyed by `(ref_id, type)`. It ran with ten-second checkpoints. A separate DataStream job unified behavior, user, transaction, and settlement events, used bounded out-of-orderness watermarks with idle-source handling, enriched acquisition dimensions, and wrote feature tables.
+
+### Recovery boundaries in the demo
 
 The demo also made several production boundaries visible. Segment refresh emitted change events before it replaced membership, and a publish failure was logged without failing the refresh. The reach table had a retry count and source identifiers, but no unique idempotency key covering a replayed batch. The DataStream job's checkpoint line was commented out, and its DWS sink used a single JDBC connection, dynamically assembled table names, and error logging rather than a retry or dead-letter path.
 
-Those behaviors risked duplicate email on replay, lost membership deltas during partial failure, and database write failures that did not stop processing.
+Those behaviors risked duplicate email on replay, lost membership deltas during partial failure, and database write failures that did not stop processing. The mechanisms described here were requirements I carried into production implementation review, not features the demo already had.
 
-I carried those boundaries into production implementation review. I would redesign refresh as an explicit state machine with an outbox event and a stable event ID: persist the intended membership transition and publication intent together, publish idempotent events, and only then advance the visible refresh state. In Reach, I would enforce an idempotency key such as `(source_id, user_id, channel_type, scheduled_at)` with a unique constraint and route unrecoverable failures to a dead-letter path.
+I would redesign refresh as an explicit state machine with an outbox event and stable event ID: persist the intended membership transition and publication intent together, publish idempotent events, and only then advance the visible refresh state. In Reach, I would enforce an idempotency key such as `(source_id, user_id, channel_type, scheduled_at)` with a unique constraint and route unrecoverable failures to a dead-letter path.
 
 For the behavior job, I would require checkpointing, state TTL, connection pooling, feature-table schema versioning, and a bounded dynamic-SQL allowlist before accepting it for production.
 
@@ -166,7 +168,9 @@ The same hourly query-and-diff path handled segments ranging from a few tens of 
 
 Reviewable audience configuration, segment reuse, and stable segment IDs reduced campaign-specific work. Physical tables could evolve behind atomic predicates, but that made predicate metadata runtime-critical configuration.
 
-Segment refresh needed bounded batches, explicit state transitions, and replay keys. The Marketing/Reach boundary spread delivery diagnosis across services, and behavior feature computation increased Flink state and database write load. Per-user records let the batch continue when an individual recipient or template variable failed; reliable replay still required the failure and idempotency contracts described above.
+The Marketing/Reach boundary spread delivery diagnosis across services, and behavior feature computation increased Flink state and database write load. Per-user records isolated individual send failures; they did not by themselves make replay safe.
+
+The remaining design work was at the event boundary. Segment reuse and individual failure isolation did not define how a replayed event became a duplicate; replay safety required producer-side publication state and consumer-side idempotency to be defined together.
 
 ---
 

@@ -64,8 +64,10 @@
   <path id="publish" data-graph-role="edge" data-edge-id="publish" data-source="schedulers" data-target="pulsar" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="deliver-at" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 860,210 L 1070,210 L 1070,340" fill="none" stroke="#a44a3f" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
   <path id="consume-review-stroke" data-graph-role="decoration" data-owner="consume" d="M 1220,400 L 1430,400 L 1430,560" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="1.15"/>
   <path id="consume" data-graph-role="edge" data-edge-id="consume" data-source="pulsar" data-target="sdk" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="consumer groups" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1220,400 L 1430,400 L 1430,560" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
-  <path id="callback-review-stroke" data-graph-role="decoration" data-owner="callback" d="M 1300,615 L 744,615 L 744,270" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.86"/>
-  <path id="callback" data-graph-role="edge" data-edge-id="callback" data-source="sdk" data-target="schedulers" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="event" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1300,615 L 744,615 L 744,270" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="callback-review-stroke" data-graph-role="decoration" data-owner="callback" d="M 1300,615 L 870,615 L 870,590 L 870,590" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.86"/>
+  <path id="callback" data-graph-role="edge" data-edge-id="callback" data-source="sdk" data-target="callback-topic" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="callback event" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1300,615 L 870,615 L 870,590 L 870,590" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="consume-callbacks-review-stroke" data-graph-role="decoration" data-owner="consume-callbacks" d="M 740,540 L 740,284 L 744,284 L 744,270" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.67"/>
+  <path id="consume-callbacks" data-graph-role="edge" data-edge-id="consume-callbacks" data-source="callback-topic" data-target="schedulers" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="consumer group" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 740,540 L 740,284 L 744,284 L 744,270" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
   <g id="node-etcd" data-graph-role="node" data-node-id="etcd" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="sched-boundary" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="320,150,520,260">
   <rect x="320.0" y="150.0" width="200.0" height="110.0" rx="7" fill="#fffdf7" stroke="#365f56" stroke-width="1.8"/>
   <path data-graph-role="decoration" d="M 325.91 150.567 H 511.91 Q 516.91 150.567 516.91 156.567 V 251.567" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
@@ -101,6 +103,15 @@
   <text data-text-role="description" data-line="1" data-full-text="one topic per business domain" x="934.0" y="400.0" class="node-sub" font-size="11.5" text-anchor="start">one topic per business domain</text>
   <text data-text-role="technology" data-full-text="Pulsar · deliver-at" data-text-max-width="276.0" x="1208.0" y="451.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Pulsar · deliver-at</text>
   </g>
+  <g id="node-callback-topic" data-graph-role="node" data-node-id="callback-topic" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="sched-boundary" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="610,540,870,640">
+  <rect x="610.0" y="540.0" width="260.0" height="100.0" rx="7" fill="#fffdf7" stroke="#365f56" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 616.576 541.684 H 862.576 Q 867.576 541.684 867.576 547.684 V 632.684" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="232.0" x="624.0" y="558.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Callback Topic" data-text-max-width="232.0" x="624.0" y="581.0" class="node-title" font-size="15" text-anchor="start">Callback Topic</text>
+  <text data-text-role="description" data-line="1" data-full-text="carries execution results to the scheduler" x="624.0" y="596.0" class="node-sub" font-size="11.5" text-anchor="start">carries execution</text>
+  <text data-text-role="description" data-line="2" data-full-text="carries execution results to the scheduler" x="624.0" y="610.0" class="node-sub" font-size="11.5" text-anchor="start">results to the scheduler</text>
+  <text data-text-role="technology" data-full-text="Pulsar · callback events" data-text-max-width="236.0" x="858.0" y="631.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Pulsar · callback events</text>
+  </g>
   <g id="node-sdk" data-graph-role="node" data-node-id="sdk" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1300,560,1560,670">
   <rect x="1300.0" y="560.0" width="260.0" height="110.0" rx="7" fill="#fffdf7" stroke="#365f56" stroke-width="1.8"/>
   <path data-graph-role="decoration" d="M 1306.96 562.749 H 1552.96 Q 1557.96 562.749 1557.96 568.749 V 663.749" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
@@ -129,10 +140,15 @@
   <text x="1325.0" y="378.0" text-anchor="middle" class="arrow-label" font-size="11.5">consume</text>
   <text x="1325.0" y="390.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[consumer groups]</text>
   </g>
-  <g id="callback-label" data-graph-role="label" data-owner="callback" data-graph-bounds="990.31,578,1053.69,610">
-  <rect x="990.31" y="578.0" width="63.38" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
-  <text x="1022.0" y="593.0" text-anchor="middle" class="arrow-label" font-size="11.5">callback</text>
-  <text x="1022.0" y="605.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[event]</text>
+  <g id="callback-label" data-graph-role="label" data-owner="callback" data-graph-bounds="1036.4,578,1133.6,610">
+  <rect x="1036.4" y="578.0" width="97.19" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1085.0" y="593.0" text-anchor="middle" class="arrow-label" font-size="11.5">report result</text>
+  <text x="1085.0" y="605.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[callback event]</text>
+  </g>
+  <g id="consume-callbacks-label" data-graph-role="label" data-owner="consume-callbacks" data-graph-bounds="641.02,392,724.17,424">
+  <rect x="641.02" y="392.0" width="83.15" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="682.6" y="407.0" text-anchor="middle" class="arrow-label" font-size="11.5">consume</text>
+  <text x="682.6" y="419.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[consumer group]</text>
   </g>
   <g id="legend" data-graph-role="legend">
     <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="716" width="534.64" height="46" rx="10" fill="none" stroke="none"/>

@@ -103,6 +103,19 @@
       "technology": "Pulsar · deliver-at"
     },
     {
+      "id": "callback-topic",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "sched-boundary",
+      "x": 610,
+      "y": 540,
+      "width": 260,
+      "height": 100,
+      "label": "Callback Topic",
+      "description": "carries execution results to the scheduler",
+      "technology": "Pulsar · callback events"
+    },
+    {
       "id": "sdk",
       "kind": "review_card",
       "c4_type": "container",
@@ -159,12 +172,22 @@
     {
       "id": "callback",
       "source": "sdk",
-      "target": "schedulers",
+      "target": "callback-topic",
       "source_port": "left",
+      "target_port": "right",
+      "flow": "async",
+      "label": "report result",
+      "protocol": "callback event"
+    },
+    {
+      "id": "consume-callbacks",
+      "source": "callback-topic",
+      "target": "schedulers",
+      "source_port": "top",
       "target_port": "bottom",
       "flow": "async",
-      "label": "callback",
-      "protocol": "event"
+      "label": "consume",
+      "protocol": "consumer group"
     }
   ],
   "boundary_width": null

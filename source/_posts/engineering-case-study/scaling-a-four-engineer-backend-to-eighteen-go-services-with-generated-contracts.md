@@ -17,11 +17,11 @@ Four Go engineers built eighteen domain services and one auxiliary backend repos
 
 ## Context and requirements
 
-The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. The product itself was racing to match the feature set and live-ops cadence of the top platforms in its market. I initiated and led the platform program that ran February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI — built in parallel with the first business services. The platform then remained the default path as the backend grew to eighteen Go domain services spanning identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one auxiliary backend repository, `geoip-update`; the API gateway is counted separately.
+The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. That roadmap required weekly feature releases rather than a long platform-build cycle. I **initiated and led** the platform program that ran February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI — built in parallel with the first business services. The platform then remained the default path as the backend grew to eighteen Go domain services spanning identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one auxiliary backend repository, `geoip-update`; the API gateway is counted separately.
 
 The same four engineers had to ship against money-movement flows and around-the-clock availability while the platform was being built. We also made one choice early: standardize on [go-zero](https://github.com/zeromicro/go-zero) rather than build another framework. We used the platform to encode conventions while relying on go-zero for runtime infrastructure.
 
-Each service needed auth, error codes, structured logging, RPC wiring, gateway registration, and tracing. Maintaining these by hand across eighteen services would consume integration time and let implementations diverge. The platform needed:
+Each service needed auth, error codes, structured logging, RPC wiring, gateway registration, and tracing. Maintaining these by hand across the service fleet would consume integration time and let implementations diverge. The platform needed:
 
 - One contract entry per service, from which handlers, RPC, and docs all derive.
 - A scaffold that generated the required architecture.
@@ -35,11 +35,11 @@ Each service needed auth, error codes, structured logging, RPC wiring, gateway r
 
 The main choice was the contract direction. go-zero already provided service discovery and goctl, its API-first code generator; the team knew it well. The alternative to goctl's `.api` DSL was proto-first: define [gRPC](https://grpc.io/) contracts and derive HTTP from them.
 
-Proto-first would have made proto the canonical internal contract, but the client-facing HTTP route, request shape, auth annotation, cache option, or Swagger document still needed a second definition. That was the double-contract drift we wanted to remove. It also would have pushed us toward maintaining more of the generation chain ourselves. DSL-first gave up some proto-level control: services that needed advanced gRPC features fell back to hand-written proto. We accepted that rare exception because one `.api` file could remain the entry for handlers, generated proto, and Swagger.
+Proto-first would have made proto the canonical internal contract, but the client-facing HTTP route, request shape, auth annotation, cache option, or Swagger document still needed a second definition. That was the **double-contract drift** we wanted to remove. It also would have pushed us toward maintaining more of the generation chain ourselves. DSL-first gave up some proto-level control: services that needed advanced gRPC features fell back to hand-written proto. We accepted that *rare exception* because one `.api` file could remain the entry for handlers, generated proto, and Swagger.
 
 ## Architecture / Design
 
-The [C4](https://c4model.com/) container view below shows the platform as it runs today. Clients speak HTTPS to a single API Gateway, which routes to domain services over gRPC and generates Protocol Buffer descriptor sets from the shared contract repository; Kubernetes Endpoints resolves live addresses. Services keep per-service schemas in [TiDB](https://docs.pingcap.com/tidb/stable/overview), cache in Redis, and export spans to [Zipkin](https://zipkin.io/). For user-facing pushes, services publish to Kafka and ws-hub fans notifications out over websockets. The collapsed service card represents the other seventeen services, so ws-hub is not counted twice. An i18n hook on the gateway response chain localizes dynamic response content, so services stay locale-blind.
+The [C4](https://c4model.com/) container view below shows the platform as it runs today. Clients speak HTTPS to a single API Gateway, which routes to domain services over gRPC using Protocol Buffer descriptor sets generated from the shared contract repository; Kubernetes Endpoints resolves live addresses. Services keep per-service schemas in [TiDB](https://docs.pingcap.com/tidb/stable/overview), cache in Redis, and export spans to [Zipkin](https://zipkin.io/). For user-facing pushes, services publish to Kafka and ws-hub fans notifications out over websockets. The collapsed service card represents the other seventeen services, so ws-hub is not counted twice. An i18n hook on the gateway response chain localizes dynamic response content, so services stay locale-blind.
 
 {% asset_img architecture-c4.png C4 container view of the Go Microservice Platform: clients, API gateway with jwt, i18n, and configurable response caching, seventeen collapsed domain services plus ws-hub, TiDB per-service schemas, Redis caching, Kafka event publishing, websocket fan-out, and Zipkin tracing %}
 
@@ -84,7 +84,7 @@ service AdminAuthService {
 
 Handlers and types came from goctl; our plugins generated proto and Swagger from the same source. There was no second route definition to drift from.
 
-Between March 4 and October 9, 2025, the contract repository absorbed 3,568 commits, more than any single service, while holding fifty-five `.api` contract files and sixty-eight generated proto schemas, with four hundred to seven hundred commits landing every month. Every interface change in the platform flowed through that one repository.
+The contract repository held fifty-five `.api` contract files and sixty-eight generated proto schemas. Between March 4 and October 9, 2025, it absorbed 3,568 commits — more than any single service — with four hundred to seven hundred landing every month. Every interface change in the platform flowed through that one repository.
 
 ### Fill the generation gaps with plugins
 
@@ -104,9 +104,9 @@ All eighteen services shared one TiDB cluster, so the boundary was drawn at the 
 
 bizerr encodes every error as a six-digit code: two digits of service ID, two of function, two of error. Clients match on the prefix; anyone can decode an error to its origin without grep. Errors carry captured stacks and wrap their causes, so production incidents could be traced through the chain without re-running anything. The registry doubles as the coordination point — a new service claims its service ID once, and an unregistered code causes a runtime panic.
 
-That panic treated an unregistered code as a programming error rather than an operational error. It was intended to fail in the first test run instead of allowing an error with no message, locale, or service origin to reach a user. The cost was that an untested path could still become a production failure, so centralized registration and error-path tests mattered; a build-time registry check would have been the better enforcement point.
+That panic treated an unregistered code as a **programming error** rather than an operational error. It was intended to fail in the first test run instead of allowing an error with no message, locale, or service origin to reach a user. The cost was that an untested path could still become a production failure, so centralized registration and error-path tests mattered; a build-time registry check would have been the better enforcement point.
 
-```
+```go
 // each service claims an id; codes are registered with metadata
 const errUserNotFound = bizerr.ErrCode(120401)
 
@@ -143,13 +143,13 @@ service BannerService {
 }
 ```
 
-The proto plugin emitted this route as a per-method cache option with a 300-second TTL and `CACHESCOPE_GLOBAL`. At startup, the gateway read the descriptor and installed Redis cache middleware only for routes with a positive TTL. The key covered the HTTP method, path, query, JSON body, `Accept-Language`, and `User-Agent`. JWT ran before cache on protected routes, so provider and user ID also entered the key. An authenticated request was therefore isolated even when the annotation requested a global cache.
+The proto plugin emitted this route as a per-method cache option with a 300-second TTL and `CACHESCOPE_GLOBAL`. At startup, the gateway read the descriptor and installed Redis cache middleware only for routes with a positive TTL. The key covered the HTTP method, path, query, JSON body, `Accept-Language`, and `User-Agent`. On protected routes, JWT ran before cache, so the authenticated provider and user IDs also entered the key. An authenticated request was therefore isolated even when the annotation requested a global cache.
 
 The i18n hook localized the CMS's dynamic content — product descriptions, promotions, and operational copy — per user locale, managed by operations through the language service. Error messages took a different path by design: services return language-neutral error codes, and the frontend maps each code to a localized string through its own static i18n library, avoiding a backend round-trip for error localization.
 
 ### Shared generation and CI templates
 
-Every convention that could be enforced by generation was: custom goctl templates generated the onion structure, makefile targets pinned the base-library set, and shared CI templates standardized pipelines for Go, React, and Next.js services.
+Every convention that could be enforced by generation was enforced there: custom goctl templates generated the onion structure, makefile targets pinned the base-library set, and shared CI templates standardized pipelines for Go, React, and Next.js services.
 
 ### Runtime and deployment choices
 
@@ -165,7 +165,7 @@ Pod rescheduling, ws-hub reconnection, and gateway instance failure paths were d
 
 The scaffold had to stay ahead of the services while the four-person team shipped features. The template evolved with the first services; every later service generated from it. The only non-generated convention was claiming a service ID in the bizerr registry.
 
-Once the scaffold and DSL stabilized, team members started writing business logic with AI coding agents, which further accelerated delivery. The contract defined interfaces, the generated tree supplied the layering, and the error registry defined failure shapes, constraining the code agents produced.
+Once the scaffold and DSL stabilized, team members started writing business logic with AI coding agents while feature delivery continued. The contract defined interfaces, the generated tree supplied the layering, and the error registry defined failure shapes, constraining the code agents produced.
 
 ## Where the Defaults Leaked
 
@@ -185,16 +185,22 @@ For this editor, I would add a BFF endpoint that owns the page shape and localiz
 
 The adoption result was that all eighteen Go domain services came from the scaffold. Rare advanced gRPC cases used hand-written proto, but no service was hand-rolled outside the template; three shared CI pipelines covered backend and frontend repositories.
 
-The development-cost result was an estimated 60% reduction in onboarding work, measured in boilerplate lines and person-days to a first deployed endpoint. It was an internal estimate, not a controlled experiment.
+The development-cost result was an estimated 60% reduction in onboarding work, measured in boilerplate lines and person-days to a first deployed endpoint. It was *an internal estimate, not a controlled experiment*.
 
-The delivery-scale evidence was eighteen services from identity to ledgers to interactive products, plus the auxiliary `geoip-update` repository. Across forty repositories, the platform recorded eleven thousand commits between March 4 and October 9, 2025. The gateway carried fourteen generated descriptor sets — a repository count, not a service count — and services used eight SDKs layered on the six internal base libraries.
+The repository-scale context also included the auxiliary `geoip-update` repository. Across forty repositories, the platform recorded eleven thousand commits over that same March-to-October window. Those numbers show the volume of concurrent change the platform supported; they are not productivity measurements by themselves. The gateway carried fourteen generated descriptor sets — *a repository count, not a service count* — and services used eight SDKs layered on the six internal base libraries.
 
-The platform took four months of focused work alongside the first business services, landing within the February-to-May window. It replaced days of recurring boilerplate per service with a generation command and centralized outbox and error-registry patterns for services handling money. Its users included the full seventeen-person product team: frontend developers used the shared React and Next.js pipelines and generated Swagger, QA could trace errors to a service and function, and the June and July live-ops expansion shipped referrals, membership programs, and interactive campaigns on the same scaffold.
+The platform took four months of focused work alongside the first business services. It replaced days of recurring boilerplate per service with a generation command and shared outbox and error-registry conventions for services handling money. Its users included the full seventeen-person product team: frontend developers used the shared React and Next.js pipelines and generated Swagger, and QA could trace errors to a service and function. The June and July live-ops expansion shipped referrals, membership programs, and interactive campaigns on the same scaffold.
 
 ## Trade-offs
 
-DSL-first gave up proto-level control: generated proto constrained advanced gRPC features, and services that needed them dropped to hand-written proto (rare, but real). The maintained go-zero fork is a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering adds indirection for thin CRUD services even when generated. The central error-code registry requires coordination so two services cannot silently claim the same ID.
+The maintained go-zero fork is a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering adds indirection for thin CRUD services even when generated. The central error-code registry requires coordination so two services cannot silently claim the same ID.
 
 This investment would be harder to justify on a short product runway, with no more than four or five services, or if platform work became a separate project that delayed product delivery.
 
-Previous in this series: [Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second](/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/).
+The remaining leaks were at the seams rather than inside services: a contract change with no generated diff visible to consumers, and an admin page composing four domain contracts in the browser. Generation made per-service defaults cheap; the next platform work was making cross-contract change and cross-service composition visible before release.
+
+---
+
+*Previous in this series: [Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second](/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/).*
+
+*Next in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/).*

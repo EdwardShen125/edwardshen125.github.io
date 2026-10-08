@@ -33,7 +33,7 @@
     },
     {
       "flow": "control",
-      "label": "message / send"
+      "label": "configuration / send"
     }
   ],
   "footer": "Edward Shen · Distributed Systems Series · TiDB layers + Flink + predicate compiler",
@@ -50,7 +50,7 @@
       "width": 360,
       "height": 140,
       "label": "Business tables",
-      "description": "user, transfer, reward, game, and sport tables",
+      "description": "user, transfer, reward, and game tables",
       "technology": "TiDB / TiKV",
       "stroke": "#356a8a"
     },
@@ -102,7 +102,7 @@
       "height": 230,
       "label": "Marketing service",
       "description": "stores predicates, compiles ASTs, reuses segments, and triggers lifecycle tasks",
-      "technology": "Go · ConfigHub · CronHub",
+      "technology": "Go · TiDB · CronHub",
       "stroke": "#a44a3f"
     },
     {
@@ -221,7 +221,7 @@
       "target_port": "left",
       "flow": "write",
       "label": "writes",
-      "protocol": "MySQL"
+      "protocol": "JDBC"
     },
     {
       "id": "warehouse-query",
@@ -241,7 +241,7 @@
       "target_port": "top",
       "flow": "control",
       "label": "predicate / plan config",
-      "protocol": "ConfigHub / RPC"
+      "protocol": "configuration"
     },
     {
       "id": "marketing-reach",
@@ -249,9 +249,9 @@
       "target": "reach",
       "source_port": "bottom",
       "target_port": "top",
-      "flow": "control",
-      "label": "reach batch",
-      "protocol": "domain_event_reach"
+      "flow": "async",
+      "label": "domain_event_reach",
+      "protocol": "Kafka"
     },
     {
       "id": "reach-send",

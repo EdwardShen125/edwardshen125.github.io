@@ -18,7 +18,7 @@ The legacy batch center and [xxl-job](https://github.com/xuxueli/xxl-job) had re
 
 At my previous company, the SCRM (Social CRM) platform served enterprise marketing teams. Much of the product depended on delayed execution: marketing SOP (standard operating procedure) sequences, follow-up reminders, and large one-shot jobs. Two legacy components—the in-house batch center and xxl-job—covered more than twenty business scenarios and carried a continuously active scheduling workload.
 
-I designed and delivered the Go scheduling center and migrated existing scenarios onto it, reusing TiDB, etcd, and Pulsar for storage, coordination, and delivery.
+I **designed and delivered** the Go scheduling center and migrated existing scenarios onto it, reusing TiDB, etcd, and Pulsar for storage, coordination, and delivery.
 
 Four terms recur below. A *job* was a registered business definition. A *trigger* was the durable schedule for that job: a one-shot trigger represented one run, while a cron trigger maintained the next occurrence in `next_fire_at`. A *sharding item* was a fan-out unit inside a run. An *execution command* was one sharding item handed to the executor through Pulsar. Throughput counts published commands, not database scans, trigger rows, or downstream handler completion.
 
@@ -50,7 +50,7 @@ flowchart LR
 ## Constraints and requirements
 
 - Task state had to live in a transactional database. Tasks were coupled to business flows, and we needed state transitions to be auditable and recoverable, not buried inside message queues or caches.
-- Existing business scenarios had to migrate without rewrites. The new system needed an SDK and a data migration path.
+- Existing business scenarios had to migrate without rewriting their business handler logic. The new system still needed an SDK and a data migration path for integration.
 - Downstream handler latency was unpredictable and outside our control. The scheduler had to make progress regardless of how long business callbacks took.
 - Both old and new systems had to keep serving production traffic during a gradual, verifiable per-business cutover that fully replaced the batch center and xxl-job.
 - Second-level scheduling precision for delayed tasks, plus cron support for recurring ones.
@@ -79,9 +79,9 @@ TiDB remained the transactional owner of trigger state and due-time discovery. P
 
 ## Architecture / Design
 
-The [C4](https://c4model.com/) container view below shows the final system after topic isolation: etcd election; the leader's partition schedulers and in-process fire pipeline; the TiDB trigger store; per-domain Pulsar topics; and the executor SDK. Arrow badges carry the protocol for each hop — lease, SQL CAS, deliver-at, consumer groups, or event.
+The [C4](https://c4model.com/) container view below shows the final system after topic isolation: etcd election; the leader's partition schedulers and in-process fire pipeline; the TiDB trigger store; per-domain command topics; a separate callback topic; and the executor SDK. Arrow badges carry the protocol for each hop — lease, SQL CAS, deliver-at, consumer groups, or callback event.
 
-{% asset_img architecture-c4.png C4 container view of the final Lightweight Scheduling Center: etcd election, scheduler leader and in-process fire pool, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar topics, executor SDK consumer groups, and execution callback events %}
+{% asset_img architecture-c4.png C4 container view of the final Lightweight Scheduling Center: etcd election, scheduler leader and in-process fire pool, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar command topics, executor SDK consumer groups, a separate Pulsar callback topic, and callback consumption by the scheduler %}
 
 Reusing those systems kept the scheduler and executor SDK implementation to roughly 8,900 lines across 110 non-test Go files.
 
@@ -95,11 +95,13 @@ At larger scale, I would add an etcd-backed shard registry: each scheduler pod w
 
 ### Partition-serial scheduling
 
-The trigger table was hash-partitioned by ID in TiDB, with the partition count sized to expected business volume. The scheduler discovered partitions from [table metadata](https://docs.pingcap.com/tidb/stable/partitioned-table) and ran exactly one scheduling goroutine per partition inside the leader. Within a partition, acquisition was serial: scan due triggers, acquire, fire. This avoided concurrent acquire loops competing for the same partition, though TiDB still shared global storage capacity. Partition pruning kept scans cheap; hash partitioning did not balance load by due time.
+The trigger table was hash-partitioned by ID in TiDB, with the partition count sized to expected business volume. The scheduler discovered partitions from [table metadata](https://docs.pingcap.com/tidb/stable/partitioned-table) and ran exactly one scheduling goroutine per partition inside the leader. Each goroutine queried its partition explicitly, so scan and admission were serial within that ownership range; the admitted batch was then handed off to the shared fire pool. This avoided concurrent acquire loops competing for the same partition, though TiDB still shared global storage capacity. Explicit partition selection kept each scan bounded to one scheduler; hash partitioning did not balance load by due time.
 
-### CAS as a safety net
+### CAS as the admission boundary
 
-Persistent transitions used conditional updates. `waiting -> acquired` gated fire preparation; `acquired -> waiting` or `acquired -> completed` recorded the outcome. The domain model used `triggered` only as a transient state while preparing a fire batch; it was not separately persisted. With one owner per partition this rarely contended, but correctness never depended on election being perfect. Pause and resume moved triggers through the same conditional-update API, so a manual operation could not leave a state the scheduler would misread.
+Persistent transitions used conditional updates. `waiting -> acquired` gated fire preparation; `acquired -> waiting` or `acquired -> completed` recorded the outcome. The domain model used `triggered` only as a transient state while preparing a fire batch; it was not separately persisted. CAS prevented two acquire loops from admitting the same row at the database boundary. It did not fence a previous leader that had already acquired rows, so executor idempotency and an explicit recovery contract were still required. Pause and resume moved triggers through the same conditional-update API, so a manual operation could not leave a state the scheduler would misread.
+
+CAS also could not commit the TiDB state transition and Pulsar publication as one transaction. A leader could fail after acquiring a row, or after publishing a command but before recording its terminal outcome. Recovery therefore had to treat execution as at-least-once, and executor idempotency—not cross-store atomicity—closed the failure window.
 
 {% mermaid %}
 flowchart TD
@@ -143,7 +145,7 @@ sequenceDiagram
 
 This split the timing contract: TiDB retained the long-horizon `waiting` row; Pulsar held only the admitted slice and delivered it at `next_fire_at`.
 
-Election could hand the acquire loops to a new leader, but a row left in `acquired` when the previous leader died before publish still needed an explicit recovery contract. I would persist an acquisition lease or epoch with every `acquired` row and define its timeout transition. The new leader could then distinguish an owner that may still be publishing from work it can safely reclaim, rather than infer ownership from wall-clock age.
+The same failure window applied to leader election: an `acquired` row had uncertain publication state. I would persist an acquisition lease or epoch with every `acquired` row and define its timeout transition, so a new leader could distinguish an owner that might still be publishing from work it could safely reclaim.
 
 ### Fan-out through sharding items
 
@@ -151,7 +153,7 @@ The largest audience jobs did not expand into one trigger per audience member. I
 
 ### SDK execution instead of exposed HTTP callbacks
 
-Legacy business services exposed HTTP callback endpoints; every integration needed a route, network ingress, and scheduler-to-business authorization. With the SDK, a service consumed its Pulsar topic and invoked a registered function-level callback, so teams implemented handler logic rather than controller endpoints. Broker and SDK identity still required authorization, but the scheduler-to-business HTTP surface disappeared.
+Legacy business services exposed HTTP callback endpoints; every integration needed a route, network ingress, and scheduler-to-business authorization. With the SDK, a service consumed its Pulsar command topic and invoked a registered function-level callback, so teams implemented handler logic rather than controller endpoints. The SDK then published an execution result to a separate Pulsar callback topic, which the scheduling center consumed to update fired-record results. Broker and SDK identity still required authorization, but the scheduler-to-business HTTP surface disappeared.
 
 ## Implementation
 
@@ -164,9 +166,10 @@ Within the leader, each partition scheduler handed acquired batches to a bounded
 
 Production used a 30-minute acquisition window, a 30-second idle wait, up to 0.5 seconds of jitter, a two-hour misfire threshold, and a startup floor that could reach seven days back. A batch was capped at 300 triggers and submitted in chunks of 100.
 
-The repository selected only the bounded due-soon slice from each partition:
+The repository selected only the bounded due-soon slice from one explicitly chosen partition:
 
 ```sql
+FROM dus_job_trigger PARTITION (?)
 WHERE state = 'waiting'
   AND next_fire_at BETWEEN ? AND ?
 ORDER BY next_fire_at ASC
@@ -175,9 +178,9 @@ LIMIT ?
 
 The SQL admitted by due time first. Trigger priority then acted as an in-memory tie-breaker when selected triggers shared the same `next_fire_at`; it was not a separate scheduling lane.
 
-After CAS admission, the fire pipeline computed the next fire time or marked completion, expanded sharding items, persisted fired records, and published each command with `deliver-at = fire time` and a job-code tag. Each business SDK consumed its domain topic, invoked the registered callback, and reported the result as a callback event.
+After CAS admission, the fire pipeline computed the next fire time or marked completion, expanded sharding items, persisted fired records, and published each command with `deliver-at = fire time` and a job-code tag. Each business SDK consumed its domain command topic, invoked the registered callback, and published the result to the callback topic.
 
-Purpose-built readers read old batch task tables and their change streams; a data flag made repeated migration idempotent. After load and functional tests against production traffic, cutover proceeded from low-risk to critical scenarios.
+Purpose-built readers read old batch task tables and their change streams; a data flag made repeated migration idempotent. The SDK also emitted per-business migration telemetry: consumer lag, call volume, and execution success rate. For important scenarios whose handlers were already idempotent, we dual-ran the old and new paths and watched those signals before cutover. After load and functional tests against production traffic, migration proceeded from low-risk to critical scenarios.
 
 ## Failure Modes / Production Challenges
 
@@ -197,9 +200,9 @@ We split the topic per business domain. A slow consumer could then delay only it
 
 ### A cancellation design we removed
 
-Early admission created another contract problem: Pulsar did not support canceling a message after it was published with a future deliver-at time. We tried tracking in-flight commands in Redis—publish set a state, consumption updated it, and the SDK filtered canceled commands while locks attempted consistency.
+Early admission created another contract problem: Pulsar did not support canceling a message after it was published with a future deliver-at time. We deployed a Redis-based design to production: publish set a state, consumption updated it, and the SDK filtered canceled commands while locks attempted consistency.
 
-Production did not justify that complexity. Redis load rose, the lock-and-state path became hard to reason about, and debugging spanned TiDB, Pulsar, and Redis. Actual cancel demand was very low and downstream async handlers were already idempotent, so we removed the Redis layer and treated admission as the cancellation boundary.
+Production did not justify that complexity. Redis load rose, the lock-and-state path became hard to reason about, and debugging spanned TiDB, Pulsar, and Redis. Actual cancel demand was very low and downstream async handlers were already idempotent, so we removed the Redis layer and treated **admission as the cancellation boundary**.
 
 ## Results
 
@@ -216,6 +219,8 @@ We did not retain fire-time lag percentiles, so the publish rate establishes thr
 ## Operating costs
 
 Every state transition added write amplification on TiDB. Partition count became a capacity-planning burden, since changing it later is not free. At-least-once delivery required idempotent executors. The 30-minute lookahead absorbed hot-minute bursts but also widened the period during which an admitted trigger could no longer be canceled in the queue.
+
+I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-domain command topics. The next change is operational: persist ownership for `acquired` rows and expose per-domain fire-time lag percentiles. That is a smaller correction than moving long-lived task state into the queue.
 
 ---
 
