@@ -13,27 +13,19 @@ tags:
 
 The Go backend platform had been established earlier in 2025 and eventually carried eighteen Go domain services plus one auxiliary backend repository. Product teams could ship features, but operational questions still required ad-hoc production queries. Dashboards were slow, and linked views could not be trusted to refresh from a consistent snapshot.
 
-The conventional fix was a separate OLAP database, a sync pipeline, and a dedicated data engineering function. The backend team had to absorb this work alongside feature delivery, so that was not practical. This is the retrospective of the platform we built instead: [TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview) → [Kafka](https://kafka.apache.org/) → [Apache Flink](https://flink.apache.org/) → analytical tables in TiDB, served by QueryHub, a self-developed SQL-template service.
+Four Go engineers had to build the data platform alongside feature delivery. We could not operate a separate OLAP database, sync pipeline, and dedicated data engineering function, so we built [TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview) → [Kafka](https://kafka.apache.org/) → [Apache Flink](https://flink.apache.org/) → analytical tables in TiDB, served by QueryHub, a self-developed SQL-template service.
 
 {% asset_img data-platform-cover.png Real-Time Data Platform architecture cover %}
 
-## Context
+## Context and requirements
 
-The backend foundation came from [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/). I then led a separate data-platform workstream from June through November 2025; it also included ConfigHub, but this article focuses on the CDC, warehouse, and query-serving path.
+The backend foundation came from [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/). From June through November 2025, I initiated and led the architecture and rollout for the CDC path, warehouse layering, and query serving in a separate data-platform workstream. The work also included ConfigHub; this article focuses on the data path.
 
 Product managers needed transaction, settlement, and promotion metrics. Operations needed to detect abuse while a campaign was still active. Finance needed reconciliation. The production schemas were optimized for writes, not analytical reads.
 
-## Problem
-
-The binding constraint was staffing: the same team had to build the data platform alongside feature delivery. A traditional OLTP/OLAP split required another database, sync pipeline, and transformation layer that we could not operate.
-
 The daily cost appeared in three ways: new metrics required ad-hoc production queries or a new ETL pipeline; metrics varied by dimension, granularity, and refresh requirement; and T+1 reporting was too slow for an active promotion-abuse investigation.
 
-## Constraints
-
-Four Go engineers owned the entire backend, including this data platform. The product had a fast feature cadence, correctness-sensitive transaction flows, and live-ops reports that changed every sprint. We also chose to standardize on TiDB rather than operate a separate OLAP database.
-
-## Requirements
+The product had a fast feature cadence, correctness-sensitive transaction flows, and live-ops reports that changed every sprint. We standardized on TiDB and required:
 
 - Hourly aggregation of transaction, settlement, promotion, referral/commission, and wallet-transfer events.
 - Multi-stream joins and dimension-table lookups for detail and wide-table analysis.
@@ -52,13 +44,11 @@ Four Go engineers owned the entire backend, including this data platform. The pr
 | Storage/query | Separate OLAP store, TiDB + TiFlash | TiDB + TiFlash | Reused MySQL compatibility, joins, security, and operational knowledge |
 | Processing API | Custom streaming pipeline, Flink SQL, DataStream | Flink SQL by default; DataStream for custom state and cleansing | Reused tested checkpoint, keyed-state, recovery, and backpressure primitives; kept common reports reviewable |
 
-Processing was not a simple SQL-versus-DataStream choice. A custom streaming pipeline was considered because it could keep business logic close to the services and avoid adopting another framework. We rejected it because it would have made the team own checkpoint/recovery behavior, state migration, event-time ordering, duplicate suppression, scaling, backpressure, and latency tuning. Flink did not remove those concerns, but it provided tested primitives for them. We still handled correctness at the TiDB sink through idempotent hourly keys and reconciliation.
+A custom streaming pipeline could keep business logic close to the services and avoid adopting another framework. We rejected it because it would have made the team own checkpoint/recovery behavior, state migration, event-time ordering, duplicate suppression, scaling, backpressure, and latency tuning. Flink did not remove those concerns, but it provided tested primitives for them. Sink correctness remained our responsibility.
 
 ## Architecture / Design
 
-I initiated and led the architecture and rollout decisions for the CDC path, warehouse layering, and query serving; the same backend team operated Flink and TiDB alongside feature delivery. That ownership boundary shaped the design: the platform had to be operable by the people who were also shipping product changes.
-
-The platform had two table groups, but both were queryable through TiDB. Selected production tables were stored in TiKV, with [TiFlash](https://docs.pingcap.com/tidb/stable/tiflash-overview) maintaining asynchronous columnar Raft Learner replicas. For derived metrics, TiCDC sent selected changes to Kafka; Flink aggregated them and wrote `ads_*` tables back to TiDB—not directly to TiFlash—over MySQL/JDBC; TiKV persisted the rows and TiFlash maintained the serving replicas.
+The platform had two table groups, but both were queryable through TiDB. Selected production tables were stored in TiKV, with [TiFlash](https://docs.pingcap.com/tidb/stable/tiflash-overview) maintaining asynchronous columnar Raft Learner replicas. For derived metrics, TiCDC sent selected changes to Kafka; Flink aggregated them and wrote `ads_*` tables to TiDB over MySQL/JDBC; TiKV persisted the rows and TiFlash maintained the serving replicas.
 
 For the direct replicas, TiKV → TiFlash was a storage-engine operation rather than an external ETL job. One command enabled the replica:
 
@@ -82,7 +72,7 @@ SQL jobs produced hourly aggregate rows keyed by bucket time and business dimens
 
 ### Idempotent hourly aggregates
 
-Aggregates were not append-only facts. Each hourly table used the bucket start timestamp plus business dimensions as its primary key. Flink JDBC sinks upserted those keys, so early fires, checkpoint restarts, or batch reruns replaced the same row instead of creating duplicates.
+Each hourly aggregate table used the bucket start timestamp plus business dimensions as its primary key. Flink JDBC sinks upserted those keys, so early fires, checkpoint restarts, or batch reruns replaced the same row instead of creating duplicates.
 
 ```sql
 -- Simplified Flink sink shape; several hourly tables followed this pattern.
@@ -102,9 +92,9 @@ Batch jobs reread a selected time range and recalculated the same keys, making r
 
 ### QueryHub template service
 
-I **designed and built** QueryHub, the self-developed SQL-template service. It stored named SQL templates as versioned configuration. A template carried its data source, SQL, parameters, cache policy, status, and version. Query execution became a configuration change rather than a new Go handler, route, DTO, and deployment. Reviewed SQL seeds were still required, and a new visualization could still require frontend wiring.
+I designed and built QueryHub, the SQL-template service. It stored named SQL templates as versioned configuration. A template carried its data source, SQL, parameters, cache policy, status, and version. Query execution became a configuration change rather than a new Go handler, route, DTO, and deployment. Reviewed SQL seeds were still required, and a new visualization could still require frontend wiring.
 
-Redis keys included the template name, sorted-parameter hash, and cache-group version. Hot queries reused results while related templates could be invalidated together.
+Redis keys included the template name, sorted-parameter hash, and cache-group version. Hot queries reused results while related templates could be invalidated together. Reviewed templates exposed metric definitions, parameters, cache invalidation, and access as configuration.
 
 ### Timezone-aware reporting
 
@@ -115,7 +105,7 @@ Streaming jobs wrote UTC millisecond buckets. QueryHub templates accepted a `:ti
 The platform spanned two Kubernetes clusters. TiDB, PD, TiKV, and TiFlash ran in a dedicated TiDB K8s cluster, while TiCDC captured their changes into Kafka. Flink and QueryHub ran in the business K8s cluster, in different namespaces. This preserved database cluster isolation while reusing the business deployment model and a MySQL-compatible query interface.
 
 | Component | Ownership / role |
-|---|---|---|
+|---|---|
 | Flink SQL | Streaming aggregation, multi-stream joins, and reconciliation |
 | DataStream JAR | User online/session state and SOP (standard-operating-procedure) lifecycle-management cleansing |
 | TiDB / PD / TiKV | MySQL-compatible serving and row storage for production and derived tables |
@@ -129,82 +119,49 @@ For dashboard queries, the admin frontend called QueryHub's named-query API thro
 
 ## Production Challenges
 
-The first production problem was not Flink SQL or TiCDC correctness; it was TiFlash storage sizing. The TiFlash data volumes initially used **default IOPS provisioning**. During peak periods, TiDB monitoring raised alerts for replica synchronization lag and related freshness metrics; analytical tables also looked stale. Writes, replica maintenance, and analytical reads competed for the small per-volume IOPS budget.
-
-The diagnosis was concrete: **TiFlash freshness depended on enough disk IOPS**; it was not a free index attached to TiKV.
+The first production problem was TiFlash storage sizing. Its data volumes initially used default IOPS provisioning. During peak periods, TiDB monitoring raised alerts for replica synchronization lag and related freshness metrics; analytical tables also looked stale. Writes, replica maintenance, and analytical reads competed for the small per-volume IOPS budget.
 
 | Setting | Value | Meaning |
 |---|---:|---|
 | Initial TiFlash data volume | Cloud-volume default | Left too little headroom for the replica’s concurrent workloads |
 | Updated TiFlash data volume | Higher provisioned IOPS | Applied independently to each TiFlash data volume |
-| TiFlash layer aggregate | Independent per-volume budgets | **Not a shared cluster-wide pool** |
+| TiFlash layer aggregate | Independent per-volume budgets | Each volume had its own budget |
 
-This table describes the observed bottleneck, not the complete storage model. TiKV also required SSD storage—and preferably NVMe/PCIe SSDs—because TiDB writes became Raft-replicated row storage and TiCDC read those changes. TiKV's RocksDB LSM path also needed IOPS and throughput headroom for WAL writes, memtable flushes, and background compaction; queueing there could raise write and Raft latency even without TiFlash contention. The incident surfaced on TiFlash first because columnar replicas added a second storage workload with scans, merge/compaction, and synchronization traffic.
+The table covers the observed TiFlash bottleneck; TiKV had its own storage requirements. TiKV also required SSD storage, preferably NVMe/PCIe SSDs, because TiDB writes became Raft-replicated row storage and TiCDC read those changes. TiKV's RocksDB LSM path also needed IOPS and throughput headroom for WAL writes, memtable flushes, and background compaction; queueing there could raise write and Raft latency even without TiFlash contention. The incident surfaced on TiFlash first because columnar replicas added a second storage workload with scans, merge/compaction, and synchronization traffic.
 
 After the change, the peak-period alerts stopped, TiFlash replicas kept up with the streaming path, and second-level freshness became dependable in normal operation.
 
-This choice also changed cost. The TiFlash layer added dedicated nodes and higher per-volume provisioned IOPS, so each analytical replica increased baseline storage and IOPS cost—not only query load. We paid for that choice with more storage headroom and provisioned IOPS rather than operating a separate OLAP service.
+This choice also changed cost. The TiFlash layer added dedicated nodes and higher per-volume provisioned IOPS, so each analytical replica increased baseline storage and IOPS cost as well as query load. We paid for that choice with more storage headroom and provisioned IOPS rather than operating a separate OLAP service.
+
+Hardware floors alone were insufficient for sizing TiFlash. I would size it separately from TiDB HA node floors, using changed-row volume, replica sync traffic, scan shape, compaction pressure, and freshness targets.
 
 TiFlash also added an operational checklist. Creating an `ads_*` table did not automatically enable its TiFlash replica; we ran the replica DDL separately and verified that the table was queryable before calling the dashboard production-ready.
 
 ## Results
 
-The platform moved dashboards from ad-hoc production queries to a repeatable pipeline. Online Grafana dashboards recorded roughly **10–20 million transaction-related gRPC calls per day**, with peaks of **at least 500 calls per second**. Those numbers measured request pressure, not TiCDC rows or database inserts; we used them as a workload reference for Kafka partitioning, Flink parallelism, and TiFlash capacity. The Flink jobs covered transaction/settlement, promotion, commission-ledger, wallet-transfer, campaign, and online/session data; the Java DataStream JAR added SOP lifecycle-management cleansing.
+The platform moved dashboards from ad-hoc production queries to a repeatable pipeline. Online Grafana dashboards recorded roughly 10–20 million transaction-related gRPC calls per day, with peaks of at least 500 calls per second. Those numbers measured request pressure, not TiCDC rows or database inserts; we used them as a workload reference for Kafka partitioning, Flink parallelism, and TiFlash capacity. The Flink jobs covered transaction/settlement, promotion, commission-ledger, wallet-transfer, campaign, and online/session data; the Java DataStream JAR added SOP lifecycle-management cleansing.
 
 | Outcome | Evidence | Engineering effect |
 |---|---|---|
 | Near-real-time analytics | Second-level OLTP-to-analytics freshness | Enabled active-campaign monitoring instead of T+1 review |
 | Controlled analytical read path | QueryHub read analytical tables and cached hot queries | Reduced uncontrolled production-table scans |
-| Reporting as configuration | More than 100 parameterized SQL templates | New query-backed metrics became configuration changes, not service deployments |
+| Reporting as configuration | More than 100 parameterized SQL templates | New query-backed metrics could be added through configuration |
 | Consistent linked dashboards | Cache groups and keyed hourly aggregates | Linked views used the same metric definitions |
 | Targeted reconciliation | Batch rewrote the same hourly keys | Corrected selected ranges without rebuilding serving tables |
 | Ledger reconciliation | Covered settlement and commission ledgers | Supported repeatable reconciliation |
 
 ## Trade-offs
 
-The result was **logical decoupling** from production tables, not **physical isolation** from TiDB. That made delivery faster, but analytics still shared the same TiDB cluster’s CPU, storage, IOPS, and operational path.
+Analytics shared the production TiDB cluster's CPU, storage, IOPS, and operational path. One endpoint preserved MySQL compatibility, familiar operations, and joins between source and derived tables; TiFlash added columnar queries without another SQL dialect. CDC, reconciliation, and analytical scans remained coupled through that cluster. QueryHub reduced service-code work, while metric review and frontend wiring remained necessary.
 
-What it made better:
+I would keep TiCDC → Kafka → Flink and the idempotent TiDB sinks, but define the analytical workload's capacity and operational boundary earlier. Production TiKV tables, analytical detail tables, `ads_*` aggregates, and TiFlash replicas were managed as one operational unit. That saved staffing effort, but an analytical freshness incident became a shared TiDB capacity problem.
 
-- One TiDB endpoint preserved MySQL compatibility, operational familiarity, and joins between source and derived tables.
-- Hourly primary keys made streaming recovery, checkpoint restarts, and batch reruns target the same rows.
-- TiFlash provided a columnar path without introducing a second SQL dialect.
-- QueryHub turned report execution into reviewed configuration.
+Before changing storage, I would keep dashboards on analytical tables only, set QueryHub query limits and timeouts, isolate batch reconciliation windows, and alert on TiCDC lag, Kafka partition skew, Flink checkpoint duration, JDBC upsert rate, TiKV write latency, TiFlash replica lag, TiFlash disk IOPS and latency, and TiFlash compaction activity. Those metrics would localize pressure to the source, pipeline, or serving engine; disk metrics would then distinguish IOPS, compaction, and query-load pressure.
 
-What it made worse:
+If analytical scans or production-latency risk kept growing, I would move analytical detail and `ads_*` serving out of the production TiDB cluster while preserving the pipeline. The workload boundary would determine whether TiDB or a different OLAP engine should serve it.
 
-- CDC, reconciliation, and analytical scans remained coupled through TiDB’s storage and query path.
-- TiFlash added dedicated nodes, replica capacity, provisioned IOPS, and the runtime cost of replica maintenance.
-- QueryHub removed service-code work but did not remove metric review or frontend wiring.
-
-## What I Learned
-
-Hardware floors were necessary but not sufficient. TiFlash sizing still depended on changed-row volume, scan shape, compaction pressure, and freshness targets.
-
-Idempotency mattered more than connector choice. Shared hourly primary keys let streaming recovery, batch reconciliation, and targeted correction update the same aggregate rows.
-
-Platform boundaries changed team workflow. A reviewed SQL template made metric definitions, parameters, cache invalidation, and access visible as configuration.
-
-## What I Would Change Today
-
-Looking back, this was not primarily a TiDB-versus-ClickHouse decision. It was a decision about workload isolation. I would keep TiCDC → Kafka → Flink and the idempotent TiDB sinks, but define the analytical workload's capacity and operational boundary earlier.
-
-### Separate analytical workload operations earlier
-
-The incomplete part was treating production TiKV tables, analytical detail tables, `ads_*` aggregates, and TiFlash replicas as one operational unit. That was a defensible staffing decision, but the IOPS incident showed the cost: an analytical freshness problem became a TiDB capacity problem. The incident did not prove that TiDB + TiFlash was wrong; it proved that the analytical workload needed an explicit boundary.
-
-Today I would define that boundary in two stages. The minimum boundary would come before any storage change: keep dashboards on analytical tables only, set QueryHub query limits and timeouts, isolate batch reconciliation windows, and alert on TiCDC lag, Kafka partition skew, Flink checkpoint duration, JDBC upsert rate, TiKV write latency, TiFlash replica lag, TiFlash disk IOPS and latency, and TiFlash compaction activity. Those metrics would localize pressure to the source, pipeline, or serving engine; disk metrics would then distinguish IOPS, compaction, and query-load pressure.
-
-If analytical scans or production-latency risk kept growing, I would move analytical detail and `ads_*` serving out of the production TiDB cluster while preserving the same pipeline. That decision would come before choosing another storage engine: first define the workload boundary, then decide whether TiDB or a different OLAP engine should own that boundary.
-
-### Treat TiFlash sizing as its own decision
-
-The production surprise was stale TiFlash tables caused by disk IOPS, not a Flink SQL bug. After increasing each data volume's provisioned IOPS, freshness recovered. I would therefore size TiFlash from changed-row volume, replica sync traffic, scan shape, and freshness targets—not from the same node floors used for TiDB HA.
-
-### Treat ClickHouse as workload-driven
-
-I would not default to ClickHouse. It can be right for sustained detail scans and long retention, but it would change correction semantics: the current TiDB upserts are idempotent, while ClickHouse requires explicit ordering, merge/deduplication, and correction behavior. Migration should wait until sustained scan cost, retention, and query concurrency demand it.
+ClickHouse could suit sustained detail scans and long retention, but it would change correction semantics. TiDB currently supports idempotent upserts; ClickHouse would require explicit ordering, merge/deduplication, and correction behavior. I would consider migration when sustained scan cost, retention, and query concurrency justified it.
 
 ---
 
-*Previous in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/) — the same team, the same product, a different layer of the platform.*
+*Previous in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/).*

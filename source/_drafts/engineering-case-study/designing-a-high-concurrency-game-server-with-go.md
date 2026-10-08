@@ -32,13 +32,10 @@ published: false
 
 <!-- TODO：为什么需要事件驱动状态同步 + ECS（此前 OOP 方案的具体失控案例） -->
 
-## Constraints
+## Capacity and operating constraints
 
-<!-- TODO：硬件规格、单机约束、上线时间 -->
-
-## Requirements
-
-<!-- 已确认：单服 10K+ 并发 -->
+<!-- 已确认：单服 10K+ 并发
+     TODO：硬件规格、单机约束、上线时间；说明并发口径与实际工作负载 -->
 
 ## Options Considered
 
@@ -48,11 +45,9 @@ published: false
 
 <!-- 图：C4 或组件图（房间/事件循环/状态同步/ECS） -->
 
-## Key Technical Decisions
+## State synchronization and memory management
 
-<!-- TODO：事件驱动状态同步的设计；ECS 落地方式；GC 优化具体手段（对象池/GOGC/减少分配） -->
-
-## Implementation
+<!-- TODO：事件驱动状态同步的设计；ECS 落地方式；GC 优化具体手段（对象池/GOGC/减少分配）；将选择的成本与限制写在对应实现旁 -->
 
 ## Failure Modes / Production Challenges
 
@@ -63,8 +58,4 @@ published: false
 <!-- 已确认：单服 10K+ 并发
      TODO：GC 频率/停顿/内存占用 Before/After -->
 
-## Trade-offs
-
-## What I Learned
-
-## What I Would Change Today
+<!-- 如有具体后续测量或设计调整，写在对应实现或结果旁；不保留空的复盘章节。 -->

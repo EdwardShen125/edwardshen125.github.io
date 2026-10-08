@@ -41,16 +41,12 @@ published: false
 
 <!-- TODO：根因（高频小对象分配/goroutine 泄漏/锁竞争/序列化开销…） -->
 
-## Fix
+## Fix and trade-offs
 
-<!-- TODO：修复方式（对象池/数据结构/算法/参数调整） -->
+<!-- TODO：修复方式（对象池/数据结构/算法/参数调整），以及该选择带来的成本或限制 -->
 
 ## Results
 
 <!-- TODO：Before/After 实测数字（pprof 对比 + 业务指标） -->
 
-## Trade-offs
-
-## What I Learned
-
-## What I Would Change Today
+<!-- 如有具体后续测量或修复计划，写在对应根因或结果旁；不保留空的复盘章节。 -->

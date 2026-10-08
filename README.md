@@ -38,16 +38,9 @@ Recommended article types:
 4. Performance optimization with measurable impact
 5. Open-source or personal project case study
 
-Every strong post should include:
+Review articles against [the article review criteria](docs/article-review.md). Explain the problem, decisions, production behavior, and results with concrete evidence. Choose sections that fit the case, combine overlapping context and constraints, and discuss trade-offs next to the decisions they qualify. A retrospective is useful when it adds a new finding or a specific follow-up.
 
-- Business or technical context
-- Failure mode / constraint
-- Options considered
-- Trade-offs
-- Final design
-- Observability / rollout plan
-- Quantified result, if available
-- Retrospective
+The [draft writing aid](source/_drafts/portfolio-post-template.md) provides an optional starting structure.
 
 ## Publishing Workflow
 

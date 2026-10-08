@@ -9,70 +9,26 @@ tags:
   - system-design
 ---
 
-## Summary
+<!-- Writing aid, not a mandatory outline. Follow docs/article-review.md.
+     Keep only sections with distinct information; rename them for the case.
+     Use [TODO] for missing facts. Never invent results or incidents. -->
 
-One paragraph: what system or problem this article covers and why it matters.
+## Problem and operating constraints
 
-## Context
+Describe the system, the observed problem, and the conditions that shaped the decision. Include relevant scale, correctness requirements, team size, cost, or rollout limits once.
 
-Describe the production or project constraints. Include scale, latency, correctness, cost, team, or rollout requirements when possible.
+## Design decisions
 
-## Problem
+Explain the chosen approach and the alternatives actually considered. Put each trade-off next to the decision it qualifies. Add a diagram when it helps explain the data flow or ownership.
 
-What could fail? What was the incident, bottleneck, or architectural risk?
+## Production behavior
 
-## Constraints
+Describe the implementation details and observed failures that affected correctness, performance, recovery, or operation. Keep code examples and evidence close to the claim they support.
 
-List conditions that could not be changed: deadline, team size, existing systems, compliance, cost ceiling, or downstream contracts.
+## Results and remaining limits
 
-## Requirements
+Give measured outcomes with their workload, units, and measurement scope. Mark missing evidence with [TODO]. Distinguish implemented behavior from proposed changes, and place concrete follow-ups next to the relevant limitation.
 
-State the measurable or testable goals. Use `[TODO]` for missing facts rather than inventing numbers.
-
-## Options Considered
-
-| Option | Benefits | Costs / Risks | Why accepted or rejected |
-| --- | --- | --- | --- |
-| Option A |  |  |  |
-| Option B |  |  |  |
-
-## Architecture / Design
-
-Explain the architecture and the key decision. Add a diagram if useful.
-
-## Key Technical Decisions
-
-Explain the decision, alternatives, and trade-off. Focus on why this design fit the constraints.
-
-## Implementation
-
-Describe only the implementation details that affected correctness, performance, operability, or delivery.
-
-## Failure Modes / Production Challenges
-
-Describe timeout, retry, fallback, backpressure, idempotency, recovery, and observability behavior.
-
-## Results
-
-Use measurable outcomes if available:
-
-- Error rate
-- p99 latency
-- throughput
-- availability
-- recovery time
-- cost impact
-
-If a number is unavailable, use `[TODO]` instead of estimating.
-
-## Trade-offs
-
-State what the design made better and what it made worse.
-
-## What I Learned
-
-Extract the transferable engineering lesson, grounded in the production evidence above.
-
-## What I Would Change Today
-
-Describe the concrete redesign, measurement, or operational change you would make now.
+<!-- Add an investigation, rollout, or retrospective section only when it
+     contains evidence that does not fit above. An article can end with its
+     results or an unresolved issue; it does not need a slogan or recap. -->

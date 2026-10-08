@@ -11,4 +11,4 @@ A few systems I designed and owned, in the order I built them:
 - The game platform's service foundation: a contract-driven Go platform that helped four backend engineers deliver eighteen production services, with about 60% less work to onboard each new one.
 - The game platform's data path: TiDB CDC and Flink syncing OLTP data into a layered analytical warehouse with second-level freshness.
 
-Most engineering posts describe the final architecture. The part I find useful is everything around it: the real constraint, the option we rejected, and the trade-off that only showed up after deployment. That's what I try to write down in each case study here.
+The case studies cover the constraints behind these designs, alternatives we rejected, and problems we found after deployment.
