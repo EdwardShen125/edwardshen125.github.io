@@ -38,7 +38,7 @@ Recommended article types:
 4. Performance optimization with measurable impact
 5. Open-source or personal project case study
 
-Review articles against [the article review criteria](docs/article-review.md). Explain the problem, decisions, production behavior, and results with concrete evidence. Choose sections that fit the case, combine overlapping context and constraints, and discuss trade-offs next to the decisions they qualify. A retrospective is useful when it adds a new finding or a specific follow-up.
+Articles should explain the problem, decisions, production behavior, and results with concrete evidence. Choose sections that fit the case, combine overlapping context and constraints, and discuss trade-offs next to the decisions they qualify.
 
 The [draft writing aid](source/_drafts/portfolio-post-template.md) provides an optional starting structure.
 

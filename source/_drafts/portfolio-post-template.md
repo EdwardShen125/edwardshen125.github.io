@@ -9,7 +9,7 @@ tags:
   - system-design
 ---
 
-<!-- Writing aid, not a mandatory outline. Follow docs/article-review.md.
+<!-- Writing aid, not a mandatory outline.
      Keep only sections with distinct information; rename them for the case.
      Use [TODO] for missing facts. Never invent results or incidents. -->
 
