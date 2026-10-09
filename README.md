@@ -2,10 +2,10 @@
 
 This is a separate Hexo project from the local archived Chinese technical blog. It is dedicated to overseas-job-focused engineering write-ups, real project summaries, and system design case studies.
 
-It deploys from the `career` branch of `EdwardShen125/blog` to:
+It deploys from the `career` branch of `EdwardShen125/edwardshen125.github.io` to:
 
 ```text
-https://edwardshen125.github.io/blog/
+https://edwardshen125.github.io/
 ```
 
 ## Local Development
@@ -49,6 +49,16 @@ hexo new post "short-english-slug"
 ```
 
 Write in English. Keep the title specific and interview-friendly. Add diagrams when the architecture is non-obvious.
+
+## Search and AI discovery
+
+`scripts/seo.js` generates `sitemap.xml`, `robots.txt`, and an optional `llms.txt` article directory. It adds Person, WebSite, BlogPosting, ProfilePage, and breadcrumb JSON-LD through the NexT head injection hook. The theme continues to generate canonical and Open Graph tags.
+
+Homepage previews use the opening body paragraphs before `<!-- more -->`. The `description` field is reserved for search and sharing metadata and is not displayed above the article body. Add the marker after the introduction when publishing a new article.
+
+Set a concise `description` and a post-relative `seo_image` filename in article front matter. Keep summaries consistent with the evidence and measurement scope in the article. Modification dates use each file’s Git history unless front matter explicitly sets `updated`; deployment checks out the full history.
+
+After deployment, submit `https://edwardshen125.github.io/sitemap.xml` in Google Search Console and Bing Webmaster Tools. Account ownership verification is configured through NexT’s `google_site_verification` and `bing_site_verification` settings. `llms.txt` is an optional navigation aid, not a guarantee of indexing or AI citations.
 
 ## Automatic Deployment
 

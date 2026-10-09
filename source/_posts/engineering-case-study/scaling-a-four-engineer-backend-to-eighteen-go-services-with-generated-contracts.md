@@ -9,9 +9,13 @@ tags:
  - api-gateway
  - platform-engineering
  - developer-productivity
+description: How four Go engineers used a shared API DSL, code generation, and platform defaults to deliver eighteen production services while controlling contract drift.
+seo_image: cover.png
 ---
 
 Four Go engineers built eighteen domain services and one auxiliary backend repository for a consumer transaction platform with weekly live-ops releases. To keep integration work manageable, we used a single API DSL to generate service conventions, [Protocol Buffers](https://protobuf.dev/) contracts, and [Swagger/OpenAPI](https://swagger.io/specification/) documentation.
+
+<!-- more -->
 
 {% asset_img cover.png Go Microservice Platform cover: clients, API gateway, domain services, Kafka, ws-hub, TiDB %}
 

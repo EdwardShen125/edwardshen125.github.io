@@ -11,11 +11,15 @@ tags:
   - data-platform
   - lifecycle-marketing
   - audience-segmentation
+description: How reusable predicates, AST compilation, and layered TiDB data let lifecycle campaigns combine user traits, events, and expiring assets into email audiences.
+seo_image: architecture.png
 ---
 
 Lifecycle campaigns repeatedly combined latest user traits, historical events, and expiring assets. Operations initially assembled those audiences manually; the platform already had transactional services and a TiDB/TiCDC/Kafka/Flink data path, but marketing needed reusable audience definitions and automated email tasks rather than campaign-specific filters.
 
 I wrote the design document and early core demo for predicate expansion, SQL compilation, segment refresh, and the reach handoff. A colleague implemented the production services with my guidance.
+
+<!-- more -->
 
 {% asset_img architecture.png Predicate-driven audience pipeline architecture %}
 

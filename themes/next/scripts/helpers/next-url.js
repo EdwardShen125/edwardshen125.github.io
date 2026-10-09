@@ -3,12 +3,16 @@
 'use strict';
 
 const { htmlTag } = require('hexo-util');
-const url = require('url');
+const { URL } = require('node:url');
 
 hexo.extend.helper.register('next_url', function(path, text, options = {}) {
   const { config } = this;
-  const data = url.parse(path);
-  const siteHost = url.parse(config.url).hostname || config.url;
+  const absolute = /^[a-z][a-z\d+.-]*:/i.test(path);
+  let data = {};
+  if (absolute) {
+    try { data = new URL(path); } catch (_) {}
+  }
+  const siteHost = new URL(config.url).hostname;
 
   const theme = hexo.theme.config;
   let exturl = '';

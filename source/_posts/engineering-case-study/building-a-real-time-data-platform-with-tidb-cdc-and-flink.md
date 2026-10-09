@@ -9,11 +9,15 @@ tags:
   - cdc
   - data-platform
   - real-time
+description: How a four-engineer backend team built a TiCDC, Kafka, and Flink data platform on TiDB for second-level analytics, reconciliation, and QueryHub dashboards.
+seo_image: data-platform-cover.png
 ---
 
 The Go backend platform had been established earlier in 2025 and eventually carried eighteen Go domain services plus one auxiliary backend repository. Product teams could ship features, but operational questions still required ad-hoc production queries. Dashboards were slow, and linked views could not be trusted to refresh from a consistent snapshot.
 
 Four Go engineers had to build the data platform alongside feature delivery. We could not operate a separate OLAP database, sync pipeline, and dedicated data engineering function, so we built [TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview) → [Kafka](https://kafka.apache.org/) → [Apache Flink](https://flink.apache.org/) → analytical tables in TiDB, served by QueryHub, a self-developed SQL-template service.
+
+<!-- more -->
 
 {% asset_img data-platform-cover.png Real-Time Data Platform architecture cover %}
 

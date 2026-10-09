@@ -1,6 +1,7 @@
 ---
 title: About
 date: 2026-10-01 10:55:00
+description: About Edward Shen, a Go backend and distributed systems engineer who designs scheduling platforms, service foundations, and real-time data systems.
 ---
 
 I've spent ten years building backend systems, almost all of it in Go. I started with card and casual game backends, spent four and a half years on an SCRM product, and since early 2025 I've been leading backend architecture for an overseas game platform.

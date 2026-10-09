@@ -6,9 +6,7 @@
 </h1>
 
 <div class="post-meta">
-  {%- if page.description %}
-    <div class="post-description">{{ page.description }}</div>
-  {%- endif %}
+  {# Page descriptions are metadata, not visible header copy. #}
   {% include '_partials/page/breadcrumb.swig' %}
 </div>
 

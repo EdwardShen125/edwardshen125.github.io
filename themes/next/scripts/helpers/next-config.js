@@ -2,7 +2,7 @@
 
 'use strict';
 
-const url = require('url');
+const { URL } = require('node:url');
 
 /**
  * Export theme config to js
@@ -11,7 +11,7 @@ hexo.extend.helper.register('next_config', function() {
   let { config, theme, next_version } = this;
   config.algolia = config.algolia || {};
   let exportConfig = {
-    hostname  : url.parse(config.url).hostname || config.url,
+    hostname  : new URL(config.url).hostname,
     root      : config.root,
     scheme    : theme.scheme,
     version   : next_version,

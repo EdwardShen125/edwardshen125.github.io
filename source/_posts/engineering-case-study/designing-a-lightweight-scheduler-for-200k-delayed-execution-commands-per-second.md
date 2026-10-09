@@ -10,9 +10,13 @@ tags:
   - pulsar
   - etcd
   - scheduling
+description: How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.
+seo_image: architecture-c4.png
 ---
 
 The legacy batch center and [xxl-job](https://github.com/xuxueli/xxl-job) had reached their dispatch ceiling, and every new instance multiplied lock contention on the same task table. We replaced them with a scheduling center on [TiDB](https://docs.pingcap.com/tidb/stable/overview), [etcd](https://etcd.io/), and [Apache Pulsar](https://pulsar.apache.org/). Its on-the-hour workload peaked above 200K execution commands per second; production incidents later led us to revise its isolation model.
+
+<!-- more -->
 
 ## Context
 
