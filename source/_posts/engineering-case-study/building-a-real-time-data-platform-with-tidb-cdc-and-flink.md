@@ -62,7 +62,7 @@ Logically, the warehouse followed ODS → DWD → DWS, but ODS was not a copied 
 
 {% asset_img architecture-c4.png C4 container view of the real-time data platform: selected production tables as in-place ODS with TiFlash replicas, TiCDC, TiCDC changefeed topics in Kafka, Flink SQL and DataStream jobs, DWD detail and ads_* DWS aggregates, QueryHub, Redis caching, and dashboard users %}
 
-TiCDC captured only selected event tables—transaction settlements, order amounts, referral/commission ledgers, promotion records, and wallet transfers. Kafka carried only those TiCDC changefeed topics: the `domain_event_*` topics Flink consumed entered through the same path, because the DDD services' outbox tables were among the selected sources rather than a second publish path. High-volume business-table topics were partitioned by their owning user key, such as `user_id` or the commission dimension `invited_user_id`; domain-event topics used `event_type` and `aggregate_id`. Partitioning by the owning key preserved order where one aggregate consumed it while allowing parallel consumers.
+The captured sources covered transaction settlements, order amounts, referral/commission ledgers, promotion records, and wallet transfers.
 
 ## Key Technical Decisions
 

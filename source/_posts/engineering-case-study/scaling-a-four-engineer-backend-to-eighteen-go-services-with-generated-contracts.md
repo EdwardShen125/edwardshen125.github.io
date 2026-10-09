@@ -94,7 +94,11 @@ Vanilla goctl generated HTTP handlers from `.api` but not proto or Swagger, and 
 
 The onion/DDD structure (application, domain, infrastructure, and service-context layers; repository interfaces in the domain with implementations injected from infrastructure; outbox-pattern domain events) lived in a README and in custom goctl templates. A service generated from the template starts compliant: the layering, the event outbox, and the repository seams all exist before the first line of business code. The README documented the structure, and the template generated it.
 
-The outbox rule applied to transactional domain events. It did not apply to every low-latency user notification: services published ws-hub notifications directly to Kafka. Keeping those paths separate avoided forcing interactive pushes through an outbox relay designed for delivery tied to a database transaction.
+### Transactional domain events through the outbox
+
+Services persisted domain events in an outbox table within the same TiDB transaction as the business-state change. TiCDC captured committed outbox rows and delivered them to Kafka as `domain_event_*` topics. This kept event persistence consistent with the business transaction and removed the gap between committing data and publishing an event. Delivery remained asynchronous, and consumers still needed idempotent handling on replay.
+
+Low-latency ws-hub notifications were published directly to Kafka. Transactional domain events followed the outbox path.
 
 ### Domain boundaries and data ownership
 
