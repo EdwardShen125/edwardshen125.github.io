@@ -1,0 +1,16 @@
+# Edward Shen
+
+> Engineering case studies on Go backends, distributed scheduling, data platforms, and lifecycle audience pipelines.
+
+These articles describe project decisions, production observations, and implementation limits. Proposed changes are identified in the articles.
+
+## Author
+
+- [About Edward Shen](https://edwardshen125.github.io/about/): Career background and systems owned.
+
+## Engineering case studies
+
+- [Designing a Predicate-Driven Audience Pipeline for Lifecycle Email](https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/): How reusable predicates, AST compilation, and layered TiDB data let lifecycle campaigns combine user traits, events, and expiring assets into email audiences.
+- [Building a Real-Time Data Platform With TiDB CDC and Flink](https://edwardshen125.github.io/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/): How a four-engineer backend team built a TiCDC, Kafka, and Flink data platform on TiDB for second-level analytics, reconciliation, and QueryHub dashboards.
+- [Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts](https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/): How four Go engineers used a shared API DSL, code generation, and platform defaults to deliver eighteen production services while controlling contract drift.
+- [Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second](https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/): How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.

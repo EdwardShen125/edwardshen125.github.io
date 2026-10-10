@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/architecture-c4.png">
+<meta property="article:published_time" content="2025-01-01T06:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T10:57:59.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="tidb">
+<meta property="article:tag" content="distributed-systems">
+<meta property="article:tag" content="pulsar">
+<meta property="article:tag" content="etcd">
+<meta property="article:tag" content="scheduling">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/architecture-c4.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/","url":"https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/","headline":"Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second","description":"How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.","datePublished":"2025-01-01T06:00:00.000Z","dateModified":"2026-10-09T10:57:59.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, tidb, distributed-systems, pulsar, etcd, scheduling","image":["https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/architecture-c4.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second","item":"https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/"}]}]}</script>
+  <title>Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-01-01 14:00:00" itemprop="dateCreated datePublished" datetime="2025-01-01T14:00:00+08:00">2025-01-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.8k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>10 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>The legacy batch center and <a
+target="_blank" rel="noopener" href="https://github.com/xuxueli/xxl-job">xxl-job</a> had reached their
+dispatch ceiling, and every new instance multiplied lock contention on
+the same task table. We replaced them with a scheduling center on <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a>, <a
+target="_blank" rel="noopener" href="https://etcd.io/">etcd</a>, and <a
+target="_blank" rel="noopener" href="https://pulsar.apache.org/">Apache Pulsar</a>. Its on-the-hour
+workload peaked above 200K execution commands per second; production
+incidents later led us to revise its isolation model.</p>
+<span id="more"></span>
+<h2 id="context">Context</h2>
+<p>At my previous company, the SCRM (Social CRM) platform served
+enterprise marketing teams. Much of the product depended on delayed
+execution: marketing SOP (standard operating procedure) sequences,
+follow-up reminders, and large one-shot jobs. Two legacy components—the
+in-house batch center and xxl-job—covered more than twenty business
+scenarios and carried a continuously active scheduling workload.</p>
+<p>I <strong>designed and delivered</strong> the Go scheduling center
+and migrated existing scenarios onto it, reusing TiDB, etcd, and Pulsar
+for storage, coordination, and delivery.</p>
+<p>Four terms recur below. A <em>job</em> was a registered business
+definition. A <em>trigger</em> was the durable schedule for that job: a
+one-shot trigger represented one run, while a cron trigger maintained
+the next occurrence in <code>next_fire_at</code>. A <em>sharding
+item</em> was a fan-out unit inside a run. An <em>execution command</em>
+was one sharding item handed to the executor through Pulsar. Throughput
+counts published commands, not database scans, trigger rows, or
+downstream handler completion.</p>
+<h2 id="problem">Problem</h2>
+<p>Both legacy systems shared the same execution model. When a task came
+due, the scheduler dispatched it onto a worker and invoked a business
+HTTP callback; the worker stayed occupied until the callback returned.
+Real handlers took milliseconds to minutes, so slow tasks occupied
+workers for their full duration. Under load, the pool saturated and
+production hit a measurable dispatch ceiling.</p>
+<p>Scaling out made contention worse: every instance polled and updated
+the same task table, so adding instances multiplied lock contention.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart LR
+    L["legacy scheduling load"]:::trigger
+    D([task becomes due]):::trigger
+    W["worker pool"]:::state
+    C["business HTTP callback:<br/>milliseconds to minutes"]:::pressure
+
+    L --> D
+    D --> W
+    W --> C
+    C -. holds worker until return .-> W
+    W --> S["pool saturated;<br/>dispatch delayed"]:::impact
+
+    classDef trigger fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
+    classDef state fill:#f5f5f5,stroke:#4b5563,stroke-width:2px;
+    classDef pressure fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px;
+    classDef impact fill:#fdecea,stroke:#a44a3f,stroke-width:2px;
+          </pre>
+<h2 id="constraints-and-requirements">Constraints and requirements</h2>
+<ul>
+<li>Task state had to live in a transactional database. Tasks were
+coupled to business flows, and we needed state transitions to be
+auditable and recoverable, not buried inside message queues or
+caches.</li>
+<li>Existing business scenarios had to migrate without rewriting their
+business handler logic. The new system still needed an SDK and a data
+migration path for integration.</li>
+<li>Downstream handler latency was unpredictable and outside our
+control. The scheduler had to make progress regardless of how long
+business callbacks took.</li>
+<li>Both old and new systems had to keep serving production traffic
+during a gradual, verifiable per-business cutover that fully replaced
+the batch center and xxl-job.</li>
+<li>Second-level scheduling precision for delayed tasks, plus cron
+support for recurring ones.</li>
+<li>Peak publish throughput well beyond the old ceiling.</li>
+<li>Consumer isolation between business scenarios from the start;
+producer isolation became a requirement after the shared-topic
+incident.</li>
+</ul>
+<h2 id="options-considered">Options Considered</h2>
+<p>We evaluated where to keep durable state, how to shard scheduling,
+and how to provide delivery precision.</p>
+<h3 id="patch-and-scale-the-legacy-schedulers">Patch and scale the
+legacy schedulers</h3>
+<p>Adding instances or enlarging worker pools preserved the
+worker-per-callback model, and every scheduler still polled and updated
+the same task table. Sharding or partitioning that table was not drop-in
+either: the legacy dispatch loop would need a rewrite without removing
+slow-handler occupancy.</p>
+<h3 id="make-pulsar-the-task-store">Make Pulsar the task store</h3>
+<p>Holding every future trigger as a delayed message would remove
+database polling, but pause, cancel, migration, audit, and recovery
+would become queue mutations. Long-lived business state would no longer
+be auditable in one transactional place.</p>
+<h3 id="use-etcd-to-shard-schedulers">Use etcd to shard schedulers</h3>
+<p>An etcd coordinator could distribute partitions across nodes, but the
+bottleneck was TiDB partition access and command delivery, not the
+number of leader processes. Shard assignment, rebalance, and
+partial-failure handling would add complexity before removing that
+bottleneck.</p>
+<h3 id="hybrid-state-and-delivery">Hybrid state and delivery</h3>
+<p>TiDB remained the transactional owner of trigger state and due-time
+discovery. Pulsar delivered only admitted execution commands. etcd
+supplied election leases without coordinating scheduler shards.</p>
+<h2 id="architecture-design">Architecture / Design</h2>
+<p>The <span class="exturl" data-url="aHR0cHM6Ly9jNG1vZGVsLmNvbS8=">C4<i class="fa fa-external-link-alt"></i></span> container view below shows
+the final system after topic isolation: etcd election; the leader's
+partition schedulers and in-process fire pipeline; the TiDB trigger
+store; per-domain command topics; a separate callback topic; and the
+executor SDK. Arrow badges carry the protocol for each hop — lease, SQL
+CAS, deliver-at, consumer groups, or callback event.</p>
+<img data-src="/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/architecture-c4.png" class="" title="C4 container view of the final Lightweight Scheduling Center: etcd election, scheduler leader and in-process fire pool, CAS acquire against the TiDB trigger store, delivery-at publication to per-domain Pulsar command topics, executor SDK consumer groups, a separate Pulsar callback topic, and callback consumption by the scheduler">
+<p>Reusing those systems kept the scheduler and executor SDK
+implementation to roughly 8,900 lines across 110 non-test Go files.</p>
+<h2 id="key-technical-decisions">Key Technical Decisions</h2>
+<h3 id="leader-election-and-acquire-loop-ownership">Leader election and
+acquire-loop ownership</h3>
+<p>The elected leader owned every TiDB partition scheduler and the
+bounded fire pool. This kept partition ownership and failure semantics
+simple: if the leader died, followers campaigned with exponential
+backoff and one took over. The cost was a one-process acquire-loop
+ceiling and a brief failover gap.</p>
+<p>At larger scale, I would add an etcd-backed shard registry: each
+scheduler pod would lease a subset of TiDB <code>HASH(id)</code>
+partitions and own their acquire/fire pipeline, while etcd watched pod
+liveness and reassigned partitions after failure. This would leave
+pressure on TiDB and Pulsar but remove the single-pod admission ceiling
+once partition count or on-the-hour bursts exceeded one pod's
+capacity.</p>
+<h3 id="partition-serial-scheduling">Partition-serial scheduling</h3>
+<p>The trigger table was hash-partitioned by ID in TiDB, with the
+partition count sized to expected business volume. The scheduler
+discovered partitions from <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/partitioned-table">table
+metadata</a> and ran exactly one scheduling goroutine per partition
+inside the leader. Each goroutine queried its partition explicitly, so
+scan and admission were serial within that ownership range; the admitted
+batch was then handed off to the shared fire pool. This avoided
+concurrent acquire loops competing for the same partition, though TiDB
+still shared global storage capacity. Explicit partition selection kept
+each scan bounded to one scheduler; hash partitioning did not balance
+load by due time.</p>
+<h3 id="cas-as-the-admission-boundary">CAS as the admission
+boundary</h3>
+<p>Persistent transitions used conditional updates.
+<code>waiting -&gt; acquired</code> gated fire preparation;
+<code>acquired -&gt; waiting</code> or
+<code>acquired -&gt; completed</code> recorded the outcome. The domain
+model used <code>triggered</code> only as a transient state while
+preparing a fire batch; it was not separately persisted. CAS prevented
+two acquire loops from admitting the same row at the database boundary.
+It did not fence a previous leader that had already acquired rows, so
+executor idempotency and an explicit recovery contract were still
+required. Pause and resume moved triggers through the same
+conditional-update API, so a manual operation could not leave a state
+the scheduler would misread.</p>
+<p>CAS also could not commit the TiDB state transition and Pulsar
+publication as one transaction. A leader could fail after acquiring a
+row, or after publishing a command but before recording its terminal
+outcome. Recovery therefore had to treat execution as at-least-once, and
+executor idempotency—not cross-store atomicity—closed the failure
+window.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart TD
+    R([trigger created]):::event --> W([waiting]):::state
+    W -->|CAS acquire| A([acquired]):::state
+    A --> F[fire prepared]:::event
+    F -->|one-shot complete| C([completed]):::state
+    F -->|cron has next| N[cron next fire]:::event
+    N --> W
+    A -.->|dispatch failed| D[dispatch failed]:::event
+    D -.->|release| W
+    W -->|pause| P([paused]):::state
+    P -->|resume| W
+
+    classDef state fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
+    classDef event fill:#fff7e6,stroke:#8a6d3b,stroke-dasharray:3 3;
+          </pre>
+<h3 id="coarse-acquisition-precise-delivery">Coarse acquisition, precise
+delivery</h3>
+<p>The scheduler admitted triggers from a configurable lookahead and
+published each command with a deliver-at time equal to the trigger's
+fire time. After the first on-the-hour contention incident, production
+used a 30-minute window. This let DB polling be lazy and batchy while
+Pulsar preserved second-level delivery precision.</p>
+<p>For one trigger, <code>T</code> was its scheduled trigger time, not
+the acquire or publish time: <code>T = trigger_at = next_fire_at</code>
+in TiDB and <code>T = deliver-at</code> in Pulsar.
+<code>Δ = T - acquire_time</code> was its remaining lead time. In the
+diagram, <code>T - 30m 30.5s</code> and <code>T + 2h</code> are
+wall-clock offsets from <code>T</code>; the maximum early-admission lead
+is <code>30m 30.5s</code> (30s idle wait + 30m acquisition window + 0.5s
+jitter). The diagram shows the normal early-admission path, where
+<code>Δ</code> was positive.</p>
+<pre class="mermaid" style="text-align: center;">
+            
+            sequenceDiagram
+    participant L as Lookahead
+    participant S as Scheduler
+    participant DB as TiDB
+    participant Q as Pulsar
+    participant E as Executor SDK
+
+    Note over L,S: Maximum early admission: T - 30m 30.5s
+    L->>S: trigger enters acquisition window
+    S->>DB: CAS acquire<br/>waiting -> acquired
+    S->>Q: publish command<br/>deliver-at = T
+    Note over Q,E: Pulsar holds command until T
+    Q->>E: deliver command at T
+    Note over S,DB: Misfire horizon extends to T + 2h
+          </pre>
+<p>This split the timing contract: TiDB retained the long-horizon
+<code>waiting</code> row; Pulsar held only the admitted slice and
+delivered it at <code>next_fire_at</code>.</p>
+<p>The same failure window applied to leader election: an
+<code>acquired</code> row had uncertain publication state. I would
+persist an acquisition lease or epoch with every <code>acquired</code>
+row and define its timeout transition, so a new leader could distinguish
+an owner that might still be publishing from work it could safely
+reclaim.</p>
+<h3 id="fan-out-through-sharding-items">Fan-out through sharding
+items</h3>
+<p>The largest audience jobs did not expand into one trigger per
+audience member. Instead, each job carried sharding items that the fire
+pipeline paged through (300 per page), turning each item into its own
+execution command. Fired records were persisted per item so execution
+results could be tracked and aggregated through callbacks.</p>
+<h3 id="sdk-execution-instead-of-exposed-http-callbacks">SDK execution
+instead of exposed HTTP callbacks</h3>
+<p>Legacy business services exposed HTTP callback endpoints; every
+integration needed a route, network ingress, and scheduler-to-business
+authorization. With the SDK, a service consumed its Pulsar command topic
+and invoked a registered function-level callback, so teams implemented
+handler logic rather than controller endpoints. The SDK then published
+an execution result to a separate Pulsar callback topic, which the
+scheduling center consumed to update fired-record results. Broker and
+SDK identity still required authorization, but the scheduler-to-business
+HTTP surface disappeared.</p>
+<h2 id="implementation">Implementation</h2>
+<p>Within the leader, each partition scheduler handed acquired batches
+to a bounded in-process fire pool. The fire pool provided up to 6,000
+concurrent batch workers and served as the scheduler-side backpressure
+boundary. Its acquire loop ran once per tick:</p>
+<ol type="1">
+<li>Compute the acquisition window: from the misfire floor — the older
+of the partition's tracked latest <code>next_fire_at</code> and two
+hours before now — to now plus the lookahead. The startup floor could
+reach seven days back.</li>
+<li>Select <code>waiting</code> triggers in that window, ordered by due
+time, limited to the batch size — and capped by available capacity in
+the fire pool, so the scheduler never acquired more than it could hand
+off.</li>
+<li>CAS the batch from <code>waiting</code> to <code>acquired</code>,
+confirm winners by re-reading state, then submit groups of up to 100
+acquired triggers to the fire pipeline with retries.</li>
+<li>If the fire pipeline rejected work repeatedly, release the triggers
+back to <code>waiting</code> so nothing was lost.</li>
+</ol>
+<p>Production used a 30-minute acquisition window, a 30-second idle
+wait, up to 0.5 seconds of jitter, a two-hour misfire threshold, and a
+startup floor that could reach seven days back. A batch was capped at
+300 triggers and submitted in chunks of 100.</p>
+<p>The repository selected only the bounded due-soon slice from one
+explicitly chosen partition:</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">FROM</span> dus_job_trigger <span class="keyword">PARTITION</span> (?)</span><br><span class="line"><span class="keyword">WHERE</span> state <span class="operator">=</span> <span class="string">&#x27;waiting&#x27;</span></span><br><span class="line">  <span class="keyword">AND</span> next_fire_at <span class="keyword">BETWEEN</span> ? <span class="keyword">AND</span> ?</span><br><span class="line"><span class="keyword">ORDER</span> <span class="keyword">BY</span> next_fire_at <span class="keyword">ASC</span></span><br><span class="line">LIMIT ?</span><br></pre></td></tr></table></figure>
+<p>The SQL admitted by due time first. Trigger priority then acted as an
+in-memory tie-breaker when selected triggers shared the same
+<code>next_fire_at</code>; it was not a separate scheduling lane.</p>
+<p>After CAS admission, the fire pipeline computed the next fire time or
+marked completion, expanded sharding items, persisted fired records, and
+published each command with <code>deliver-at = fire time</code> and a
+job-code tag. Each business SDK consumed its domain command topic,
+invoked the registered callback, and published the result to the
+callback topic.</p>
+<p>Purpose-built readers read old batch task tables and their change
+streams; a data flag made repeated migration idempotent. The SDK also
+emitted per-business migration telemetry: consumer lag, call volume, and
+execution success rate. For important scenarios whose handlers were
+already idempotent, we dual-ran the old and new paths and watched those
+signals before cutover. After load and functional tests against
+production traffic, migration proceeded from low-risk to critical
+scenarios.</p>
+<h2 id="failure-modes-production-challenges">Failure Modes / Production
+Challenges</h2>
+<h3 id="hot-minute-contention">Hot-minute contention</h3>
+<p>The first production stress pattern came from jobs scheduled at the
+same time. Hash partitioning spread trigger rows evenly by ID, but a
+large SOP workload placed many trigger runs at exact hour boundaries.
+Just before those boundaries, the acquisition scan found the burst and
+the partition-serial path became dominated by that workload. Other
+triggers behind it in the same partitions waited; the lookahead fell
+behind and the system spent subsequent ticks catching up.</p>
+<p>Monitoring exposed the falling lookahead. We increased the
+acquisition window to 30 minutes, worked with the business team to
+replace exact <code>:00</code> fire times with randomized seconds, and
+used trigger priority as a same-time tie-breaker. Because SQL still
+admitted by due time first, priority did not fully isolate workloads.
+Scheduled delivery stayed on time; remaining pressure moved to
+downstream consumers.</p>
+<p>I would separate on-the-hour SOP traffic and lower-priority fan-out
+at creation time, giving each lane its own trigger table policy,
+capacity budget, topic, and cancellation semantics. Lookahead could
+adapt to per-domain fire-time lag and burst forecasts instead of using
+one global window.</p>
+<h3 id="shared-topic-backpressure">Shared-topic backpressure</h3>
+<p>The next isolation failure came after onboarding the audience-SOP
+scenario. The SDK gave each business its own consumer group, so Pulsar
+showed exactly which subscription was falling behind. But all commands
+still entered one shared topic; its backlog produced producer
+backpressure and made a local problem platform-wide.</p>
+<p>We split the topic per business domain. A slow consumer could then
+delay only its own domain while other businesses kept flowing and could
+be throttled or scaled independently. The diagrams show the resulting
+topic boundary. Topic-per-business-domain and per-business concurrency
+quotas would be initial SDK contracts in a new implementation.</p>
+<h3 id="a-cancellation-design-we-removed">A cancellation design we
+removed</h3>
+<p>Early admission created another contract problem: Pulsar did not
+support canceling a message after it was published with a future
+deliver-at time. We deployed a Redis-based design to production: publish
+set a state, consumption updated it, and the SDK filtered canceled
+commands while locks attempted consistency.</p>
+<p>Production did not justify that complexity. Redis load rose, the
+lock-and-state path became hard to reason about, and debugging spanned
+TiDB, Pulsar, and Redis. Actual cancel demand was very low and
+downstream async handlers were already idempotent, so we removed the
+Redis layer and treated <strong>admission as the cancellation
+boundary</strong>.</p>
+<h2 id="results">Results</h2>
+<p>Partitioned acquisition and the bounded fire pool supported the
+observed production peak without returning to table-lock contention.</p>
+<ul>
+<li>Peak publish rate above 200K execution commands per second during
+on-the-hour workload peaks.</li>
+<li>Coverage of more than 20 business scenarios over the system's
+production lifetime.</li>
+<li>Full replacement of both the batch center and xxl-job, with a
+gradual per-business cutover and no big-bang migration.</li>
+</ul>
+<p>The 200K+ figure came from the Pulsar Manager publish-rate panel:
+messages per second on the execution-command topics. For the SOP
+workload that drove the peak, one sharding item produced one command;
+larger fan-outs produced proportionally more.</p>
+<p>We did not retain fire-time lag percentiles, so the publish rate
+establishes throughput without establishing end-to-end latency. I would
+instrument fire-time lag—the difference between a trigger's scheduled
+time and its actual delivery—as an SLI from day one, with alerts on
+platform-wide and per-domain percentiles.</p>
+<h2 id="operating-costs">Operating costs</h2>
+<p>Every state transition added write amplification on TiDB. Partition
+count became a capacity-planning burden, since changing it later is not
+free. At-least-once delivery required idempotent executors. The
+30-minute lookahead absorbed hot-minute bursts but also widened the
+period during which an admitted trigger could no longer be canceled in
+the queue.</p>
+<p>I would keep durable triggers in TiDB and admitted commands in
+Pulsar, with per-domain command topics. The next change is operational:
+persist ownership for <code>acquired</code> rows and expose per-domain
+fire-time lag percentiles. That is a smaller correction than moving
+long-lived task state into the queue.</p>
+<hr />
+<p><em>Next in this series: <a
+href="/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/">Scaling
+a Four-Engineer Backend to Eighteen Go Services with Generated
+Contracts</a>.</em></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/tidb/" rel="tag"># tidb</a>
+              <a href="/tags/distributed-systems/" rel="tag"># distributed-systems</a>
+              <a href="/tags/pulsar/" rel="tag"># pulsar</a>
+              <a href="/tags/etcd/" rel="tag"># etcd</a>
+              <a href="/tags/scheduling/" rel="tag"># scheduling</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/" rel="next" title="Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts">
+      Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#context"><span class="nav-number">1.</span> <span class="nav-text">Context</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#problem"><span class="nav-number">2.</span> <span class="nav-text">Problem</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#constraints-and-requirements"><span class="nav-number">3.</span> <span class="nav-text">Constraints and requirements</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#options-considered"><span class="nav-number">4.</span> <span class="nav-text">Options Considered</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#patch-and-scale-the-legacy-schedulers"><span class="nav-number">4.1.</span> <span class="nav-text">Patch and scale the
+legacy schedulers</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#make-pulsar-the-task-store"><span class="nav-number">4.2.</span> <span class="nav-text">Make Pulsar the task store</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#use-etcd-to-shard-schedulers"><span class="nav-number">4.3.</span> <span class="nav-text">Use etcd to shard schedulers</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#hybrid-state-and-delivery"><span class="nav-number">4.4.</span> <span class="nav-text">Hybrid state and delivery</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#architecture-design"><span class="nav-number">5.</span> <span class="nav-text">Architecture &#x2F; Design</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#key-technical-decisions"><span class="nav-number">6.</span> <span class="nav-text">Key Technical Decisions</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#leader-election-and-acquire-loop-ownership"><span class="nav-number">6.1.</span> <span class="nav-text">Leader election and
+acquire-loop ownership</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#partition-serial-scheduling"><span class="nav-number">6.2.</span> <span class="nav-text">Partition-serial scheduling</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#cas-as-the-admission-boundary"><span class="nav-number">6.3.</span> <span class="nav-text">CAS as the admission
+boundary</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#coarse-acquisition-precise-delivery"><span class="nav-number">6.4.</span> <span class="nav-text">Coarse acquisition, precise
+delivery</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fan-out-through-sharding-items"><span class="nav-number">6.5.</span> <span class="nav-text">Fan-out through sharding
+items</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#sdk-execution-instead-of-exposed-http-callbacks"><span class="nav-number">6.6.</span> <span class="nav-text">SDK execution
+instead of exposed HTTP callbacks</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#implementation"><span class="nav-number">7.</span> <span class="nav-text">Implementation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#failure-modes-production-challenges"><span class="nav-number">8.</span> <span class="nav-text">Failure Modes &#x2F; Production
+Challenges</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#hot-minute-contention"><span class="nav-number">8.1.</span> <span class="nav-text">Hot-minute contention</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shared-topic-backpressure"><span class="nav-number">8.2.</span> <span class="nav-text">Shared-topic backpressure</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#a-cancellation-design-we-removed"><span class="nav-number">8.3.</span> <span class="nav-text">A cancellation design we
+removed</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">9.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#operating-costs"><span class="nav-number">10.</span> <span class="nav-text">Operating costs</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">9k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">34 mins.</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

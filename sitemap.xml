@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://edwardshen125.github.io/</loc></url>
+  <url><loc>https://edwardshen125.github.io/about/</loc></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/</loc><lastmod>2026-10-09T10:57:59.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/</loc><lastmod>2026-10-09T10:57:59.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/</loc><lastmod>2026-10-09T10:57:59.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/</loc><lastmod>2026-10-09T10:57:59.000Z</lastmod></url>
+</urlset>

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="How four Go engineers used a shared API DSL, code generation, and platform defaults to deliver eighteen production services while controlling contract drift.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="How four Go engineers used a shared API DSL, code generation, and platform defaults to deliver eighteen production services while controlling contract drift.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/cover.png">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/architecture-c4.png">
+<meta property="article:published_time" content="2025-10-10T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T10:57:59.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="microservices">
+<meta property="article:tag" content="api-gateway">
+<meta property="article:tag" content="platform-engineering">
+<meta property="article:tag" content="developer-productivity">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/cover.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/","url":"https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/","headline":"Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts","description":"How four Go engineers used a shared API DSL, code generation, and platform defaults to deliver eighteen production services while controlling contract drift.","datePublished":"2025-10-10T04:00:00.000Z","dateModified":"2026-10-09T10:57:59.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, microservices, api-gateway, platform-engineering, developer-productivity","image":["https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/cover.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts","item":"https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/"}]}]}</script>
+  <title>Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Scaling a Four-Engineer Backend to Eighteen Go Services With Generated Contracts
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2025-10-10 12:00:00" itemprop="dateCreated datePublished" datetime="2025-10-10T12:00:00+08:00">2025-10-10</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.5k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>9 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Four Go engineers built eighteen domain services and one auxiliary
+backend repository for a consumer transaction platform with weekly
+live-ops releases. To keep integration work manageable, we used a single
+API DSL to generate service conventions, <a
+target="_blank" rel="noopener" href="https://protobuf.dev/">Protocol Buffers</a> contracts, and <a
+target="_blank" rel="noopener" href="https://swagger.io/specification/">Swagger/OpenAPI</a>
+documentation.</p>
+<span id="more"></span>
+<img data-src="/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/cover.png" class="" title="Go Microservice Platform cover: clients, API gateway, domain services, Kafka, ws-hub, TiDB">
+<h2 id="context-and-requirements">Context and requirements</h2>
+<p>The product team was assembled from scratch in early 2025 with
+seventeen people: four Go engineers building the backend, six frontend
+developers, two QA, two UI designers, and three product managers driving
+the live-ops roadmap. That roadmap required weekly feature releases
+rather than a long platform-build cycle. I <strong>initiated and
+led</strong> the platform program that ran February to May: an
+architecture template, a contract toolchain, a shared gateway, base
+libraries, and CI — built in parallel with the first business services.
+The platform then remained the default path as the backend grew to
+eighteen Go domain services spanning identity and access, financial
+transactions and ledger integrations, consumer engagement, growth and
+live-ops, and platform infrastructure. The repository statistics also
+include one auxiliary backend repository, <code>geoip-update</code>; the
+API gateway is counted separately.</p>
+<p>The same four engineers had to ship against money-movement flows and
+around-the-clock availability while the platform was being built. We
+also made one choice early: standardize on <a
+target="_blank" rel="noopener" href="https://github.com/zeromicro/go-zero">go-zero</a> rather than
+build another framework. We used the platform to encode conventions
+while relying on go-zero for runtime infrastructure.</p>
+<p>Each service needed auth, error codes, structured logging, RPC
+wiring, gateway registration, and tracing. Maintaining these by hand
+across the service fleet would consume integration time and let
+implementations diverge. The platform needed:</p>
+<ul>
+<li>One contract entry per service, from which handlers, RPC, and docs
+all derive.</li>
+<li>A scaffold that generated the required architecture.</li>
+<li>Platform-wide error codes, auth, and context propagation as
+libraries.</li>
+<li>Gateway-managed response caching for consumer-facing interfaces,
+configured at the interface level rather than rebuilt inside each
+service.</li>
+<li>CI and tracing by default on every service.</li>
+<li>Generated service shells with production defaults from their first
+commit.</li>
+<li>An onboarding cost we could measure.</li>
+</ul>
+<h2 id="options-considered">Options Considered</h2>
+<p>The main choice was the contract direction. go-zero already provided
+service discovery and goctl, its API-first code generator; the team knew
+it well. The alternative to goctl's <code>.api</code> DSL was
+proto-first: define <span class="exturl" data-url="aHR0cHM6Ly9ncnBjLmlvLw==">gRPC<i class="fa fa-external-link-alt"></i></span> contracts and
+derive HTTP from them.</p>
+<p>Proto-first would have made proto the canonical internal contract,
+but the client-facing HTTP route, request shape, auth annotation, cache
+option, or Swagger document still needed a second definition. That was
+the <strong>double-contract drift</strong> we wanted to remove. It also
+would have pushed us toward maintaining more of the generation chain
+ourselves. DSL-first gave up some proto-level control: services that
+needed advanced gRPC features fell back to hand-written proto. We
+accepted that <em>rare exception</em> because one <code>.api</code> file
+could remain the entry for handlers, generated proto, and Swagger.</p>
+<h2 id="architecture-design">Architecture / Design</h2>
+<p>The <span class="exturl" data-url="aHR0cHM6Ly9jNG1vZGVsLmNvbS8=">C4<i class="fa fa-external-link-alt"></i></span> container view below shows
+the platform as it runs today. Clients speak HTTPS to a single API
+Gateway, which routes to domain services over gRPC using Protocol Buffer
+descriptor sets generated from the shared contract repository;
+Kubernetes Endpoints resolves live addresses. Services keep per-service
+schemas in <a
+target="_blank" rel="noopener" href="https://docs.pingcap.com/tidb/stable/overview">TiDB</a>, cache in
+Redis, and export spans to <span class="exturl" data-url="aHR0cHM6Ly96aXBraW4uaW8v">Zipkin<i class="fa fa-external-link-alt"></i></span>. For
+user-facing pushes, services publish to Kafka and ws-hub fans
+notifications out over websockets. The collapsed service card represents
+the other seventeen services, so ws-hub is not counted twice. An i18n
+hook on the gateway response chain localizes dynamic response content,
+so services stay locale-blind.</p>
+<img data-src="/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/architecture-c4.png" class="" title="C4 container view of the Go Microservice Platform: clients, API gateway with jwt, i18n, and configurable response caching, seventeen collapsed domain services plus ws-hub, TiDB per-service schemas, Redis caching, Kafka event publishing, websocket fan-out, and Zipkin tracing">
+<h2 id="key-technical-decisions">Key Technical Decisions</h2>
+<h3 id="dsl-as-the-single-contract-entry">DSL as the single contract
+entry</h3>
+<p>A single authentication <code>.api</code> file carried the routes,
+types, and three access-control tiers:</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">syntax = &quot;v1&quot;</span><br><span class="line"></span><br><span class="line">// <span class="built_in">public</span> <span class="keyword">login</span></span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @<span class="keyword">handler</span> <span class="keyword">Login</span></span><br><span class="line"> post /<span class="keyword">login</span> (LoginReq) <span class="keyword">returns</span> (LoginRes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// <span class="keyword">admin</span> JWT required</span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line"> auth: <span class="keyword">admin</span></span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @<span class="keyword">handler</span> Verify2FA</span><br><span class="line"> post /verify2fa (Verify2FAReq) <span class="keyword">returns</span> (Verify2FARes)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// permission-gated <span class="keyword">reset</span></span><br><span class="line">@<span class="keyword">server</span>(</span><br><span class="line"> prefix: /v1/<span class="keyword">admin</span>/auth</span><br><span class="line"> auth: &quot;admin=permissionUserResetPwd&quot;</span><br><span class="line">)</span><br><span class="line">service AdminAuthService &#123;</span><br><span class="line"> @<span class="keyword">handler</span> ResetPassword</span><br><span class="line"> post /reset_password (ResetPasswordReq) <span class="keyword">returns</span> (ResetPasswordRes)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Handlers and types came from goctl; our plugins generated proto and
+Swagger from the same source. There was no second route definition to
+drift from.</p>
+<p>The contract repository held fifty-five <code>.api</code> contract
+files and sixty-eight generated proto schemas. Between March 4 and
+October 9, 2025, it absorbed 3,568 commits — more than any single
+service — with four hundred to seven hundred landing every month. Every
+interface change in the platform flowed through that one repository.</p>
+<h3 id="fill-the-generation-gaps-with-plugins">Fill the generation gaps
+with plugins</h3>
+<p>Vanilla goctl generated HTTP handlers from <code>.api</code> but not
+proto or Swagger, and the platform needed both. We wrote two goctl
+plugins, goctl-proto and goctl-swagger, so one <code>.api</code> file
+produces handlers, proto, and Swagger in the same commit. Both install
+with <code>go install</code> and run in goctl's plugin mode: they extend
+the standard toolchain instead of replacing it.</p>
+<h3 id="the-scaffold-as-specification">The scaffold as
+specification</h3>
+<p>The onion/DDD structure (application, domain, infrastructure, and
+service-context layers; repository interfaces in the domain with
+implementations injected from infrastructure; outbox-pattern domain
+events) lived in a README and in custom goctl templates. A service
+generated from the template starts compliant: the layering, the event
+outbox, and the repository seams all exist before the first line of
+business code. The README documented the structure, and the template
+generated it.</p>
+<h3 id="transactional-domain-events-through-the-outbox">Transactional
+domain events through the outbox</h3>
+<p>Services persisted domain events in an outbox table within the same
+TiDB transaction as the business-state change. TiCDC captured committed
+outbox rows and delivered them to Kafka as <code>domain_event_*</code>
+topics. This kept event persistence consistent with the business
+transaction and removed the gap between committing data and publishing
+an event. Delivery remained asynchronous, and consumers still needed
+idempotent handling on replay.</p>
+<p>Low-latency ws-hub notifications were published directly to Kafka.
+Transactional domain events followed the outbox path.</p>
+<h3 id="domain-boundaries-and-data-ownership">Domain boundaries and data
+ownership</h3>
+<p>All eighteen services shared one TiDB cluster, so the boundary was
+drawn at the table level. The user service owned auth, KYC, and
+customer-profile tables; the ledger service owned currency orders,
+account balances, and token metadata. Cross-service access ran over
+gRPC, and a repository-layer scan confirmed zero cross-domain table
+access. Disjoint table ownership preserved service boundaries without
+operating eighteen databases.</p>
+<h3 id="platform-wide-error-codes">Platform-wide error codes</h3>
+<p>bizerr encodes every error as a six-digit code: two digits of service
+ID, two of function, two of error. Clients match on the prefix; anyone
+can decode an error to its origin without grep. Errors carry captured
+stacks and wrap their causes, so production incidents could be traced
+through the chain without re-running anything. The registry doubles as
+the coordination point — a new service claims its service ID once, and
+an unregistered code causes a runtime panic.</p>
+<p>That panic treated an unregistered code as a <strong>programming
+error</strong> rather than an operational error. It was intended to fail
+in the first test run instead of allowing an error with no message,
+locale, or service origin to reach a user. The cost was that an untested
+path could still become a production failure, so centralized
+registration and error-path tests mattered; a build-time registry check
+would have been the better enforcement point.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// each service claims an id; codes are registered with metadata</span></span><br><span class="line"><span class="keyword">const</span> errUserNotFound = bizerr.ErrCode(<span class="number">120401</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</span><br><span class="line"> bizerr.RegisterErrorCode(errUserNotFound, bizerr.ErrorMeta&#123;</span><br><span class="line"> DefaultMessage: <span class="string">&quot;user not found&quot;</span>,</span><br><span class="line"> &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// call sites build from registered codes only —</span></span><br><span class="line"><span class="comment">// an unregistered code panics before it can reach a user</span></span><br><span class="line"><span class="keyword">return</span> errUserNotFound.Build(err)</span><br></pre></td></tr></table></figure>
+<h3 id="gateway-as-the-composition-edge">Gateway as the composition
+edge</h3>
+<p>The gateway wrapped a maintained go-zero fork and owned everything
+cross-cutting: JWT auth, header processing, response wrapping, CORS,
+response caching, and an i18n hook on the response chain that localizes
+response content per user locale. Consumer-facing interfaces enabled
+caching through gateway configuration, so a service did not have to
+implement its own response-cache path. Because localization also lived
+in the gateway, services stayed locale-blind; adding a language required
+one gateway change.</p>
+<p>The cache setting stayed in the same interface contract. A
+consumer-facing banner route looked like this:</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="variable">@server</span>(</span><br><span class="line"> <span class="attribute">prefix</span>: /v1/banner/noauth</span><br><span class="line"> <span class="attribute">auth</span>: none</span><br><span class="line"> <span class="attribute">i18n</span>: enabled</span><br><span class="line">)</span><br><span class="line">service BannerService &#123;</span><br><span class="line"> <span class="variable">@doc</span>(</span><br><span class="line"> <span class="attribute">summary</span>: <span class="string">&quot;get banner list for web&quot;</span></span><br><span class="line"> <span class="attribute">cache</span>: <span class="string">&quot;expiresIn=300&quot;</span></span><br><span class="line"> )</span><br><span class="line"> <span class="variable">@handler</span> GetBannerListForWeb</span><br><span class="line"> post /get/banner/list (GetBannerListRequest) returns (GetBannerListResponse)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>The proto plugin emitted this route as a per-method cache option with
+a 300-second TTL and <code>CACHESCOPE_GLOBAL</code>. At startup, the
+gateway read the descriptor and installed Redis cache middleware only
+for routes with a positive TTL. The key covered the HTTP method, path,
+query, JSON body, <code>Accept-Language</code>, and
+<code>User-Agent</code>. On protected routes, JWT ran before cache, so
+the authenticated provider and user IDs also entered the key. An
+authenticated request was therefore isolated even when the annotation
+requested a global cache.</p>
+<p>The i18n hook localized the CMS's dynamic content — product
+descriptions, promotions, and operational copy — per user locale,
+managed by operations through the language service. Error messages took
+a different path by design: services return language-neutral error
+codes, and the frontend maps each code to a localized string through its
+own static i18n library, avoiding a backend round-trip for error
+localization.</p>
+<h3 id="shared-generation-and-ci-templates">Shared generation and CI
+templates</h3>
+<p>Every convention that could be enforced by generation was enforced
+there: custom goctl templates generated the onion structure, makefile
+targets pinned the base-library set, and shared CI templates
+standardized pipelines for Go, React, and Next.js services.</p>
+<h3 id="runtime-and-deployment-choices">Runtime and deployment
+choices</h3>
+<p>We skipped Istio because go-zero already carried service discovery
+and the microservice mechanics we needed. We used the Kubernetes API
+instead of a custom deployment system, kept the maintained go-zero fork
+instead of a new RPC framework, and left early configuration in
+ConfigMap until business operations needed config-hub's runtime
+changes.</p>
+<h2 id="implementation">Implementation</h2>
+<p>A generated service started with an <code>.api</code> skeleton, onion
+directory tree, Dockerfile, and deployment manifests. Its build
+referenced the six base libraries, the go-zero fork, and service SDKs;
+shared GitLab includes supplied Go, React, and Next.js pipelines. Zipkin
+tracing was a config line. The gateway loaded method descriptors at
+startup and resolved backends through Kubernetes Endpoints, so adding
+pods did not require gateway redeployment.</p>
+<p>Pod rescheduling, ws-hub reconnection, and gateway instance failure
+paths were designed but never systematically tested under failure
+conditions. A chaos suite that restarts gateways, interrupts service
+discovery, and exercises ws-hub reconnection under load would validate
+those assumptions.</p>
+<h2 id="adoption">Adoption</h2>
+<p>The scaffold had to stay ahead of the services while the four-person
+team shipped features. The template evolved with the first services;
+every later service generated from it. The only non-generated convention
+was claiming a service ID in the bizerr registry.</p>
+<p>Once the scaffold and DSL stabilized, team members started writing
+business logic with AI coding agents while feature delivery continued.
+The contract defined interfaces, the generated tree supplied the
+layering, and the error registry defined failure shapes, constraining
+the code agents produced.</p>
+<h2 id="where-the-defaults-leaked">Where the Defaults Leaked</h2>
+<h3 id="a-contract-change-reached-qa">A contract change reached QA</h3>
+<p>The <code>.api</code> files had no change monitoring. When one
+interface definition changed, no consumer saw the generated proto or
+Swagger diff before merge. QA's automated consumer-call tests caught the
+incompatible change before release. A CI step that diffs generated proto
+and Swagger against the previous version and posts the delta would
+expose these changes before merge.</p>
+<h3 id="an-admin-editor-crossed-four-contracts">An admin editor crossed
+four contracts</h3>
+<p>One admin editor exposed the missing composition boundary. A single
+page called content/activity, catalog, payment-metadata, and
+localization services directly. It loaded catalog providers, playable
+items, token metadata, and localized components. On save, the frontend
+first upserted localized copy, read back generated references, merged
+them into the business payload, and then called the business create or
+update API.</p>
+<p>The browser owned the cross-service write sequence. If localization
+succeeded but the business write failed, localized components remained
+while the business record did not. Several admin pages also
+independently fetched catalog providers, payment metadata, or localized
+labels, so a small visible change could cross multiple domain
+contracts.</p>
+<p>For this editor, I would add a BFF endpoint that owns the page shape
+and localization-plus-business write sequence, including compensation
+and idempotency. Domain services would retain content, catalog, payment,
+and localization ownership. Other admin pages could use the same
+boundary instead of assembling four separate contracts in the
+frontend.</p>
+<h2 id="results">Results</h2>
+<p>The adoption result was that all eighteen Go domain services came
+from the scaffold. Rare advanced gRPC cases used hand-written proto, but
+no service was hand-rolled outside the template; three shared CI
+pipelines covered backend and frontend repositories.</p>
+<p>The development-cost result was an estimated 60% reduction in
+onboarding work, measured in boilerplate lines and person-days to a
+first deployed endpoint. It was <em>an internal estimate, not a
+controlled experiment</em>.</p>
+<p>The repository-scale context also included the auxiliary
+<code>geoip-update</code> repository. Across forty repositories, the
+platform recorded eleven thousand commits over that same
+March-to-October window. Those numbers show the volume of concurrent
+change the platform supported; they are not productivity measurements by
+themselves. The gateway carried fourteen generated descriptor sets —
+<em>a repository count, not a service count</em> — and services used
+eight SDKs layered on the six internal base libraries.</p>
+<p>The platform took four months of focused work alongside the first
+business services. It replaced days of recurring boilerplate per service
+with a generation command and shared outbox and error-registry
+conventions for services handling money. Its users included the full
+seventeen-person product team: frontend developers used the shared React
+and Next.js pipelines and generated Swagger, and QA could trace errors
+to a service and function. The June and July live-ops expansion shipped
+referrals, membership programs, and interactive campaigns on the same
+scaffold.</p>
+<h2 id="trade-offs">Trade-offs</h2>
+<p>The maintained go-zero fork is a permanent maintenance duty; we took
+fixes on our schedule, not upstream's. Onion layering adds indirection
+for thin CRUD services even when generated. The central error-code
+registry requires coordination so two services cannot silently claim the
+same ID.</p>
+<p>This investment would be harder to justify on a short product runway,
+with no more than four or five services, or if platform work became a
+separate project that delayed product delivery.</p>
+<p>The remaining leaks were at the seams rather than inside services: a
+contract change with no generated diff visible to consumers, and an
+admin page composing four domain contracts in the browser. Generation
+made per-service defaults cheap; the next platform work was making
+cross-contract change and cross-service composition visible before
+release.</p>
+<hr />
+<p><em>Previous in this series: <a
+href="/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/">Designing
+a Lightweight Scheduler for 200K+ Delayed Execution Commands per
+Second</a>.</em></p>
+<p><em>Next in this series: <a
+href="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/">Building
+a Real-Time Data Platform with TiDB CDC and Flink</a>.</em></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/microservices/" rel="tag"># microservices</a>
+              <a href="/tags/api-gateway/" rel="tag"># api-gateway</a>
+              <a href="/tags/platform-engineering/" rel="tag"># platform-engineering</a>
+              <a href="/tags/developer-productivity/" rel="tag"># developer-productivity</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/" rel="prev" title="Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second">
+      <i class="fa fa-chevron-left"></i> Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/" rel="next" title="Building a Real-Time Data Platform With TiDB CDC and Flink">
+      Building a Real-Time Data Platform With TiDB CDC and Flink <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#context-and-requirements"><span class="nav-number">1.</span> <span class="nav-text">Context and requirements</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#options-considered"><span class="nav-number">2.</span> <span class="nav-text">Options Considered</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#architecture-design"><span class="nav-number">3.</span> <span class="nav-text">Architecture &#x2F; Design</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#key-technical-decisions"><span class="nav-number">4.</span> <span class="nav-text">Key Technical Decisions</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#dsl-as-the-single-contract-entry"><span class="nav-number">4.1.</span> <span class="nav-text">DSL as the single contract
+entry</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#fill-the-generation-gaps-with-plugins"><span class="nav-number">4.2.</span> <span class="nav-text">Fill the generation gaps
+with plugins</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#the-scaffold-as-specification"><span class="nav-number">4.3.</span> <span class="nav-text">The scaffold as
+specification</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#transactional-domain-events-through-the-outbox"><span class="nav-number">4.4.</span> <span class="nav-text">Transactional
+domain events through the outbox</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#domain-boundaries-and-data-ownership"><span class="nav-number">4.5.</span> <span class="nav-text">Domain boundaries and data
+ownership</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#platform-wide-error-codes"><span class="nav-number">4.6.</span> <span class="nav-text">Platform-wide error codes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#gateway-as-the-composition-edge"><span class="nav-number">4.7.</span> <span class="nav-text">Gateway as the composition
+edge</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shared-generation-and-ci-templates"><span class="nav-number">4.8.</span> <span class="nav-text">Shared generation and CI
+templates</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#runtime-and-deployment-choices"><span class="nav-number">4.9.</span> <span class="nav-text">Runtime and deployment
+choices</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#implementation"><span class="nav-number">5.</span> <span class="nav-text">Implementation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#adoption"><span class="nav-number">6.</span> <span class="nav-text">Adoption</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#where-the-defaults-leaked"><span class="nav-number">7.</span> <span class="nav-text">Where the Defaults Leaked</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#a-contract-change-reached-qa"><span class="nav-number">7.1.</span> <span class="nav-text">A contract change reached QA</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#an-admin-editor-crossed-four-contracts"><span class="nav-number">7.2.</span> <span class="nav-text">An admin editor crossed
+four contracts</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#results"><span class="nav-number">8.</span> <span class="nav-text">Results</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trade-offs"><span class="nav-number">9.</span> <span class="nav-text">Trade-offs</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">4</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">9k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">34 mins.</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

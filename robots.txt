@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://edwardshen125.github.io/sitemap.xml
