@@ -13,9 +13,7 @@ A few systems I designed and owned, in the order I built them:
 - The game platform's [data path](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/): TiDB CDC and Flink syncing OLTP data into a layered analytical warehouse with second-level freshness.
 - The game platform's [marketing pipeline](/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/): predicate-driven audience segmentation and multi-channel reach that turned manually operated campaigns into automated execution.
 
-The case studies cover the constraints behind these designs, alternatives we rejected, and problems we found after deployment.
-
-After ten years I still find backend work genuinely unfinished—there is always a deeper failure mode, a tighter constraint, a better trade-off.
+After ten years, I still come back to the same part of backend work: finding the failure mode that only appears under real load.
 
 <p class="motto">STAY HUNGRY, STAY FOOLISH.</p>
 <p class="motto-cite">— Steve Jobs</p>
