@@ -162,7 +162,7 @@ For the behavior job, I would require checkpointing, state TTL, connection pooli
 
 ## Results
 
-Operations could configure lifecycle audiences through shared business predicates, while the backend maintained their physical routes. Campaigns no longer needed private targeting SQL for every execution, and latest traits, historical events, expiring assets, and aggregates could be combined in one audience definition.
+Operations could configure lifecycle audiences through shared business predicates, while the backend maintained their physical routes — latest traits, historical events, expiring assets, and aggregates combined in one audience definition.
 
 Five to ten lifecycle plans remained active, with additional plans changing by campaign. Operations adjusted configurations at least twice a week. This recurring use put predicate reuse and the separation of business definitions from table routing into the campaign workflow: targeting changes could use existing predicates while their SQL expansion remained centrally defined.
 

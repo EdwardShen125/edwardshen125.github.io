@@ -125,7 +125,7 @@ For dashboard queries, the admin frontend called QueryHub's named-query API thro
 
 The first production problem was TiFlash storage sizing. Its data volumes initially used cloud-volume defaults, which left too little headroom for the replica's concurrent workloads. During peak periods, TiDB monitoring raised alerts for replica synchronization lag and related freshness metrics; analytical tables also looked stale. Writes, replica maintenance, and analytical reads competed for the small per-volume IOPS budget.
 
-TiKV had its own storage requirements. It required SSD storage, preferably NVMe/PCIe SSDs, because TiDB writes became Raft-replicated row storage and TiCDC read those changes. TiKV's RocksDB LSM path also needed IOPS and throughput headroom for WAL writes, memtable flushes, and background compaction; queueing there could raise write and Raft latency even without TiFlash contention. The incident surfaced on TiFlash first because columnar replicas added a second storage workload with scans, merge/compaction, and synchronization traffic.
+TiKV had its own floors: SSD storage (preferably NVMe/PCIe), since TiDB writes became Raft-replicated row storage that TiCDC read, and IOPS/throughput headroom for TiKV's RocksDB LSM (Log-Structured Merge-tree) path — queueing there raised write and Raft latency even without TiFlash contention. The incident surfaced on TiFlash first because columnar replicas added a second storage workload with scans, merge/compaction, and synchronization traffic.
 
 Each TiFlash data volume moved from the cloud-volume default to 40,000 provisioned IOPS. With two TiFlash nodes, the layer had 80,000 IOPS in aggregate, but each volume still had an independent budget rather than a shared cluster-wide pool. After the change, the peak-period alerts stopped, TiFlash replicas kept up with the streaming path, and second-level freshness became dependable in normal operation.
 
@@ -150,7 +150,7 @@ The platform moved dashboards from ad-hoc production queries to a repeatable pip
 
 ## Trade-offs
 
-Analytics shared the production TiDB cluster's capacity and operational path. That preserved MySQL compatibility, familiar operations, and joins between source and derived tables, but coupled analytical pressure to production performance. QueryHub reduced service-code work, but metric review and frontend wiring remained necessary.
+Analytics shared the production TiDB cluster's capacity and operational path, coupling analytical pressure to production performance. QueryHub reduced service-code work, but metric review and frontend wiring remained necessary.
 
 I would keep TiCDC → Kafka → Flink and the idempotent TiDB sinks, but size the shared cluster for analytical work earlier. Managing production and analytical tables together saved staffing effort; the cost was that an analytical freshness incident became a shared TiDB capacity problem.
 

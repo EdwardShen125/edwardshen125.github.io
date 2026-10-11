@@ -13,7 +13,7 @@ description: How four Go engineers used a shared API DSL, code generation, and p
 seo_image: cover.png
 ---
 
-Four Go engineers built eighteen domain services and one auxiliary backend repository for a consumer transaction platform with weekly live-ops releases. To keep integration work manageable, we used a single API DSL to generate service conventions, [Protocol Buffers](https://protobuf.dev/) contracts, and [Swagger/OpenAPI](https://swagger.io/specification/) documentation.
+Four Go engineers built eighteen domain services and one auxiliary backend repository for a consumer transaction platform with weekly live-ops releases — time-boxed in-game events and promotions whose cadence set the delivery rhythm. To keep integration work manageable, we used a single API DSL to generate service conventions, [Protocol Buffers](https://protobuf.dev/) contracts, and [Swagger/OpenAPI](https://swagger.io/specification/) documentation.
 
 <!-- more -->
 
@@ -65,17 +65,7 @@ service AdminAuthService {
  post /login (LoginReq) returns (LoginRes)
 }
 
-// admin JWT required
-@server(
- prefix: /v1/admin/auth
- auth: admin
-)
-service AdminAuthService {
- @handler Verify2FA
- post /verify2fa (Verify2FAReq) returns (Verify2FARes)
-}
-
-// permission-gated reset
+// permission-gated reset (auth: admin sits between these two tiers)
 @server(
  prefix: /v1/admin/auth
  auth: "admin=permissionUserResetPwd"
@@ -205,7 +195,7 @@ The maintained go-zero fork is a permanent maintenance duty; we took fixes on ou
 
 This investment would be harder to justify on a short product runway, with no more than four or five services, or if platform work became a separate project that delayed product delivery.
 
-The remaining leaks were at the seams rather than inside services: a contract change with no generated diff visible to consumers, and an admin page composing four domain contracts in the browser. Generation made per-service defaults cheap; the next platform work was making cross-contract change and cross-service composition visible before release.
+The remaining leaks were at the seams rather than inside services: a contract change with no generated diff visible to consumers, and an admin page composing four domain contracts in the browser. Generation made per-service defaults cheap; the seams needed their own visibility.
 
 ---
 

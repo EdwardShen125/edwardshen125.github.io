@@ -20,7 +20,7 @@ The legacy batch center and [xxl-job](https://github.com/xuxueli/xxl-job) had re
 
 ## Context
 
-At my previous company, the SCRM (Social CRM) platform served enterprise marketing teams. Much of the product depended on delayed execution: marketing SOP (standard operating procedure) sequences, follow-up reminders, and large one-shot jobs. Two legacy components—the in-house batch center and xxl-job—covered more than twenty business scenarios and carried a continuously active scheduling workload.
+At my previous company, the SCRM (Social CRM) platform served enterprise marketing teams; its product ran on delayed execution — SOP (standard-operating-procedure) sequences that move a customer through timed marketing steps, follow-up reminders, and large one-shot jobs. Two legacy components, the in-house batch center and xxl-job, covered more than twenty business scenarios with a continuously active scheduling workload.
 
 I **designed and delivered** the Go scheduling center and migrated existing scenarios onto it, reusing TiDB, etcd, and Pulsar for storage, coordination, and delivery.
 
@@ -28,7 +28,7 @@ Four terms recur below. A *job* was a registered business definition. A *trigger
 
 ## Problem
 
-Both legacy systems shared the same execution model. When a task came due, the scheduler dispatched it onto a worker and invoked a business HTTP callback; the worker stayed occupied until the callback returned. Real handlers took milliseconds to minutes, so slow tasks occupied workers for their full duration. Under load, the pool saturated and production hit a measurable dispatch ceiling.
+Both legacy systems shared the same execution model. When a task came due, the scheduler dispatched it onto a worker and invoked a business HTTP callback; the worker stayed occupied until the callback returned. Real handlers took milliseconds to minutes. Under load, the pool saturated and production hit a measurable dispatch ceiling.
 
 Scaling out made contention worse: every instance polled and updated the same task table, so adding instances multiplied lock contention.
 
@@ -103,7 +103,7 @@ The trigger table was hash-partitioned by ID in TiDB, with the partition count s
 
 ### CAS as the admission boundary
 
-Persistent transitions used conditional updates. `waiting -> acquired` gated fire preparation; `acquired -> waiting` or `acquired -> completed` recorded the outcome. The domain model used `triggered` only as a transient state while preparing a fire batch; it was not separately persisted. CAS prevented two acquire loops from admitting the same row at the database boundary. It did not fence a previous leader that had already acquired rows, so executor idempotency and an explicit recovery contract were still required. Pause and resume moved triggers through the same conditional-update API, so a manual operation could not leave a state the scheduler would misread.
+Persistent transitions used conditional updates. `waiting -> acquired` gated fire preparation; `acquired -> waiting` or `acquired -> completed` recorded the outcome. The domain model used `triggered` only as a transient state while preparing a fire batch; it was not separately persisted. CAS admitted each row exactly once at the database boundary, but it did not fence a previous leader that had already acquired rows — executor idempotency and an explicit recovery contract were still required. Pause and resume moved triggers through the same conditional-update API, so a manual operation could not leave a state the scheduler would misread.
 
 CAS also could not commit the TiDB state transition and Pulsar publication as one transaction. A leader could fail after acquiring a row, or after publishing a command but before recording its terminal outcome. Recovery therefore had to treat execution as at-least-once, and executor idempotency—not cross-store atomicity—closed the failure window.
 
@@ -209,8 +209,6 @@ Early admission created another contract problem: Pulsar did not support canceli
 Production did not justify that complexity. Redis load rose, the lock-and-state path became hard to reason about, and debugging spanned TiDB, Pulsar, and Redis. Actual cancel demand was very low and downstream async handlers were already idempotent, so we removed the Redis layer and treated **admission as the cancellation boundary**.
 
 ## Results
-
-Partitioned acquisition and the bounded fire pool supported the observed production peak without returning to table-lock contention.
 
 - Peak publish rate above 200K execution commands per second during on-the-hour workload peaks.
 - Coverage of more than 20 business scenarios over the system's production lifetime.
