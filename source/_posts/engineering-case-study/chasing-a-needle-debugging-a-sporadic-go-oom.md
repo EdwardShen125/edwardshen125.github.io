@@ -41,9 +41,9 @@ After a week of this, the conclusion was more specific than "we need better tool
 
 ## The codec was not the variable
 
-Acting on that suspicion, the first move varied the codec. On March 7 I swapped `encoding/json` for jsoniter across three internal SDKs in one afternoon — the job-center executor SDK, the event SDK's envelope decoder, and a Redis cache SDK. The alerts did not stop. Four days later the escalation was sonic in the cache path; the OOM recurred within a day, and I rolled it back the next morning.
+The suspicion said unmarshal, and the first fix hypothesis was the decoder itself. On March 7 I swapped `encoding/json` for jsoniter across three internal SDKs in one afternoon — the job-center executor SDK, the event SDK's envelope decoder, and a Redis cache SDK. The alerts did not stop. Four days later the escalation was sonic in the cache path; the OOM recurred within a day, and I rolled it back the next morning.
 
-Two codecs in, the result was a clean negative. The failure survived jsoniter and sonic both, exonerating the envelope and cache paths; through every variation the decode target had never changed. What remained to examine was the **typed event model** itself on the consumption side — which is where the bisection went next.
+Two codecs in, one conclusion held: swapping the decoder library was not the fix — but the failures were not wasted. They exonerated the envelope and cache paths, and through every variation the decode target had never changed. What remained to examine was the **typed event model** itself on the consumption side — which is where the bisection went next.
 
 ## The bisection
 
@@ -51,7 +51,9 @@ On March 12 the approach changed from patching to reverting. The service was rol
 
 The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the pre-change stdlib builds (v1.1.18, v1.1.22) and my jsoniter builds (v1.1.23, v1.1.25) — before the terminal rollback to a stdlib build. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
 
-The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and from that afternoon to the end of the service's history in the repository, the failure never returned: the jsoniter decoder compiled every remaining event type without incident.
+The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The convergence answer named the culprit: unmarshal — a typed event model newly introduced into the consumption path, carrying a self-nesting structure the decoder could not survive. The build that finally carried no recurrence was the one with that code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and the failure did not return.
+
+The definitive fix came months later, and it was structural. The subscription layer dropped its two-stage decode — the re-marshal through `interface{}` that put the raw type graph in front of the decoder at all — and decoded each message once, directly into the concrete type. Same jsoniter, same version. The library was never the problem; the decode shape was.
 
 {% mermaid %}
 gantt
@@ -74,7 +76,7 @@ gantt
 
 ## The mechanism, reconstructed
 
-With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated the difference that mattered: a change in the consumption code. Cross-referenced with the symptom set — blocked-in-decode, no return, no log — it pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
+With the incident closed, I reconstructed the mechanism down to the source level. The bisection had named unmarshal and isolated the change that carried it; the question this section answers is why a self-nesting structure could kill a decoder. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
 
 jsoniter compiles a decoder per type on first use, inside the same `Unmarshal` call: `ReadVal` checks the per-process decoder cache, and on a miss builds the decoder before decoding a single byte. That ordering matters, because jsoniter's depth guard — `maxDepth = 10000`, incremented by `structDecoder.Decode` on the `Iterator` it receives — belongs to the decode stage. Named self-referential fields are safe even before that: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
 
@@ -127,7 +129,7 @@ What this mechanism explains:
 
 ## The evidence boundary
 
-The final missing piece — the exact struct that formed the cycle — is the one thing the reconstruction cannot deliver. The bisection isolated the change that removed it, but the type itself is not in the service's git history: embedded-aware cycle scans of every registered event model across the full history found no embedded cycle, and the direct dependencies of the incident-era build contain none either. Where the offending definition lived — an untracked working-tree edit, a since-changed dependency, a type assembled at the wrong boundary — twenty months later there is no artifact left to say.
+One piece the reconstruction does not deliver is the exact struct. The bisection isolated the change that carried it; the mechanism is closed; but the offending definition itself left no artifact — git history and incident-era dependencies contain no embedded cycle. The incident was fully closed on the strength of the mechanism and the converging bisection; the missing struct changes nothing about either.
 
 Two things are worth keeping distinct. The mechanism — an embedded-pointer cycle driving jsoniter's type compiler into unbounded recursion — is verified: against library source across jsoniter v1.1.5 through v1.1.12, by controlled reproduction on the incident-locked toolchain, and by the standard library's contrasting design. The identity of the offending type is a reconstruction from the bisection plus the symptom set. The mechanism is reproducible on demand; the structure identity is the best-supported inference from a converging bisection. An incident can be fully closed while its forensics stay incomplete; knowing which parts of your understanding are which is part of the job.
 
@@ -153,4 +155,4 @@ The terminal stable build also spent some observability to buy stability: the co
 
 ## Closing
 
-The fixes that failed were diagnostic, the fix that worked was removal, and the full understanding arrived months later: a type graph cycle, compiled without bound, killing fresh pods on first sight of an ordinary event. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
+The bisection named the culprit, removal stopped the bleeding, and the structural fix — decode once, into the concrete type — closed it for good: a self-nesting structure, a decoder that walked it without a cycle check, and fresh pods dying on first sight of an ordinary event. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
