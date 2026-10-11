@@ -21,13 +21,13 @@ The service consumes SOP-dispatch events off Pulsar. In this marketing-automatio
 
 {% asset_img chasing-a-needle-oom.png SOP event consumption path: two decode stages, jsoniter decoder compiler, embedded-cycle recursion and the 8 GB alert %}
 
-That week was spent narrowing the search from the outside in. The one thing visible about the death was where it happened: the goroutine was blocked inside unmarshal when the process went down, and it never returned. That blockage was the one usable lead, and it pointed the search at JSON decoding.
+That week was spent narrowing the search from the outside in, and it produced nothing. Not even the location of the death was observable: no log line, no profile, no core — nothing said which code the process had been executing when it hit the ceiling. What the search had instead was a suspicion by elimination: a consumer service that did nothing but ingest and decode, dying in a way that implicated neither traffic nor payload.
 
 ## What the failing instrumentation could not see
 
 Four standard debugging moves were weighed over that week. They share one assumption this failure did not honor: that an incident leaves a trace proportional to its duration.
 
-**Logs.** The blocked goroutine never returned, never logged. Nothing before the spike pointed at it either — the events that triggered death were ordinary ones — the same kinds processed without consequence every day.
+**Logs.** Whatever the goroutine was doing when it died, it never logged it. Nothing before the spike pointed anywhere either — the events that triggered death were ordinary ones — the same kinds processed without consequence every day.
 
 **Scheduled external pprof.** A cron-driven heap profile captures a snapshot at a moment of its choosing. This failure occupied a sub-second window at an unpredictable time, on an unpredictable pod, between deploys. The odds of a scheduled snapshot landing inside that window were effectively zero.
 
@@ -41,7 +41,7 @@ After a week of this, the conclusion was more specific than "we need better tool
 
 ## The library swaps that failed
 
-With the search pointed at JSON decoding, the first action varied the codec. On March 7 I swapped the stage-one envelope decoder in the event SDK from `encoding/json` to jsoniter, configuring `ConfigCompatibleWithStandardLibrary` across the consumer entry points, and made the same swap in a Redis cache SDK the same day. The alerts did not stop.
+Acting on that suspicion, the first move varied the codec. On March 7 I swapped the stage-one envelope decoder in the event SDK from `encoding/json` to jsoniter, configuring `ConfigCompatibleWithStandardLibrary` across the consumer entry points, and made the same swap in a Redis cache SDK the same day. The alerts did not stop.
 
 Four days later the escalation was sonic — a JIT-compiled codec with its own stack discipline and depth limit — tried in the cache path. The OOM recurred within a day. I rolled it back the next morning.
 
@@ -57,7 +57,7 @@ The search converged in a single afternoon of five commits, in sequence: logging
 
 ## The mechanism, reconstructed
 
-With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated the difference that mattered: a change in the consumption code. Cross-referenced with the one live observation — a goroutine that entered unmarshal and never returned — it pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
+With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated the difference that mattered: a change in the consumption code. Cross-referenced with the symptom set — blocked-in-decode, no return, no log — it pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
 
 jsoniter compiles a decoder per type on first use. Named self-referential fields are safe: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
 
@@ -104,7 +104,7 @@ What this mechanism explains:
 - **The needle.** Unbounded recursion allocating at every level is as fast as memory can be allocated — no ramp, no slope.
 - **Sporadicness.** Decoder compilation happens once per process, on first use of a type; the first-decode versus steady-state gap above is that cache at work. A warm pod has the cache hot and processes the same event harmlessly; a fresh pod — after a deploy, a scale-up, a restart — dies on first encounter. The failure indexed by process lifetime and deploy schedule, not by wall-clock time. This is why the time-axis instruments of the previous section were structurally blind to it.
 - **Why the library swaps failed.** The fatal compilation happened in stage two, on the typed event model — a decoder that had been jsoniter since 2022 and that neither swap touched. Only removing the offending type from the process (the rollback) stopped the failure.
-- **Why logs showed nothing.** The compile happens inside `Unmarshal` before any data is read and never returns. Blocked-in-unmarshal with no output is exactly what an infinite compile loop looks like from the outside.
+- **Why logs showed nothing.** The compile happens inside `Unmarshal` before any data is read and never returns. An infinite compile loop has no outside: nothing to log, nothing to return to.
 
 ## The evidence boundary
 
