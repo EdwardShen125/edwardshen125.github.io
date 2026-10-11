@@ -41,7 +41,7 @@ After a week of this, the conclusion was more specific than "we need better tool
 
 ## The library swaps that failed
 
-Acting on that suspicion, the first move varied the codec. On March 7 I swapped the stage-one envelope decoder in the event SDK from `encoding/json` to jsoniter, configuring `ConfigCompatibleWithStandardLibrary` across the consumer entry points, and made the same swap in a Redis cache SDK the same day. The alerts did not stop.
+Acting on that suspicion, the first move varied the codec. On March 7 I swapped `encoding/json` for jsoniter (`ConfigCompatibleWithStandardLibrary`) across three internal SDKs in one afternoon: the job-center executor SDK, the event SDK's stage-one envelope decoder, and a Redis cache SDK. The alerts did not stop.
 
 Four days later the escalation was sonic — a JIT-compiled codec with its own stack discipline and depth limit — tried in the cache path. The OOM recurred within a day. I rolled it back the next morning.
 
@@ -53,7 +53,7 @@ On March 12 the approach changed from patching to reverting. The service was rol
 
 The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the pre-change stdlib builds (v1.1.18, v1.1.22) and my jsoniter builds (v1.1.23, v1.1.25) — before the terminal rollback to a stdlib build. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
 
-The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely.
+The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and the failure did not return. That sequence is the diagnosis in miniature: the codec was never the trigger; whatever the rollback removed was. With it gone, the jsoniter decoder compiled every remaining event type without incident, from that afternoon to the end of the service's history in the repository.
 
 ## The mechanism, reconstructed
 
