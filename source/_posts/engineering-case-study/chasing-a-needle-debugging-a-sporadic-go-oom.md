@@ -51,13 +51,9 @@ The failure survived both swaps, and in doing so exonerated the envelope and cac
 
 On March 12 the approach changed from patching to reverting. The service was rolled back to the last known stable build; the difference between that build and the incident builds became the search space. Then a binary search over that delta, one staged deploy and observation window per step.
 
-The version trail in git records the search: eight rollback commits between March 12 and March 20, pinning the event SDK back and forth between versions — v1.1.18, v1.1.22, v1.1.23, v1.1.25:
+The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the stdlib build (v1.1.18) and three jsoniter builds (v1.1.22, v1.1.23, v1.1.25) — before the terminal rollback to the stdlib build.
 
-```text
-v1.1.23 ──03-12 16:15──▶ v1.1.18 ──03-12 16:42──▶ v1.1.22 ──03-19 18:58──▶ v1.1.25 ──03-20 17:13──▶ v1.1.18
-```
-
-On the afternoon of March 20 the search converged. Five commits landed between 15:23 and 17:20: logging added around the suspect consumer (15:23), a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions (15:29), a panic guard added to a consumer handler (15:46), a code rollback (16:49), and the consumer registration rolled back (17:20). The build that finally carried no recurrence was the one with the offending code gone from the process entirely.
+The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely.
 
 ## The mechanism, reconstructed
 
@@ -134,7 +130,7 @@ Two things are worth keeping distinct. The mechanism — an embedded-pointer cyc
 
 The rollback-bisection path has a real cost profile. Eight staged deploys over eight days, each an observation window with on-call attention. It requires a known-stable baseline build to roll back to. And it converges on a diff, not a mechanism: the bisection isolated the change, and understanding why still required the post-hoc source analysis. Both instruments are needed; neither substitutes for the other.
 
-The terminal stable build also carried costs of its own. The consumer-group rollback and lock removal on March 20 changed message partitioning and removed serialization that had existed for a reason; the logging cleanup removed whole-response logging that, while it fed the same memory pressure, was also the only record of what events contained. Some observability was spent to buy stability. The compression change that followed (LZ4 to ZLib on the Pulsar producer, a teammate's change — memory relief, not cause) traded CPU for consumer-side memory headroom: reasonable adjacent hardening, never the root cause.
+The terminal stable build also carried costs of its own. The consumer-group rollback and lock removal changed message partitioning and removed serialization that had existed for a reason; the logging cleanup removed whole-response logging that, while it fed the same memory pressure, was also the only record of what events contained. Some observability was spent to buy stability. The compression change that followed (LZ4 to ZLib on the Pulsar producer, a teammate's change — memory relief, not cause) traded CPU for consumer-side memory headroom: reasonable adjacent hardening, never the root cause.
 
 ## Closing
 
