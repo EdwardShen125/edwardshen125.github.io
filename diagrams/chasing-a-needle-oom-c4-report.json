@@ -1,0 +1,365 @@
+{
+  "canvas": {
+    "height": 800.0,
+    "width": 1600.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 1,
+      "max_route_stretch": 1.245,
+      "minimum_container_gutter": 24.0,
+      "minimum_node_gap": 60.0,
+      "shortest_segment": 4.0,
+      "total_bends": 10
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 86,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "publish",
+      "length": 130.0,
+      "route": [
+        [
+          240.0,
+          270.0
+        ],
+        [
+          240.0,
+          400.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "producers",
+      "source_port": [
+        240.0,
+        270.0
+      ],
+      "target": "pulsar",
+      "target_port": [
+        240.0,
+        400.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "deliver",
+      "length": 435.0,
+      "route": [
+        [
+          380.0,
+          460.0
+        ],
+        [
+          404.0,
+          460.0
+        ],
+        [
+          404.0,
+          205.0
+        ],
+        [
+          560.0,
+          205.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "pulsar",
+      "source_port": [
+        380.0,
+        460.0
+      ],
+      "target": "stage1",
+      "target_port": [
+        560.0,
+        205.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "handoff",
+      "length": 90.0,
+      "route": [
+        [
+          720.0,
+          270.0
+        ],
+        [
+          720.0,
+          288.5
+        ],
+        [
+          710.0,
+          288.5
+        ],
+        [
+          710.0,
+          350.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "stage1",
+      "source_port": [
+        720.0,
+        270.0
+      ],
+      "target": "stage2",
+      "target_port": [
+        710.0,
+        350.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "compile",
+      "length": 161.0,
+      "route": [
+        [
+          860.0,
+          415.0
+        ],
+        [
+          880.4,
+          415.0
+        ],
+        [
+          880.4,
+          436.0
+        ],
+        [
+          1000.0,
+          436.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "stage2",
+      "source_port": [
+        860.0,
+        415.0
+      ],
+      "target": "decoder-compile",
+      "target_port": [
+        1000.0,
+        436.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 3,
+      "bridges": [
+        [
+          979.6,
+          436.0
+        ]
+      ],
+      "crossings": [
+        [
+          979.6,
+          436.0
+        ]
+      ],
+      "id": "recursion",
+      "length": 247.8,
+      "route": [
+        [
+          1000.0,
+          454.0
+        ],
+        [
+          979.6,
+          454.0
+        ],
+        [
+          979.6,
+          376.0
+        ],
+        [
+          1125.0,
+          376.0
+        ],
+        [
+          1125.0,
+          380.0
+        ]
+      ],
+      "route_stretch": 1.245,
+      "source": "decoder-compile",
+      "source_port": [
+        1000.0,
+        454.0
+      ],
+      "target": "decoder-compile",
+      "target_port": [
+        1125.0,
+        380.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 1,
+      "bridges": [],
+      "crossings": [],
+      "id": "oom",
+      "length": 560.0,
+      "route": [
+        [
+          1250.0,
+          445.0
+        ],
+        [
+          1540.0,
+          445.0
+        ],
+        [
+          1540.0,
+          175.0
+        ],
+        [
+          1540.0,
+          175.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "decoder-compile",
+      "source_port": [
+        1250.0,
+        445.0
+      ],
+      "target": "dashboard",
+      "target_port": [
+        1540.0,
+        175.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "dispatch",
+      "length": 60.0,
+      "route": [
+        [
+          710.0,
+          480.0
+        ],
+        [
+          710.0,
+          540.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "stage2",
+      "source_port": [
+        710.0,
+        480.0
+      ],
+      "target": "handlers",
+      "target_port": [
+        710.0,
+        540.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          979.6,
+          436.0
+        ]
+      ],
+      "element": "recursion",
+      "severity": "info"
+    }
+  ],
+  "mode": "architecture",
+  "ok": true,
+  "palette": {
+    "below_target": [],
+    "minimum_target": 4.5,
+    "ratios": {
+      "section_sub_fill": 4.93,
+      "text_muted": 4.92,
+      "text_primary": 12.1,
+      "text_secondary": 5.3
+    },
+    "scope": "default opaque canvas text tokens; not a full rendered accessibility audit",
+    "unsupported_tokens": []
+  },
+  "placements": {
+    "legend": {
+      "actual": [
+        48.0,
+        730.0
+      ],
+      "bounds": [
+        38.0,
+        716.0,
+        558.72,
+        762.0
+      ],
+      "moved": false,
+      "requested": [
+        48.0,
+        730.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {
+      "elements": 7,
+      "level": "container",
+      "rough_seed": 20261011
+    },
+    "ok": true,
+    "profile": "c4-review",
+    "style": 9,
+    "visual_theme": "C4 Review Canvas"
+  },
+  "style": {
+    "id": 9,
+    "name": "C4 Review Canvas"
+  },
+  "summary": {
+    "bridged_crossings": 1,
+    "edges": 7,
+    "nodes": 7
+  },
+  "text_metrics": "heuristic-v1",
+  "typography": {
+    "complete_text": true,
+    "hint": null,
+    "metrics": "heuristic widths; inspect the actual rendered font",
+    "truncated": []
+  }
+}

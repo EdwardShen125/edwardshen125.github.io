@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 9,
+  "semantic_profile": "c4-review",
+  "diagram_type": "c4",
+  "c4_level": "container",
+  "review_state": "PRODUCTION VALIDATED",
+  "rough_seed": 20261011,
+  "scope": "SOP Event Consumption Path",
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "width": 1600,
+  "height": 800,
+  "title": "SOP Event Consumption Path · Container Review",
+  "subtitle": "where the sporadic OOM lived",
+  "legend_orientation": "horizontal",
+  "legend_x": 48,
+  "legend_y": 730,
+  "legend": [
+    {
+      "flow": "async",
+      "label": "event stream"
+    },
+    {
+      "flow": "read",
+      "label": "decode"
+    },
+    {
+      "flow": "control",
+      "label": "compiler path"
+    },
+    {
+      "flow": "error",
+      "label": "failure"
+    }
+  ],
+  "footer": "Edward Shen · Distributed Systems Series · container-level semantics",
+  "footer_x": 48,
+  "footer_y": 780,
+  "containers": [
+    {
+      "id": "consumer-boundary",
+      "x": 520,
+      "y": 100,
+      "width": 760,
+      "height": 560,
+      "label": "SOP Consumer Service"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "producers",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 100,
+      "y": 150,
+      "width": 280,
+      "height": 120,
+      "label": "SOP Producers",
+      "description": "serialize transitions with stdlib json",
+      "technology": "Go · encoding/json"
+    },
+    {
+      "id": "pulsar",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 100,
+      "y": 400,
+      "width": 280,
+      "height": 120,
+      "label": "Event Topics",
+      "description": "SOP dispatch events, ordinary payloads",
+      "technology": "Pulsar"
+    },
+    {
+      "id": "stage1",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "consumer-boundary",
+      "x": 560,
+      "y": 140,
+      "width": 320,
+      "height": 130,
+      "label": "Stage 1 · Envelope Decode",
+      "description": "decodes envelope, Data stays interface{}",
+      "technology": "event SDK · encoding/json"
+    },
+    {
+      "id": "stage2",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "consumer-boundary",
+      "x": 560,
+      "y": 350,
+      "width": 300,
+      "height": 130,
+      "label": "Stage 2 · Typed Decode",
+      "description": "re-marshal then decode into event model",
+      "technology": "subscription layer · jsoniter"
+    },
+    {
+      "id": "decoder-compile",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "consumer-boundary",
+      "x": 1000,
+      "y": 380,
+      "width": 250,
+      "height": 130,
+      "label": "Decoder Compiler",
+      "description": "first-use compile walks the type graph",
+      "technology": "jsoniter · describeStruct"
+    },
+    {
+      "id": "handlers",
+      "kind": "review_card",
+      "c4_type": "container",
+      "parent": "consumer-boundary",
+      "x": 560,
+      "y": 540,
+      "width": 300,
+      "height": 96,
+      "label": "Event Handlers",
+      "description": "business logic per event type",
+      "technology": "Go"
+    },
+    {
+      "id": "dashboard",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 1300,
+      "y": 120,
+      "width": 240,
+      "height": 110,
+      "label": "Memory Monitoring",
+      "description": "alerts on the 8 GB pod limit",
+      "technology": "Grafana"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "publish",
+      "source": "producers",
+      "target": "pulsar",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "async",
+      "label": "publish",
+      "protocol": "Pulsar producer"
+    },
+    {
+      "id": "deliver",
+      "source": "pulsar",
+      "target": "stage1",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "async",
+      "label": "consume",
+      "protocol": "subscription"
+    },
+    {
+      "id": "handoff",
+      "source": "stage1",
+      "target": "stage2",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "Data interface{}",
+      "protocol": "in-process"
+    },
+    {
+      "id": "compile",
+      "source": "stage2",
+      "target": "decoder-compile",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control",
+      "label": "compile",
+      "protocol": "reflection"
+    },
+    {
+      "id": "recursion",
+      "source": "decoder-compile",
+      "target": "decoder-compile",
+      "source_port": "left",
+      "target_port": "top",
+      "flow": "error",
+      "label": "embedded cycle → unbounded recursion",
+      "protocol": "no visited set"
+    },
+    {
+      "id": "oom",
+      "source": "decoder-compile",
+      "target": "dashboard",
+      "source_port": "right",
+      "target_port": "right",
+      "flow": "error",
+      "label": "needle to 8 GB",
+      "protocol": "pod restart"
+    },
+    {
+      "id": "dispatch",
+      "source": "stage2",
+      "target": "handlers",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "typed event",
+      "protocol": "in-process"
+    }
+  ],
+  "boundary_width": null
+}
