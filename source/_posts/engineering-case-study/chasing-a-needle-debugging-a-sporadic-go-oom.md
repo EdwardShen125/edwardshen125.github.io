@@ -51,7 +51,7 @@ The failure survived both swaps, and in doing so exonerated the envelope and cac
 
 On March 12 the approach changed from patching to reverting. The service was rolled back to the last known stable build; the difference between that build and the incident builds became the search space. Then a binary search over that delta, one staged deploy and observation window per step.
 
-The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the stdlib build (v1.1.18) and three jsoniter builds (v1.1.22, v1.1.23, v1.1.25) — before the terminal rollback to the stdlib build.
+The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the pre-change stdlib builds (v1.1.18, v1.1.22) and my jsoniter builds (v1.1.23, v1.1.25) — before the terminal rollback to a stdlib build. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
 
 The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely.
 
