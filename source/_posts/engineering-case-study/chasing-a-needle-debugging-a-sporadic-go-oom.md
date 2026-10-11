@@ -25,7 +25,7 @@ That week was spent narrowing the search from the outside in. The one thing visi
 
 ## What the failing instrumentation could not see
 
-Four standard debugging moves were tried over that week. They share one assumption this failure did not honor: that an incident leaves a trace proportional to its duration.
+Four standard debugging moves were weighed over that week. They share one assumption this failure did not honor: that an incident leaves a trace proportional to its duration.
 
 **Logs.** The blocked goroutine never returned, never logged. Nothing before the spike pointed at it either — the events that triggered death were ordinary ones — the same kinds processed without consequence every day.
 
@@ -57,7 +57,7 @@ The search converged in a single afternoon of five commits, in sequence: logging
 
 ## The mechanism, reconstructed
 
-With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated a single commit's difference — and the class of that difference, cross-referenced with the symptoms, pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
+With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated the difference that mattered: a change in the consumption code. Cross-referenced with the one live observation — a goroutine that entered unmarshal and never returned — it pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
 
 jsoniter compiles a decoder per type on first use. Named self-referential fields are safe: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
 
@@ -89,7 +89,7 @@ type NodeEmbed struct {
 // → fatal error: stack overflow (goroutine stack exceeds 1000000000-byte limit)
 ```
 
-Reproduced on the incident-locked toolchain (go1.18, jsoniter v1.1.12), the crash reaches a peak RSS of about 1.04 GB in roughly a third of a second — the goroutine stack limit is the natural brake, and the heap climbs alongside it. That is the needle from the opening paragraph, reproduced: baseline to ceiling on an input of 22 bytes. The crash frame in the stack trace lands on `reflect_extension.go:362` in v1.1.12 — the exact recursive call quoted above. And the per-process decoder cache is measurable: the first decode of a type costs ~280 µs (compile plus decode) while subsequent decodes of the same type run in ~0.3 µs — an 800× gap. Compilation happens once per process; every decode after the first rides the cache.
+Reproduced on the incident-locked toolchain (go1.18, jsoniter v1.1.12), the crash reaches a peak RSS of about 1.04 GB in roughly a third of a second — the goroutine stack limit is the natural brake, and the heap climbs alongside it. That is the needle from the opening paragraph, reproduced: baseline to the ceiling on an input of 22 bytes — the repro's 1 GB stack limit standing in for the production 8 GB. The crash frame in the stack trace lands on `reflect_extension.go:362` in v1.1.12 — the exact recursive call quoted above. And the per-process decoder cache is measurable: the first decode of a type costs ~280 µs (compile plus decode) while subsequent decodes of the same type run in ~0.3 µs — an 800× gap. Compilation happens once per process; every decode after the first rides the cache.
 
 The standard library, for contrast, resolves fields with a breadth-first walk guarded by a `visited` map — a cyclic type is visited once and both marshal and unmarshal stay safe. Producer services that serialize events with `encoding/json` never saw the problem: same types, different compiler, safe traversal. That asymmetry — "marshal fine, unmarshal fatal" — resolves here: the producers and the consumer never ran the same compiler.
 
