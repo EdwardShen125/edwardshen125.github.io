@@ -15,7 +15,7 @@ seo_image: chasing-a-needle-oom.png
 
 The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar had hit its 8 GB limit and restarted — the memory trace was a single vertical line, memory flat and low one moment, pinned to the ceiling the next. There was no gradual slope, no warning ramp, no correlation with traffic or time of day. Over the following week it fired at least once a day, up to three or four times on the worst days, and nothing in the logs explained any occurrence.
 
-The service consumes SOP-dispatch events off Pulsar. In this marketing-automation platform, a SOP (standard operating procedure) plan routes each customer through a branching graph of nodes — messages, employee tasks, tag changes — entered either by a matching CRM event (order created, friend bound, twenty-odd more) or by a batch audience import; every step a customer takes through the graph becomes one dispatch event on the bus, consumed and acted on by this service. The path decodes in two stages: the event SDK decodes the envelope into a struct with a generic `Data interface{}` field, and the subscription layer re-marshals that field and decodes it into the concrete event model. Traffic was normal and payloads were ordinary business events; nothing about the input suggested it could exhaust 8 GB in under a second.
+The service consumes SOP-dispatch events off Pulsar. In this marketing-automation platform, a SOP (standard operating procedure) plan routes each customer through a branching graph of nodes — messages, employee tasks, tag changes — entered by CRM events or batch audience imports; every step a customer takes through the graph becomes one dispatch event on the bus, consumed and acted on by this service. The path decodes in two stages: the event SDK decodes the envelope into a struct with a generic `Data interface{}` field, and the subscription layer re-marshals that field and decodes it into the concrete event model. Traffic was normal and payloads were ordinary business events; nothing about the input suggested it could exhaust 8 GB in under a second.
 
 <!-- more -->
 
@@ -35,7 +35,7 @@ Four standard debugging moves were weighed over that week. They share one assump
 
 **Core dumps.** This path was considered and set aside. A memory-limit kill is SIGKILL — no configuration turns it into a core, so the dominant death mode here produced nothing to analyze. And the failure was too fast for the cases core dumps do serve, where a process lingers long enough to capture on the way down. This one was gone before anything could attach.
 
-The instrument that would not have needed luck was not part of the platform: a continuously-running profiler that records every window instead of chosen moments, so the frames of a sub-second recursion would already be stored when the alert fired.
+The one instrument that would not have needed luck — a profiler recording every window instead of chosen moments — was not part of the platform.
 
 After a week of this, the conclusion was more specific than "we need better tools": the failure had no time signature. Whatever it was, it indexed by something other than time — and the one system variable not yet varied was the build.
 
@@ -51,7 +51,7 @@ On March 12 the approach changed from patching to reverting. The service was rol
 
 The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the pre-change stdlib builds (v1.1.18, v1.1.22) and my jsoniter builds (v1.1.23, v1.1.25) — before the terminal rollback to a stdlib build. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
 
-The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and the failure did not return. That sequence is the diagnosis in miniature: the codec was never the trigger; whatever the rollback removed was. With it gone, the jsoniter decoder compiled every remaining event type without incident, from that afternoon to the end of the service's history in the repository.
+The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and from that afternoon to the end of the service's history in the repository, the failure never returned: the jsoniter decoder compiled every remaining event type without incident.
 
 ## The mechanism, reconstructed
 
@@ -130,7 +130,7 @@ Two things are worth keeping distinct. The mechanism — an embedded-pointer cyc
 
 The rollback-bisection path has a real cost profile. Eight staged deploys over eight days, each an observation window with on-call attention. It requires a known-stable baseline build to roll back to. And it converges on a diff, not a mechanism: the bisection isolated the change, and understanding why still required the post-hoc source analysis. Both instruments are needed; neither substitutes for the other.
 
-The terminal stable build also carried costs of its own. The consumer-group rollback and lock removal changed message partitioning and removed serialization that had existed for a reason; the logging cleanup removed whole-response logging that, while it fed the same memory pressure, was also the only record of what events contained. Some observability was spent to buy stability. The compression change that followed (LZ4 to ZLib on the Pulsar producer, a teammate's change — memory relief, not cause) traded CPU for consumer-side memory headroom: reasonable adjacent hardening, never the root cause.
+The terminal stable build also spent some observability to buy stability: the convergence-day rollbacks changed partitioning and removed the only record of what events contained. The compression change that followed (LZ4 to ZLib on the Pulsar producer, a teammate's change — memory relief, not cause) traded CPU for consumer-side memory headroom: reasonable adjacent hardening, never the root cause.
 
 ## Closing
 
