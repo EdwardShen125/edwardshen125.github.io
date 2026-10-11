@@ -130,7 +130,7 @@ Two things are worth keeping distinct. The mechanism — an embedded-pointer cyc
 
 The rollback-bisection path has a real cost profile. Eight staged deploys over eight days, each an observation window with on-call attention. It requires a known-stable baseline build to roll back to. And it converges on a diff, not a mechanism: the bisection isolated the change, and understanding why still required the post-hoc source analysis. Both instruments are needed; neither substitutes for the other.
 
-The terminal stable build also spent some observability to buy stability: the convergence-day rollbacks changed partitioning and removed the only record of what events contained. The compression change that followed (LZ4 to ZLib on the Pulsar producer, a teammate's change — memory relief, not cause) traded CPU for consumer-side memory headroom: reasonable adjacent hardening, never the root cause.
+The terminal stable build also spent some observability to buy stability: the convergence-day rollbacks changed partitioning and removed the only record of what events contained.
 
 ## Closing
 
