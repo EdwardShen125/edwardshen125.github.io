@@ -59,7 +59,7 @@ The search converged in a single afternoon of five commits, in sequence: logging
 
 With the incident closed, I reconstructed the mechanism down to the source level. The bisection had isolated the difference that mattered: a change in the consumption code. Cross-referenced with the symptom set — blocked-in-decode, no return, no log — it pointed at the JSON type compiler in jsoniter. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
 
-jsoniter compiles a decoder per type on first use. Named self-referential fields are safe: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
+jsoniter compiles a decoder per type on first use, inside the same `Unmarshal` call: `ReadVal` checks the per-process decoder cache, and on a miss builds the decoder before decoding a single byte. That ordering matters, because jsoniter's depth guard — `maxDepth = 10000`, incremented by `structDecoder.Decode` on the `Iterator` it receives — belongs to the decode stage. Named self-referential fields are safe even before that: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
 
 Embedded fields take a different branch, one that bypasses the placeholder table. An untagged embedded pointer — `type Node struct { *Node; ID string }`, no field name, no JSON tag — recurses into the embedded type directly, with no visited-set on that path. This is the jsoniter code in question, from `reflect_extension.go` in v1.1.12 (the version the service had pinned; the same branch crashes in every release I tested back to v1.1.5 — the frame sits at line 339 in v1.1.5-v1.1.10 and line 362 in v1.1.12 — and it is still unfixed upstream):
 
@@ -77,7 +77,7 @@ if field.Anonymous() && (tag == "" || tagParts[0] == "") {
 }
 ```
 
-If the type graph cycles through an embedded pointer, the compiler recurses without bound. Each level allocates field bindings, reflect2 type descriptors, and per-level slice splices; the stack climbs toward Go's 1 GB goroutine limit while the heap climbs with it. The process dies — `fatal error: stack overflow` on the repro, OOM-killed in production — on a payload that can be as small as 22 bytes:
+If the type graph cycles through an embedded pointer, the compiler recurses without bound. Note what the recursive call does not have: `describeStruct(ctx, typ)` takes no `Iterator` — there is no data reader to count depth on, because no data has been read. The depth guard lives one stage downstream, in code that only runs once a decoder exists; this process died producing the decoder. Each recursion level allocates field bindings, reflect2 type descriptors, and per-level slice splices; the stack climbs toward Go's 1 GB goroutine limit while the heap climbs with it. The process dies — `fatal error: stack overflow` on the repro, OOM-killed in production — on a payload that can be as small as 22 bytes:
 
 ```go
 type NodeEmbed struct {
@@ -95,7 +95,9 @@ The standard library, for contrast, resolves fields with a breadth-first walk gu
 
 Source references (pinned versions, verified line-exact against the module cache):
 - jsoniter v1.1.12 `reflect_extension.go:348-373` — the unguarded embedded-pointer branch: [github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373)
+- jsoniter v1.1.12 `reflect.go:62-72` — the cache check that routes a first use into `DecoderOf` before any byte is decoded: [github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72)
 - jsoniter v1.1.12 `reflect.go:135-145` — the placeholder memoization the embedded branch bypasses: [github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145)
+- jsoniter v1.1.12 `iter.go:331-338` — the `maxDepth` guard, and `reflect_struct_decoder.go:500-505` — where it is first reachable, one stage after the crash site: [github.com/json-iterator/go/blob/v1.1.12/reflect_struct_decoder.go#L500-L505](https://github.com/json-iterator/go/blob/v1.1.12/reflect_struct_decoder.go#L500-L505)
 - go1.18 `encoding/json/encode.go:1235-1239` — the visited-set guard: [github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239)
 
 What this mechanism explains:
