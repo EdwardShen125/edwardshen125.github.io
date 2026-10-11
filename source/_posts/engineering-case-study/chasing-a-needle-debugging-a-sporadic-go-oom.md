@@ -54,29 +54,22 @@ The version trail in git records the search: eight rollback commits over eight d
 The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The build that finally carried no recurrence was the one with the offending code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and from that afternoon to the end of the service's history in the repository, the failure never returned: the jsoniter decoder compiled every remaining event type without incident.
 
 {% mermaid %}
-flowchart TD
-    A(["alerts fire: needle to 8 GB,<br/>once a day or more"]):::impact
-    B(["a week of instruments:<br/>logs / scheduled pprof /<br/>threshold pprof / core dumps —<br/>all blind"]):::state
-    C(["suspicion by elimination:<br/>ingest-and-decode service,<br/>neither traffic nor payload"]):::state
-    D(["swap codecs:<br/>jsoniter across three SDKs,<br/>then sonic — failure survives"]):::action
-    E(["roll back to last stable build,<br/>bisect the delta"]):::action
-    F{"failure follows my<br/>jsoniter builds?<br/>v1.1.18/22 stdlib vs<br/>v1.1.23/25 jsoniter"}:::pressure
-    G(["convergence day: five commits,<br/>consumer registration rolled back"]):::action
-    H(["offending type leaves the process<br/>— failure stops"]):::ok
-    I(["+37 min: consumer restored<br/>on jsoniter v1.1.25<br/>— no recurrence, ever"]):::ok
-    J(["months later: decoder-compile<br/>recursion on an embedded<br/>type cycle, pinned to source"]):::state
-
-    A --> B --> C --> D --> E --> F
-    F -- "no: codec exonerated" --> G
-    F -. "tested both ways" .-> E
-    G --> H --> I
-    I --> J
-
-    classDef state fill:#eef7ff,stroke:#245a7d,stroke-width:2px;
-    classDef action fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px;
-    classDef impact fill:#fdecea,stroke:#a44a3f,stroke-width:2px;
-    classDef pressure fill:#fff7e6,stroke:#8a6d3b,stroke-width:2px,stroke-dasharray:3 3;
-    classDef ok fill:#eef7ef,stroke:#3a7d4f,stroke-width:2px;
+gantt
+    dateFormat YYYY-MM-DD
+    axisFormat %m-%d
+    title Three weeks from first alert to a closed incident
+    section Pressure
+    OOM alerts, daily or worse        :crit, active, a1, 2024-03-01, 13d
+    section Instruments
+    logs / scheduled pprof / threshold pprof / core dumps, all blind :a2, 2024-03-01, 7d
+    section Codec attempts
+    jsoniter across three SDKs        :a3, 2024-03-07, 5d
+    sonic in cache path, rolled back  :crit, a4, 2024-03-11, 1d
+    section Bisection
+    rollback to stable, bisect the delta :active, a5, 2024-03-12, 8d
+    convergence day, five commits     :milestone, m1, 1d
+    section Recovery
+    restored on jsoniter v1.1.25, +37min, no recurrence :done, a6, 2024-03-20, 1d
 {% endmermaid %}
 
 ## The mechanism, reconstructed
