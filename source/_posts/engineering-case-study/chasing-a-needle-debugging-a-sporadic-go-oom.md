@@ -67,7 +67,7 @@ gantt
     sonic in cache path, rolled back  :crit, a4, 2024-03-11, 1d
     section Bisection
     rollback to stable, bisect the delta :active, a5, 2024-03-12, 8d
-    convergence day, five commits     :milestone, m1, 1d
+    convergence: five commits, one afternoon :milestone, m1, 2024-03-20, 0d
     section Recovery
     restored on jsoniter v1.1.25, +37min, no recurrence :done, a6, 2024-03-20, 1d
 {% endmermaid %}
