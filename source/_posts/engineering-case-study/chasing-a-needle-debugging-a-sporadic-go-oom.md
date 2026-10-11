@@ -156,3 +156,9 @@ The terminal stable build also spent some observability to buy stability: the co
 ## Closing
 
 The bisection named the culprit, removal stopped the bleeding, and the structural fix — decode once, into the concrete type — closed it for good: a self-nesting structure, a decoder that walked it without a cycle check, and fresh pods dying on first sight of an ordinary event. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
+
+---
+
+*Previous in this series: [Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second](/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/).* The scheduling center described there is the same platform this incident lived on.
+
+*Next in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/).*
