@@ -39,13 +39,11 @@ The instrument that would not have needed luck was not part of the platform: a c
 
 After a week of this, the conclusion was more specific than "we need better tools": the failure had no time signature. Whatever it was, it indexed by something other than time — and the one system variable not yet varied was the build.
 
-## The library swaps that failed
+## The codec was not the variable
 
-Acting on that suspicion, the first move varied the codec. On March 7 I swapped `encoding/json` for jsoniter (`ConfigCompatibleWithStandardLibrary`) across three internal SDKs in one afternoon: the job-center executor SDK, the event SDK's stage-one envelope decoder, and a Redis cache SDK. The alerts did not stop.
+Acting on that suspicion, the first move varied the codec. On March 7 I swapped `encoding/json` for jsoniter across three internal SDKs in one afternoon — the job-center executor SDK, the event SDK's envelope decoder, and a Redis cache SDK. The alerts did not stop. Four days later the escalation was sonic in the cache path; the OOM recurred within a day, and I rolled it back the next morning.
 
-Four days later the escalation was sonic — a JIT-compiled codec with its own stack discipline and depth limit — tried in the cache path. The OOM recurred within a day. I rolled it back the next morning.
-
-The failure survived both swaps, and in doing so exonerated the envelope and cache paths; through every variation the decode target had never changed. What remained to examine was the **typed event model** itself on the consumption side.
+Two codecs in, the result was a clean negative. The failure survived jsoniter and sonic both, exonerating the envelope and cache paths; through every variation the decode target had never changed. What remained to examine was the **typed event model** itself on the consumption side — which is where the bisection went next.
 
 ## The bisection
 
