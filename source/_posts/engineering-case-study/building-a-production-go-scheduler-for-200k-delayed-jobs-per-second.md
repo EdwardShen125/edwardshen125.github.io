@@ -1,5 +1,5 @@
 ---
-title: Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second
+title: Building a Production Go Scheduler for 200K+ Delayed Jobs per Second
 date: 2025-01-01 14:00:00
 categories:
   - Engineering Case Study

@@ -157,6 +157,6 @@ The bisection named the culprit, removal stopped the bleeding, and the productio
 
 ---
 
-*Previous in this series: [Designing a Lightweight Scheduler for 200K+ Delayed Execution Commands per Second](/posts/engineering-case-study/designing-a-lightweight-scheduler-for-200k-delayed-execution-commands-per-second/).* The scheduling center described there is the same platform this incident lived on.
+*Previous in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/).* The scheduling center described there is the same platform this incident lived on.
 
 *Next in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/).*
