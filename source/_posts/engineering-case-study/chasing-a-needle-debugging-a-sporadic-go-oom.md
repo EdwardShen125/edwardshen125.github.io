@@ -15,15 +15,13 @@ seo_image: chasing-a-needle-oom.png
 
 The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar hit its 8 GB limit and restarted; memory went from flat to the ceiling in under a second, with no correlation to traffic or time of day. The events were ordinary business events.
 
-The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept that pace for over a week before the cause was found: at least one pod lost per day, three or four on the worst days.
-
-The consumer decoded each message in two stages: the event SDK first decoded the envelope into `Data interface{}`, then the subscription layer re-marshaled that value into the concrete event model. None of the standard instruments could see the death; the next section is about why.
+The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept that pace for over a week before the cause was found: at least one pod lost per day, three or four on the worst days, and none of the standard instruments — logs, scheduled pprof, threshold-triggered pprof, core dumps — captured why.
 
 <!-- more -->
 
 {% asset_img chasing-a-needle-oom.png Incident build: SOP event consumption path, two decode stages, jsoniter decoder compiler, embedded-cycle recursion and the 8 GB alert %}
 
-What reached production before the incident was a bundled change inside the subscription layer: it introduced a typed event model and moved the stage-two typed decode to [jsoniter](https://github.com/json-iterator/go) for `Unmarshal` throughput. The event SDK still used `encoding/json` for the stage-one envelope decode in that build. The investigation had to determine which part of that change carried the failure.
+The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer re-marshaled that value into the concrete event model. What reached production shortly before the incident was a bundled change inside that subscription layer: it introduced a typed event model and moved the stage-two typed decode to [jsoniter](https://github.com/json-iterator/go) for `Unmarshal` throughput, while the event SDK kept `encoding/json` for the stage-one envelope decode. The investigation had to determine which part of that change carried the failure.
 
 ## What the failing instrumentation could not see
 
