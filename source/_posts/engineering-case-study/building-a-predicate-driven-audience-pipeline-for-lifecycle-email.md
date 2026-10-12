@@ -15,7 +15,7 @@ description: How reusable predicates, AST compilation, and layered TiDB data let
 seo_image: architecture.png
 ---
 
-Lifecycle campaigns repeatedly combined latest user traits, historical events, and expiring assets. Operations initially assembled those audiences manually; the platform already had transactional services and a TiDB/TiCDC/Kafka/Flink data path, but marketing needed reusable audience definitions and automated email tasks rather than campaign-specific filters.
+Lifecycle campaigns repeatedly combined latest user traits, historical events, and expiring assets. Operations initially assembled those audiences manually; the platform already had transactional services and a [TiDB](https://docs.pingcap.com/tidb/stable/overview)/[TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview)/[Kafka](https://kafka.apache.org/)/[Flink](https://flink.apache.org/) data path, but marketing needed reusable audience definitions and automated email tasks rather than campaign-specific filters.
 
 I wrote the design document and early core demo for predicate expansion, SQL compilation, segment refresh, and the reach handoff. A colleague implemented the production services with my guidance.
 
