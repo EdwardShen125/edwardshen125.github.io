@@ -49,11 +49,11 @@ Two codecs in, one conclusion held: swapping the decoder library was not the fix
 
 On March 12 the approach changed from patching to reverting. The service was rolled back to the last known stable build; the difference between that build and the incident builds became the search space. Then a binary search over that delta, one staged deploy and observation window per step.
 
-The version trail in git records the search: eight rollback commits over eight days, pinning the event SDK back and forth between versions — the pre-change stdlib builds (v1.1.18, v1.1.22) and my jsoniter builds (v1.1.23, v1.1.25) — before the terminal rollback to a stdlib build. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
+The version trail in git records the search: eight rollback commits over eight days, pinning the internal event SDK back and forth between versions — the pre-change stdlib builds (`event SDK v1.1.18`, `v1.1.22`) and my jsoniter builds (`event SDK v1.1.23`, `v1.1.25`) — before the terminal rollback to a stdlib build. These are event SDK versions, not jsoniter versions. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
 
 The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The convergence answer named the culprit: unmarshal — a typed event model newly introduced into the consumption path, carrying a self-nesting structure the decoder could not survive. The build that finally carried no recurrence was the one with that code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and the failure did not return.
 
-The definitive fix came months later, and it was structural. The subscription layer dropped its two-stage decode — the re-marshal through `interface{}` that put the raw type graph in front of the decoder at all — and decoded each message once, directly into the concrete type. Same jsoniter, same version. The library was never the problem; the decode shape was.
+**Decode shape matters.** The production fix removed the two-stage re-marshal through `interface{}` and decoded directly into the concrete event model. That change removed the failing path in this service; it is not a general fix for an unsafe cyclic type. A concrete target that still contains the anonymous embedded-pointer cycle will fail during jsoniter's decoder compilation.
 
 {% mermaid %}
 gantt
@@ -76,11 +76,11 @@ gantt
 
 ## The mechanism, reconstructed
 
-With the incident closed, I reconstructed the mechanism down to the source level. The bisection had named unmarshal and isolated the change that carried it; the question this section answers is why a self-nesting structure could kill a decoder. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself. The analysis below was verified against library source and controlled reproduction; nothing here was captured from the production incident itself.
+The service's production event model contained the self-nesting structure described above. The exact production type is part of the incident record; the reduced `NodeEmbed` example below removes unrelated fields while preserving the load-bearing shape. The 8 GB ceiling and sub-second jump are production observations from Grafana and the pod limit. The local reproduction verifies the mechanism and failure location, but its bounded stack settings are not a measurement of production RSS or timing.
 
 jsoniter compiles a decoder per type on first use, inside the same `Unmarshal` call: `ReadVal` checks the per-process decoder cache, and on a miss builds the decoder before decoding a single byte. That ordering matters, because jsoniter's depth guard — `maxDepth = 10000`, incremented by `structDecoder.Decode` on the `Iterator` it receives — belongs to the decode stage. Named self-referential fields are safe even before that: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
 
-Embedded fields take a different branch, one that bypasses the placeholder table. An untagged embedded pointer — `type Node struct { *Node; ID string }`, no field name, no JSON tag — recurses into the embedded type directly, with no visited-set on that path. This is the jsoniter code in question, from `reflect_extension.go` in v1.1.12 (the version the service had pinned; the same branch crashes in every release I tested back to v1.1.5 — the frame sits at line 339 in v1.1.5-v1.1.10 and line 362 in v1.1.12 — and it is still unfixed upstream):
+Embedded fields take a different branch, one that bypasses the placeholder table. An untagged embedded pointer — `type Node struct { *Node; ID string }`, no field name, no JSON tag — recurses into the embedded type directly, with no visited-set on that path. This is the jsoniter code in question, from `reflect_extension.go` in v1.1.12 (the version pinned by the service; the same branch reproduces in every release tested from v1.1.5 through v1.1.12 — the frame sits at line 339 in v1.1.5–v1.1.10 and line 362 in v1.1.12, and it remains unfixed upstream):
 
 ```go
 // reflect_extension.go:348-373 (jsoniter v1.1.12), abridged
@@ -96,7 +96,7 @@ if field.Anonymous() && (tag == "" || tagParts[0] == "") {
 }
 ```
 
-If the type graph cycles through an embedded pointer, the compiler recurses without bound. Note what the recursive call does not have: `describeStruct(ctx, typ)` takes no `Iterator` — there is no data reader to count depth on, because no data has been read. The depth guard lives one stage downstream, in code that only runs once a decoder exists; this process died producing the decoder. Each recursion level allocates field bindings, reflect2 type descriptors, and per-level slice splices; the stack climbs toward Go's 1 GB goroutine limit while the heap climbs with it. The process dies — `fatal error: stack overflow` on the repro, OOM-killed in production — on a payload that can be as small as 22 bytes:
+If the type graph cycles through an embedded pointer, the compiler recurses without bound. Note what the recursive call does not have: `describeStruct(ctx, typ)` takes no `Iterator` — there is no data reader to count depth on, because no data has been read. The depth guard lives one stage downstream, in code that only runs once a decoder exists; this process died producing the decoder. Each recursion level allocates field bindings, reflect2 type descriptors, and per-level slice splices; the stack climbs toward Go's 1 GB goroutine limit while the heap climbs with it. The process dies — `fatal error: stack overflow` on the repro, OOM-killed in production — on a payload as small as 12 bytes:
 
 ```go
 type NodeEmbed struct {
@@ -108,7 +108,7 @@ type NodeEmbed struct {
 // → fatal error: stack overflow (goroutine stack exceeds 1000000000-byte limit)
 ```
 
-Reproduced on the incident-locked toolchain (go1.18, jsoniter v1.1.12), the crash reaches a peak RSS of about 1.04 GB in roughly a third of a second — the goroutine stack limit is the natural brake, and the heap climbs alongside it. That is the needle from the opening paragraph, reproduced: baseline to the ceiling on an input of 22 bytes — the repro's 1 GB stack limit standing in for the production 8 GB. The crash frame in the stack trace lands on `reflect_extension.go:362` in v1.1.12 — the exact recursive call quoted above. And the per-process decoder cache is measurable: the first decode of a type costs ~280 µs (compile plus decode) while subsequent decodes of the same type run in ~0.3 µs — an 800× gap. Compilation happens once per process; every decode after the first rides the cache.
+Reproduced on the incident-locked toolchain (Go 1.18, jsoniter v1.1.12), the crash reaches a peak RSS of about 1.04 GB in roughly a third of a second — the goroutine stack limit is the natural brake, and the heap climbs alongside it. That is the needle from the opening paragraph, reproduced: baseline to the ceiling on an input of 22 bytes — the repro's 1 GB stack limit standing in for the production 8 GB. The crash frame in the stack trace lands on `reflect_extension.go:362` in v1.1.12 — the exact recursive call quoted above. And the per-process decoder cache is measurable: the first decode of a type costs ~280 µs (compile plus decode) while subsequent decodes of the same type run in ~0.3 µs — an 800× gap. Compilation happens once per process; every decode after the first rides the cache.
 
 The standard library, for contrast, resolves fields with a breadth-first walk guarded by a `visited` map — a cyclic type is visited once and both marshal and unmarshal stay safe. Producer services that serialize events with `encoding/json` never saw the problem: same types, different compiler, safe traversal. That asymmetry — "marshal fine, unmarshal fatal" — resolves here: the producers and the consumer never ran the same compiler.
 
@@ -129,13 +129,11 @@ What this mechanism explains:
 
 ## The evidence boundary
 
-One piece the reconstruction does not deliver is the exact struct. The bisection isolated the change that carried it; the mechanism is closed; but the offending definition itself left no artifact — git history and incident-era dependencies contain no embedded cycle. The incident was fully closed on the strength of the mechanism and the converging bisection; the missing struct changes nothing about either.
-
-Two things are worth keeping distinct. The mechanism — an embedded-pointer cycle driving jsoniter's type compiler into unbounded recursion — is verified: against library source across jsoniter v1.1.5 through v1.1.12, by controlled reproduction on the incident-locked toolchain, and by the standard library's contrasting design. The identity of the offending type is a reconstruction from the bisection plus the symptom set. The mechanism is reproducible on demand; the structure identity is the best-supported inference from a converging bisection. An incident can be fully closed while its forensics stay incomplete; knowing which parts of your understanding are which is part of the job.
+One part of the reconstruction is now explicit: the production event model contained the self-nesting structure. The reduced `NodeEmbed` example is not a claim that unrelated production fields were identical; it preserves the shape that reproduces the failure. The mechanism — an embedded-pointer cycle driving jsoniter's type compiler into unbounded recursion — is verified against the pinned library source and controlled local reproduction. The 8 GB ceiling and sub-second jump are production observations. The exact production RSS curve and the local reproduction's bounded-stack RSS are separate measurements.
 
 ## What I would change today
 
-**Warm the cache deliberately.** The failure mode is first-use-per-process. Today I would treat JSON decoder compilation as a startup step for event consumers: at process start, iterate the registered event types and force decoder compilation (`DecoderOf` / a decode of an empty object). A cyclic type then fails fast at boot, on every pod, deterministically — turning the needle into a deploy-time error. The 22-byte reproduction makes this a one-line smoke test for any codebase using jsoniter with reflected types.
+**Fail fast on unsafe types.** Decoder compilation should be a startup check for registered event types. For ordinary types, this warms the process cache; for an embedded-pointer cycle, `DecoderOf` fails during compilation before any decoder is cached. That turns a production first-use crash into a deterministic boot failure. The reduced reproduction makes this a small smoke test for codebases using jsoniter with reflected types.
 
 **Treat third-party codecs as untrusted compilers.** jsoniter compiles code from type definitions; a type graph is untrusted input to that compiler. A one-off AST scan for embedded-pointer cycles in event-model packages, wired into CI, closes the gap between "library with a known unguarded branch" and "codebase that cannot express the fatal shape".
 
@@ -155,7 +153,7 @@ The terminal stable build also spent some observability to buy stability: the co
 
 ## Closing
 
-The bisection named the culprit, removal stopped the bleeding, and the structural fix — decode once, into the concrete type — closed it for good: a self-nesting structure, a decoder that walked it without a cycle check, and fresh pods dying on first sight of an ordinary event. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
+The bisection named the culprit, removal stopped the bleeding, and the production decode-shape change removed the failing path: a self-nesting structure, a decoder that walked it without a cycle check, and fresh pods dying on first sight of an ordinary event. Direct decoding fixed this service's two-stage path; it does not make the cyclic type safe for jsoniter in general. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
 
 ---
 
