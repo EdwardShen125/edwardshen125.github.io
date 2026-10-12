@@ -9,94 +9,60 @@ tags:
   - oom
   - production-debugging
   - event-driven
-description: A Go consumer hit an 8 GB memory limit in under a second. This case study traces the failure through rollback bisection to recursive type compilation in a JSON library.
+description: A Go consumer hit 8 GB in under a second. Build bisection traced the OOM to jsoniter's recursive type compilation; migrating the affected decode path to sonic resolved it.
 seo_image: chasing-a-needle-oom.png
 ---
 
-The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar had hit its 8 GB limit and restarted — the memory trace was a single vertical line, memory flat and low one moment, pinned to the ceiling the next. There was no gradual slope, no warning ramp, no correlation with traffic or time of day. Over the following week it fired at least once a day, up to three or four times on the worst days, and nothing in the logs explained any occurrence.
+The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar hit its 8 GB limit and restarted; memory went from flat to the ceiling in under a second, with no correlation to traffic or time of day. The events were ordinary business events.
 
-The service consumes SOP-dispatch events off Pulsar. In this marketing-automation platform, a SOP (standard operating procedure) plan routes each customer through a branching graph of nodes — messages, employee tasks, tag changes — entered by CRM events or batch audience imports; every step a customer takes through the graph becomes one dispatch event on the bus, consumed and acted on by this service. The path decodes in two stages: the event SDK decodes the envelope into a struct with a generic `Data interface{}` field, and the subscription layer re-marshals that field and decodes it into the concrete event model. Traffic was normal and payloads were ordinary business events; nothing about the input suggested it could exhaust 8 GB in under a second.
+The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users.
+
+The consumer decoded each message in two stages: the event SDK first decoded the envelope into `Data interface{}`, then the subscription layer re-marshaled that value into the concrete event model. Logs, scheduled pprof, threshold-triggered pprof, and core dumps captured nothing. Every instrument depended on the process surviving long enough to leave evidence; this one did not.
 
 <!-- more -->
 
-{% asset_img chasing-a-needle-oom.png SOP event consumption path: two decode stages, jsoniter decoder compiler, embedded-cycle recursion and the 8 GB alert %}
+{% asset_img chasing-a-needle-oom.png Incident build: SOP event consumption path, two decode stages, jsoniter decoder compiler, embedded-cycle recursion and the 8 GB alert %}
 
-That week was spent narrowing the search from the outside in, and it produced nothing. Not even the location of the death was observable: no log line, no profile, no core — nothing said which code the process had been executing when it hit the ceiling. What the search had instead was a suspicion by elimination: a consumer service that did nothing but ingest and decode, dying in a way that implicated neither traffic nor payload.
+What reached production before the incident was a bundled change inside the subscription layer: it introduced a typed event model and moved the stage-two typed decode to [jsoniter](https://github.com/json-iterator/go) for `Unmarshal` throughput. The event SDK still used `encoding/json` for the stage-one envelope decode in that build. The investigation had to determine which part of that change carried the failure.
 
 ## What the failing instrumentation could not see
 
-Four standard debugging moves were weighed over that week. They share one assumption this failure did not honor: that an incident leaves a trace proportional to its duration.
+Four standard instruments were considered:
 
-**Logs.** Whatever the goroutine was doing when it died, it never logged it. Nothing before the spike pointed anywhere either — the events that triggered death were ordinary ones — the same kinds processed without consequence every day.
+- **Logs** left no useful clue. The triggering events were ordinary, and the process died before the consumer could record its state.
+- **Scheduled pprof** sampled too infrequently to catch an unpredictable sub-second spike.
+- **Threshold-triggered pprof** both produced false positives from normal allocation and could miss a jump between polling intervals.
+- **Core dumps** could not help with the dominant failure mode: the memory-limit kill sent `SIGKILL` before a core could be written.
 
-**Scheduled external pprof.** A cron-driven heap profile captures a snapshot at a moment of its choosing. This failure occupied a sub-second window at an unpredictable time, on an unpredictable pod, between deploys. The odds of a scheduled snapshot landing inside that window were effectively zero.
+All four assumed the process would survive long enough to leave evidence. This failure did not. After a week, the failure had no time signature: it was indexed by something other than time, and the one system variable not yet varied was the build.
 
-**In-process threshold-triggered pprof.** The next refinement: watch memory in-process and dump a profile when it crosses a threshold. Two problems surfaced. False positives — ordinary allocations crossed the low thresholds constantly. And a subtler one: the threshold check itself ran on a timer, polling memory at intervals. A needle that goes from baseline to 8 GB between two polls is invisible to a poller; by the time the alarm condition was detectable, the process was already gone.
+## The codec investigation
 
-**Core dumps.** This path was considered and set aside. A memory-limit kill is SIGKILL — no configuration turns it into a core, so the dominant death mode here produced nothing to analyze. And the failure was too fast for the cases core dumps do serve, where a process lingers long enough to capture on the way down. This one was gone before anything could attach.
+The service spent most of its time consuming and decoding Pulsar events, and its decoder had recently changed, so the codec was the first suspect. On March 7 I moved three internal SDK paths from `encoding/json` to jsoniter: the job-center executor SDK, the event SDK's envelope decoder, and a Redis cache SDK. The OOM continued.
 
-The one instrument that would not have needed luck — a profiler recording every window instead of chosen moments — was not part of the platform.
-
-After a week of this, the conclusion was more specific than "we need better tools": the failure had no time signature. Whatever it was, it indexed by something other than time — and the one system variable not yet varied was the build.
-
-## The codec was not the variable
-
-The suspicion said unmarshal, and the first fix hypothesis was the decoder itself. On March 7 I swapped `encoding/json` for jsoniter across three internal SDKs in one afternoon — the job-center executor SDK, the event SDK's envelope decoder, and a Redis cache SDK. The alerts did not stop. Four days later the escalation was sonic in the cache path; the OOM recurred within a day, and I rolled it back the next morning.
-
-Two codecs in, one conclusion held: swapping the decoder library was not the fix — but the failures were not wasted. They exonerated the envelope and cache paths, and through every variation the decode target had never changed. What remained to examine was the **typed event model** itself on the consumption side — which is where the bisection went next.
+Those changes covered the envelope and cache paths, but left the subscription layer's stage-two typed decode and the two-stage shape intact. The continued failures showed that those changes were not the fix; they did not clear jsoniter in the untouched typed-event path. I stopped swapping libraries and moved to build bisection, treating the decoder and event-model changes as one bundled delta to trace and reproduce.
 
 ## The bisection
 
-On March 12 the approach changed from patching to reverting. The service was rolled back to the last known stable build; the difference between that build and the incident builds became the search space. Then a binary search over that delta, one staged deploy and observation window per step.
+On March 12 I rolled the service back to the last known stable build and bisected the incident delta, using one staged deploy and observation window per step. The internal event SDK versions in the search were `v1.1.18` and `v1.1.22` for the pre-change stdlib builds, and `v1.1.23` and `v1.1.25` for the builds that carried the consumer-side typed-decode change. These are event SDK versions, not jsoniter versions.
 
-The version trail in git records the search: eight rollback commits over eight days, pinning the internal event SDK back and forth between versions — the pre-change stdlib builds (`event SDK v1.1.18`, `v1.1.22`) and my jsoniter builds (`event SDK v1.1.23`, `v1.1.25`) — before the terminal rollback to a stdlib build. These are event SDK versions, not jsoniter versions. In effect the bisection was testing my own change: did the failure follow the codec I had introduced, or something else that shipped with it?
+The bisection isolated a build delta that introduced the typed event model alongside the jsoniter decode path. I then traced that delta through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer re-marshaled it, and jsoniter compiled a decoder for the concrete event model. Source reconstruction identified an anonymous embedded-pointer cycle as the mechanism consistent with the production symptoms. The reduced `NodeEmbed` case reproduced that failure mechanism locally.
 
-The search converged in a single afternoon of five commits, in sequence: logging added around the suspect consumer, a distributed lock removed and the message-aggregation key changed from node ID to message ID to redistribute partitions, a panic guard added to a consumer handler, a code rollback, and finally the consumer registration rolled back. The convergence answer named the culprit: unmarshal — a typed event model newly introduced into the consumption path, carrying a self-nesting structure the decoder could not survive. The build that finally carried no recurrence was the one with that code gone from the process entirely. Thirty-seven minutes later the rolled-back consumer code was restored on top of the jsoniter event SDK — v1.1.25, not the stdlib build — and the failure did not return.
-
-**Decode shape matters.** The production fix removed the two-stage re-marshal through `interface{}` and decoded directly into the concrete event model. That change removed the failing path in this service; it is not a general fix for an unsafe cyclic type. A concrete target that still contains the anonymous embedded-pointer cycle will fail during jsoniter's decoder compilation.
-
-{% mermaid %}
-gantt
-    dateFormat YYYY-MM-DD
-    axisFormat %m-%d
-    title Three weeks from first alert to a closed incident
-    section Pressure
-    OOM alerts, daily or worse        :crit, active, a1, 2024-03-01, 13d
-    section Instruments
-    logs / scheduled pprof / threshold pprof / core dumps, all blind :a2, 2024-03-01, 7d
-    section Codec attempts
-    jsoniter across three SDKs        :a3, 2024-03-07, 5d
-    sonic in cache path, rolled back  :crit, a4, 2024-03-11, 1d
-    section Bisection
-    rollback to stable, bisect the delta :active, a5, 2024-03-12, 8d
-    convergence: five commits, one afternoon :milestone, m1, 2024-03-20, 0d
-    section Recovery
-    restored on jsoniter v1.1.25, +37min, no recurrence :done, a6, 2024-03-20, 1d
-{% endmermaid %}
+**The newest published jsoniter release still reproduced the failure.** The root cause was jsoniter's unguarded expansion of an anonymous embedded-pointer cycle during decoder compilation; the `interface{}` round trip was part of the path that exposed it in this service. jsoniter `v1.1.12`, the newest published release checked in this investigation, still recursed through that branch without a cycle guard. I therefore evaluated alternative codecs and moved the affected typed-event decode path to sonic. The production OOM stopped recurring after the migration. The type graph itself remained unchanged; sonic handled the embedded cycle without unbounded field expansion. The source comparison below explains that difference.
 
 ## The mechanism, reconstructed
 
-The service's production event model contained the self-nesting structure described above. The exact production type is part of the incident record; the reduced `NodeEmbed` example below removes unrelated fields while preserving the load-bearing shape. The 8 GB ceiling and sub-second jump are production observations from Grafana and the pod limit. The local reproduction verifies the mechanism and failure location, but its bounded stack settings are not a measurement of production RSS or timing.
+The production event model is reconstructed as containing the self-nesting structure; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical. The 8 GB ceiling and sub-second jump are production observations. The local reproduction verifies the mechanism and failure location, while its bounded stack settings are separate from the production RSS measurement.
 
-jsoniter compiles a decoder per type on first use, inside the same `Unmarshal` call: `ReadVal` checks the per-process decoder cache, and on a miss builds the decoder before decoding a single byte. That ordering matters, because jsoniter's depth guard — `maxDepth = 10000`, incremented by `structDecoder.Decode` on the `Iterator` it receives — belongs to the decode stage. Named self-referential fields are safe even before that: the decoder factory (`createDecoderOfType`) publishes a `placeholderDecoder` into the type table before expanding a type, so recursion back to a type already being expanded terminates. Bounded compile, safe decode.
-
-Embedded fields take a different branch, one that bypasses the placeholder table. An untagged embedded pointer — `type Node struct { *Node; ID string }`, no field name, no JSON tag — recurses into the embedded type directly, with no visited-set on that path. This is the jsoniter code in question, from `reflect_extension.go` in v1.1.12 (the version pinned by the service; the same branch reproduces in every release tested from v1.1.5 through v1.1.12 — the frame sits at line 339 in v1.1.5–v1.1.10 and line 362 in v1.1.12, and it remains unfixed upstream):
+In jsoniter, the library compiles a decoder on first use, before decoding the first byte. Named recursive fields are bounded by jsoniter's placeholder decoder. An anonymous embedded pointer takes a different path: `describeStruct` recursively expands the embedded struct without a visited-type guard. The decode depth limit is downstream and cannot protect a process that dies while compiling the decoder.
 
 ```go
-// reflect_extension.go:348-373 (jsoniter v1.1.12), abridged
+// jsoniter v1.1.12, reflect_extension.go:348-373, abridged
 if field.Anonymous() && (tag == "" || tagParts[0] == "") {
-    ...
-    } else if field.Type().Kind() == reflect.Ptr {
-        ptrType := field.Type().(*reflect2.UnsafePtrType)
-        if ptrType.Elem().Kind() == reflect.Struct {
-            structDescriptor := describeStruct(ctx, ptrType.Elem()) // ← recurses, no cycle check
-            ...
-        }
-    }
+    // ...
+    structDescriptor := describeStruct(ctx, ptrType.Elem())
 }
 ```
-
-If the type graph cycles through an embedded pointer, the compiler recurses without bound. Note what the recursive call does not have: `describeStruct(ctx, typ)` takes no `Iterator` — there is no data reader to count depth on, because no data has been read. The depth guard lives one stage downstream, in code that only runs once a decoder exists; this process died producing the decoder. Each recursion level allocates field bindings, reflect2 type descriptors, and per-level slice splices; the stack climbs toward Go's 1 GB goroutine limit while the heap climbs with it. The process dies — `fatal error: stack overflow` on the repro, OOM-killed in production — on a payload as small as 12 bytes:
 
 ```go
 type NodeEmbed struct {
@@ -104,56 +70,399 @@ type NodeEmbed struct {
     ID   string `json:"id"`
     Name string `json:"name"`
 }
+
 // jsoniter.Unmarshal([]byte(`{"id":"1","name":"ev"}`), &NodeEmbed{})
-// → fatal error: stack overflow (goroutine stack exceeds 1000000000-byte limit)
+// → fatal error: stack overflow
 ```
 
-Reproduced on the incident-locked toolchain (Go 1.18, jsoniter v1.1.12), the crash reaches a peak RSS of about 1.04 GB in roughly a third of a second — the goroutine stack limit is the natural brake, and the heap climbs alongside it. That is the needle from the opening paragraph, reproduced: baseline to the ceiling on an input of 22 bytes — the repro's 1 GB stack limit standing in for the production 8 GB. The crash frame in the stack trace lands on `reflect_extension.go:362` in v1.1.12 — the exact recursive call quoted above. And the per-process decoder cache is measurable: the first decode of a type costs ~280 µs (compile plus decode) while subsequent decodes of the same type run in ~0.3 µs — an 800× gap. Compilation happens once per process; every decode after the first rides the cache.
+The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12`, the newest published release. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Leaving the unused `Name` field out of the payload does not change the outcome either. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it; that measurement describes the failure shape, not the production 8 GB RSS.
 
-The standard library, for contrast, resolves fields with a breadth-first walk guarded by a `visited` map — a cyclic type is visited once and both marshal and unmarshal stay safe. Producer services that serialize events with `encoding/json` never saw the problem: same types, different compiler, safe traversal. That asymmetry — "marshal fine, unmarshal fatal" — resolves here: the producers and the consumer never ran the same compiler.
+The standard library uses a visited map when resolving fields, which explains why producers using `encoding/json` could serialize the same domain shape while the consumer failed during jsoniter compilation.
 
-Source references (pinned versions, verified line-exact against the module cache):
-- jsoniter v1.1.12 `reflect_extension.go:348-373` — the unguarded embedded-pointer branch: [github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373)
-- jsoniter v1.1.12 `reflect.go:62-72` — the cache check that routes a first use into `DecoderOf` before any byte is decoded: [github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72)
-- jsoniter v1.1.12 `reflect.go:135-145` — the placeholder memoization the embedded branch bypasses: [github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145)
-- jsoniter v1.1.12 `iter.go:331-338` — the `maxDepth` guard, and `reflect_struct_decoder.go:500-505` — where it is first reachable, one stage after the crash site: [github.com/json-iterator/go/blob/v1.1.12/reflect_struct_decoder.go#L500-L505](https://github.com/json-iterator/go/blob/v1.1.12/reflect_struct_decoder.go#L500-L505)
-- go1.18 `encoding/json/encode.go:1235-1239` — the visited-set guard: [github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239)
+Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver delegates to `encoding/json.typeFields`; in `v1.14.1` and `v1.15.4`, it performs that traversal locally with a visited-type map. Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized decoder compilers track types already being compiled and handle recursive fields without repeatedly expanding their decoders. For this `NodeEmbed` case, the field-resolution guard is the relevant protection.
 
-What this mechanism explains:
+Source references:
 
-- **Data-independence.** A flat, tiny, valid event triggers it. Payload size and nesting depth of the *data* are irrelevant — the cycle is in the *type graph*, walked at decoder-compile time, before any data is read.
-- **The needle.** Unbounded recursion allocating at every level is as fast as memory can be allocated — no ramp, no slope.
-- **Sporadicness.** Decoder compilation happens once per process, on first use of a type; the first-decode versus steady-state gap above is that cache at work. A warm pod has the cache hot and processes the same event harmlessly; a fresh pod — after a deploy, a scale-up, a restart — dies on first encounter. The failure indexed by process lifetime and deploy schedule, not by wall-clock time. This is why the time-axis instruments of the previous section were structurally blind to it.
-- **Why the library swaps failed.** The fatal compilation happened in stage two, on the typed event model — a decoder that had been jsoniter since 2022 and that neither swap touched. Only removing the offending type from the process (the rollback) stopped the failure.
-- **Why logs showed nothing.** The compile happens inside `Unmarshal` before any data is read and never returns. An infinite compile loop has no outside: nothing to log, nothing to return to.
+- jsoniter v1.1.12 `reflect_extension.go:348-373` — [embedded-pointer branch](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373)
+- jsoniter v1.1.12 `reflect.go:62-72` — [decoder cache lookup](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72)
+- jsoniter v1.1.12 `reflect.go:135-145` — [placeholder memoization](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145)
+- jsoniter v1.1.12 `iter.go:331-338` — [decode depth guard](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338)
+- Go 1.18 `encoding/json/encode.go:1235-1239` — [visited-field guard](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239)
+- sonic v1.14.0 `internal/resolver/stubs_latest.go:49-51` — [delegation to standard-library field resolution](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51)
+- sonic v1.14.1 `internal/resolver/fields.go:49-75` — [visited-type guard for embedded fields](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75)
+- sonic v1.14.0 `internal/decoder/jitdec/compiler.go:595-609` — [decoder recursion table](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609)
 
-## The evidence boundary
+## Reproducing it safely
 
-One part of the reconstruction is now explicit: the production event model contained the self-nesting structure. The reduced `NodeEmbed` example is not a claim that unrelated production fields were identical; it preserves the shape that reproduces the failure. The mechanism — an embedded-pointer cycle driving jsoniter's type compiler into unbounded recursion — is verified against the pinned library source and controlled local reproduction. The 8 GB ceiling and sub-second jump are production observations. The exact production RSS curve and the local reproduction's bounded-stack RSS are separate measurements.
+The failure needs no production traffic and no large message: the type graph alone is enough. The program below reproduces it together with the two controls that separate the trigger from the noise:
 
-## What I would change today
+```bash
+mkdir oom-demo && cd oom-demo && go mod init oom-demo && go get github.com/json-iterator/go@v1.1.12
+# save the program as main.go, then (Linux or macOS: the harness reads syscall.Rusage):
+go run .
+```
 
-**Fail fast on unsafe types.** Decoder compilation should be a startup check for registered event types. For ordinary types, this warms the process cache; for an embedded-pointer cycle, `DecoderOf` fails during compilation before any decoder is cached. That turns a production first-use crash into a deterministic boot failure. The reduced reproduction makes this a small smoke test for codebases using jsoniter with reflected types.
+```go
+// Command oom-demo reproduces the jsoniter decoder-compilation failure from the
+// incident: an anonymous embedded pointer creates a cycle in the type graph, and
+// jsoniter's field walk expands that cycle without tracking visited types, so
+// compiling a decoder for the type recurses until the goroutine stack is gone.
+//
+//	go run .        # runs the three cases and prints a per-case verdict
+//
+// Safety. A stack overflow is a fatal runtime error: recover cannot intercept it,
+// and left unbounded the recursion grows that goroutine's stack to the runtime's
+// default ceiling of 1 GB before the process dies. The failing decode therefore
+// runs in a child process of this same binary, under three bounds:
+//
+//  1. debug.SetMaxStack caps the goroutine stack at maxStackSize, so the crash is
+//     small and fast instead of reaching the runtime default;
+//  2. a context timeout kills the child if it does not die on its own;
+//  3. captured stdout and stderr are capped, so the dump cannot grow the harness.
+//
+// These bounds keep a reduced reproduction small. They are not a process-wide
+// memory limit, and peakRSS uses syscall.Rusage, so the harness runs on Linux and
+// macOS.
+//
+// The payload is deliberately tiny: the failure is a property of the type graph,
+// not of the input, so no large message is needed to trigger it.
+package main
 
-**Treat third-party codecs as untrusted compilers.** jsoniter compiles code from type definitions; a type graph is untrusted input to that compiler. A one-off AST scan for embedded-pointer cycles in event-model packages, wired into CI, closes the gap between "library with a known unguarded branch" and "codebase that cannot express the fatal shape".
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"runtime/debug"
+	"strings"
+	"syscall"
+	"time"
 
-**Cap the stack to fail louder, not to survive.** `debug.SetMaxStack` cannot stop this failure — the recursion is inside the library, and the process dies either way. What a low cap (16 MB in my repro, against the 1 GB default) changes is the death: peak RSS drops from ~1 GB to ~64 MB, and the fatal trace arrives carrying ninety-odd `describeStruct` frames instead of exhausting memory first. On a shared node that spares neighbors; for whoever reads the log, it turns an unexplained OOM into a printed stack. The generic advice for recursion you own — depth limits, iteration, explicit stacks — does not apply here: the recursion was not ours to rewrite.
+	jsoniter "github.com/json-iterator/go"
+)
 
-**Know what the newer tools do not fix.** Go 1.25's `runtime/trace.FlightRecorder` buffers the last seconds of execution trace in a ring — but it snapshots only when program logic calls `WriteTo`. It answers the failure class where detection survives the incident: a slow request triggers the dump, and the trace explains it. It does not answer this one, where the process dies before anything can notice. The distinction that matters is triggered versus untriggered recording; for a failure with no time signature, only the untriggered kind — a profiler sampling continuously, storing regardless — has the evidence already saved when the alert fires.
+// NodeEmbed is the reduced production type graph: an anonymous embedded pointer
+// to its own type. jsoniter's describeStruct follows an anonymous embedded struct
+// pointer without recording that the type was already visited, so compiling a
+// decoder for NodeEmbed never terminates.
+type NodeEmbed struct {
+	*NodeEmbed        // anonymous embedded pointer -> cycle in the type graph
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+}
 
-**Rollback first, patch second.** Five days went to attempted fixes before the bisection began. The swaps had diagnostic value — they exonerated the envelope and cache paths — but as *fixes* those were five days of exposure. Today the sequencing rule is: restore stability first (rollback), then investigate the delta. A fix attempted before the mechanism is understood is a guess with deploy risk; the bisection that followed was both safer and, in the end, the actual diagnostic instrument.
+// NodeNamed is the control for the same cycle expressed as a named field.
+// jsoniter memoizes a placeholder for named recursive fields, so compilation
+// terminates and the type is usable.
+type NodeNamed struct {
+	Self *NodeNamed `json:"self,omitempty"` // named pointer -> placeholder decoder
+	ID   string     `json:"id"`
+	Name string     `json:"name"`
+}
 
-**The transferable rule.** When an incident's signature is "no time signature", stop instrumenting the time axis. The failure was indexed by process lifetime and build identity, and the instrument that finally resolved it — a bisection over builds — is the one that queries those axes. Choose the instrument that matches the failure's indexing variable, not the one your tooling defaults to.
+const (
+	childEnvVar  = "OOM_DEMO_CHILD"
+	maxStackSize = 1 << 20  // 1 MiB, instead of the runtime default of 1 GB
+	captureLimit = 64 << 10 // 64 KiB of child output; the crash dump is ~26 KiB
+	childTimeout = 20 * time.Second
+	errExitCode  = 3
+	decodedLine  = `decoded id="1" name="ev"`
+)
 
-## Trade-offs and costs
+// payload is 22 bytes; the crash does not depend on its content, only on the type.
+var payload = []byte(`{"id":"1","name":"ev"}`)
 
-The rollback-bisection path has a real cost profile. Eight staged deploys over eight days, each an observation window with on-call attention. It requires a known-stable baseline build to roll back to. And it converges on a diff, not a mechanism: the bisection isolated the change, and understanding why still required the post-hoc source analysis. Both instruments are needed; neither substitutes for the other.
+// testCase is one comparison, with the outcome the harness asserts on.
+type testCase struct {
+	mode      string
+	name      string
+	wantCrash bool // true: the child must die of a stack overflow
+	wantOut   string
+}
 
-The terminal stable build also spent some observability to buy stability: the convergence-day rollbacks changed partitioning and removed the only record of what events contained.
+func main() {
+	// Child mode: run one case in an isolated process so the fatal error cannot
+	// take the parent down with it.
+	if mode := os.Getenv(childEnvVar); mode != "" {
+		runChild(mode)
+		return
+	}
 
-## Closing
+	fmt.Printf("go=%s jsoniter=%s\n", runtime.Version(), dependencyVersion("github.com/json-iterator/go"))
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		fmt.Println("verdict: UNSUPPORTED platform for the peak-RSS measurement")
+		os.Exit(1)
+	}
+	fmt.Println()
 
-The bisection named the culprit, removal stopped the bleeding, and the production decode-shape change removed the failing path: a self-nesting structure, a decoder that walked it without a cycle check, and fresh pods dying on first sight of an ordinary event. Direct decoding fixed this service's two-stage path; it does not make the cyclic type safe for jsoniter in general. For a failure like this, the discipline that pays is not profiling skill but the willingness to distrust instrumentation when the failure declines to be observed, and to vary the variable the failure actually depends on. The needle had no time signature — the build was the only clock it answered to.
+	cases := []testCase{
+		{"embed", "jsoniter + anonymous embedded pointer (root cause)", true, ""},
+		{"named", "jsoniter + named recursive pointer (control)", false, decodedLine},
+		{"std", "encoding/json + anonymous embedded pointer (control)", false, decodedLine},
+	}
+	unexpected := 0
+	for _, c := range cases {
+		if !runCase(c) {
+			unexpected++
+		}
+	}
+	fmt.Printf("%d/%d cases behaved as expected\n", len(cases)-unexpected, len(cases))
+	if unexpected > 0 {
+		os.Exit(1)
+	}
+}
+
+// runCase runs one case in a child process, prints what happened, and reports
+// whether the observation matched the expectation. The harness exits non-zero on
+// any mismatch, so it can be used as a test rather than only as a demonstration.
+func runCase(c testCase) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), childTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, os.Args[0])
+	cmd.Env = append(os.Environ(), childEnvVar+"="+c.mode)
+	stdout, stderr := &cappedBuffer{max: captureLimit}, &cappedBuffer{max: captureLimit}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+
+	fmt.Printf("case: %s\n", c.name)
+	start := time.Now()
+	err := cmd.Run()
+	elapsed := time.Since(start)
+
+	timedOut := ctx.Err() != nil
+	crashed := strings.Contains(stderr.String(), "fatal error: stack overflow")
+	switch {
+	case timedOut:
+		fmt.Printf("  result: killed by the %s timeout after %s\n", childTimeout, elapsed.Round(time.Millisecond))
+	case err == nil:
+		fmt.Printf("  result: completed normally in %s\n", elapsed.Round(time.Millisecond))
+	default:
+		fmt.Printf("  result: child exited with code %d after %s\n", exitCode(err), elapsed.Round(time.Millisecond))
+	}
+	if peak := peakRSS(cmd); peak > 0 {
+		fmt.Printf("  child peak RSS: %.1f MiB\n", float64(peak)/(1<<20))
+	}
+	// The first stderr lines name the failure; the repeated describeStruct frames
+	// show where the recursion happens.
+	for _, line := range headLines(stderr.String(), 3) {
+		fmt.Printf("  stderr: %s\n", line)
+	}
+	if n := strings.Count(stderr.String(), "go.describeStruct"); n > 0 {
+		fmt.Printf("  recursing frame: describeStruct — reflect_extension.go:362 (%d frames captured)\n", n)
+	}
+	for _, line := range headLines(stdout.String(), 2) {
+		fmt.Printf("  stdout: %s\n", line)
+	}
+
+	// A truncated capture can hide both the failure text and the decoded values,
+	// so treat it as an inconclusive case instead of a pass.
+	if stdout.truncated || stderr.truncated {
+		fmt.Printf("  verdict: INCONCLUSIVE — capture truncated at %d KiB\n\n", captureLimit>>10)
+		return false
+	}
+	switch {
+	case timedOut:
+		fmt.Printf("  verdict: UNEXPECTED — the child was killed by the timeout\n\n")
+		return false
+	case c.wantCrash && !crashed:
+		fmt.Printf("  verdict: UNEXPECTED — no stack overflow in the child's stderr\n\n")
+		return false
+	case c.wantCrash && crashed:
+		fmt.Printf("  verdict: as expected — the decoder compiles recursively until the stack is gone\n\n")
+		return true
+	case !c.wantCrash && err != nil:
+		fmt.Printf("  verdict: UNEXPECTED — control failed instead of decoding\n\n")
+		return false
+	case !c.wantCrash && !strings.Contains(stdout.String(), c.wantOut):
+		fmt.Printf("  verdict: UNEXPECTED — child stdout lacks %q\n\n", c.wantOut)
+		return false
+	default:
+		fmt.Printf("  verdict: as expected — the control decoded the payload without recursing\n\n")
+		return true
+	}
+}
+
+// runChild performs a single case. The "embed" case never returns.
+func runChild(mode string) {
+	switch mode {
+	case "embed":
+		debug.SetMaxStack(maxStackSize) // safety 1: bound stack growth
+		var v NodeEmbed
+		// Fatal here: jsoniter compiles a decoder for NodeEmbed before reading
+		// any input, and that compilation recurses without a visit guard.
+		_ = jsoniter.Unmarshal(payload, &v)
+		fmt.Println("unreachable: jsoniter did not fail on the embedded cycle")
+		os.Exit(1)
+
+	case "named":
+		debug.SetMaxStack(maxStackSize)
+		var v NodeNamed
+		if err := jsoniter.Unmarshal(payload, &v); err != nil {
+			fmt.Printf("jsoniter named field failed: %v\n", err)
+			os.Exit(errExitCode)
+		}
+		reportDecoded(v.ID, v.Name)
+
+	case "std":
+		// encoding/json walks embedded fields with a visited set, so the cycle
+		// terminates there and the nil embedded pointer is harmless here.
+		var v NodeEmbed
+		if err := json.Unmarshal(payload, &v); err != nil {
+			fmt.Printf("encoding/json returned an error (not fatal): %v\n", err)
+			os.Exit(errExitCode)
+		}
+		reportDecoded(v.ID, v.Name)
+
+	default:
+		fmt.Printf("unknown child mode %q\n", mode)
+		os.Exit(errExitCode)
+	}
+}
+
+// reportDecoded prints the decoded values, and fails the child if the decoder
+// returned without error but produced the wrong fields.
+func reportDecoded(id, name string) {
+	if id != "1" || name != "ev" {
+		fmt.Printf("decoded unexpected values: id=%q name=%q\n", id, name)
+		os.Exit(errExitCode)
+	}
+	fmt.Printf("decoded id=%q name=%q\n", id, name)
+}
+
+// cappedBuffer keeps the first max bytes written and records that it truncated,
+// so a child that emits a large dump cannot grow this process's memory.
+type cappedBuffer struct {
+	buf       bytes.Buffer
+	max       int
+	truncated bool
+}
+
+func (c *cappedBuffer) Write(p []byte) (int, error) {
+	if room := c.max - c.buf.Len(); room > 0 {
+		if len(p) > room {
+			c.buf.Write(p[:room])
+			c.truncated = true
+		} else {
+			c.buf.Write(p)
+		}
+	} else {
+		c.truncated = true
+	}
+	return len(p), nil
+}
+
+func (c *cappedBuffer) String() string { return c.buf.String() }
+
+// peakRSS reports the child's peak resident set size in bytes.
+// Linux reports ru_maxrss in kilobytes; Darwin reports it in bytes.
+func peakRSS(cmd *exec.Cmd) int64 {
+	if cmd.ProcessState == nil {
+		return 0
+	}
+	ru, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)
+	if !ok || ru == nil {
+		return 0
+	}
+	if runtime.GOOS == "linux" {
+		return ru.Maxrss * 1024
+	}
+	return ru.Maxrss
+}
+
+func exitCode(err error) int {
+	if ee, ok := err.(*exec.ExitError); ok {
+		return ee.ExitCode()
+	}
+	return -1
+}
+
+// headLines keeps only the first n non-empty lines of captured output.
+func headLines(s string, n int) []string {
+	var out []string
+	for _, line := range strings.Split(s, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		out = append(out, line)
+		if len(out) == n {
+			break
+		}
+	}
+	return out
+}
+
+func dependencyVersion(path string) string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == path {
+			return dep.Version
+		}
+	}
+	return "unknown"
+}
+```
+
+Observed output (Go 1.24.9, darwin/arm64; timings and pointer values vary per run):
+
+```text
+go=go1.24.9 jsoniter=v1.1.12
+
+case: jsoniter + anonymous embedded pointer (root cause)
+  result: child exited with code 2 after 9ms
+  child peak RSS: 6.9 MiB
+  stderr: runtime: goroutine stack exceeds 1048576-byte limit
+  stderr: runtime: sp=0x14000260360 stack=[0x14000260000, 0x14000360000]
+  stderr: fatal error: stack overflow
+  recursing frame: describeStruct — reflect_extension.go:362 (84 frames captured)
+  verdict: as expected — the decoder compiles recursively until the stack is gone
+
+case: jsoniter + named recursive pointer (control)
+  result: completed normally in 3ms
+  child peak RSS: 4.6 MiB
+  stdout: decoded id="1" name="ev"
+  verdict: as expected — the control decoded the payload without recursing
+
+case: encoding/json + anonymous embedded pointer (control)
+  result: completed normally in 4ms
+  child peak RSS: 4.5 MiB
+  stdout: decoded id="1" name="ev"
+  verdict: as expected — the control decoded the payload without recursing
+
+3/3 cases behaved as expected
+PARENT_EXIT=0
+```
+
+The harness exists because the failure it triggers cannot be handled inside a process:
+
+- **A stack overflow is fatal, and `recover` cannot intercept it.** The failing decode therefore runs in a child process of the same binary, so the parent survives and can report what happened.
+- **The child caps its own stack.** `debug.SetMaxStack(1 << 20)` bounds that goroutine's stack at 1 MiB, so the climb that would otherwise reach the runtime's 1 GB default ends in milliseconds with a peak under 10 MiB. The parent adds a 20 s timeout as a backstop and caps the output it keeps at 64 KiB. These bounds limit the harness's own footprint; they are not a process-wide memory limit.
+- **The parent measures the child's peak RSS**, so the harness's footprint is reported rather than assumed.
+
+The controls carry the argument. The named recursive field and `encoding/json` decode the same payload in about 4 ms at 4.4 MiB; only the anonymous embedded pointer crashes. That is what makes this a property of the codec's traversal rather than of an invalid type: the embedded pointer is legal Go, and another decoder reads it happily. The harness also asserts the outcome of each case and exits non-zero on a mismatch, so the reproduction works as a test rather than only as a demonstration.
+
+## Evidence boundary
+
+The production event model is reconstructed as containing the self-nesting shape; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical. The embedded-pointer cycle driving jsoniter into unbounded decoder compilation is verified against source and controlled reproduction. The production 8 GB observation and the local bounded-stack measurements are separate pieces of evidence.
+
+The sonic comparison is a retrospective check against `v1.14.0`, `v1.14.1`, and `v1.15.4`. With Go `1.24.9` on macOS, amd64 builds decoded the same `NodeEmbed` payload successfully through both the JIT and optimized decoder paths; the API check confirmed sonic's native implementation rather than its `encoding/json` compatibility API. These checks support the source explanation for the reduced case. They do not recover the exact production sonic version or recreate the production runtime.
+
+## Lessons from the investigation
+
+The decisive step was turning an incident with no usable profile into a sequence of testable comparisons. Time-based correlation had not narrowed the search. Build bisection did: it identified a small enough change to trace through the consumer and reduce to a deterministic local failure.
+
+- **Use build comparisons when runtime evidence cannot narrow the search.** A stable build provides a baseline. A suspect build provides a bounded set of changes to investigate. For a sporadic failure, an observation window without a crash is still weaker evidence than a reproduction tied to a specific code path.
+- **Trace the library's actual input.** The envelope and cache decoders were adjacent to the failing path, but the concrete event type reached a separate jsoniter decoder. Following that handoff revealed the type graph the library was compiling. The small payload and recursive `describeStruct` frames then explained how an ordinary event could trigger rapid memory growth.
+- **Validate a replacement against the failure case.** The reduced case remains useful after diagnosis: it tests the behavior that motivated the migration. The retrospective sonic checks show that the same type and payload can decode successfully. Representative event models and decoded values should be part of codec evaluation alongside throughput.
+
+This incident made reflected type graphs part of what I review in a dependency change. A legal Go type can exercise an unguarded traversal inside a library. Testing only payload size, traffic volume, or steady-state throughput would miss a failure during first-use decoder compilation.
+
+The investigation connected a production symptom to a build change, a concrete decode path, and a reproducible library failure. That chain explained why migrating the affected path to sonic addressed the incident, and left a small test that readers can run without recreating the production memory spike.
 
 ---
 
