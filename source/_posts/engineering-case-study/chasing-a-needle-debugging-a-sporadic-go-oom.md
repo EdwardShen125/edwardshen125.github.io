@@ -9,7 +9,7 @@ tags:
   - oom
   - production-debugging
   - event-driven
-description: "A monitoring alert showed a consumer pod pinning 8 GB of memory in under a second, with no pattern to when. Logs, scheduled pprof, and threshold-triggered pprof all missed it. This is the investigation: failed library swaps, a rollback bisection, and a root cause in a JSON library's type compiler."
+description: A Go consumer hit an 8 GB memory limit in under a second. This case study traces the failure through rollback bisection to recursive type compilation in a JSON library.
 seo_image: chasing-a-needle-oom.png
 ---
 
@@ -159,4 +159,4 @@ The bisection named the culprit, removal stopped the bleeding, and the productio
 
 *Previous in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/).* The scheduling center described there is the same platform this incident lived on.
 
-*Next in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/).*
+*Next in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/).*

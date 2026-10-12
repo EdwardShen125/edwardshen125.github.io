@@ -1,5 +1,5 @@
 ---
-title: Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts
+title: Scaling Four Engineers to Eighteen Go Services with Generated Contracts
 date: 2025-10-10 12:00:00
 categories:
  - Engineering Case Study

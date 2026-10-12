@@ -10,7 +10,7 @@ tags:
   - pulsar
   - etcd
   - scheduling
-description: How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed execution commands per second, and what production incidents changed.
+description: How a Go scheduling center used TiDB, etcd, and Pulsar to publish more than 200K delayed jobs per second, and how production incidents reshaped its isolation model.
 seo_image: architecture-c4.png
 ---
 
@@ -226,4 +226,4 @@ I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-
 
 ---
 
-*Next in this series: [Scaling a Four-Engineer Backend to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-a-four-engineer-backend-to-eighteen-go-services-with-generated-contracts/).*
+*Next in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/).*
