@@ -100,321 +100,61 @@ Source references:
 
 ## Reproducing it safely
 
-The failure needs no production traffic and no large message: the type graph alone is enough. The program below reproduces it together with the two controls that separate the trigger from the noise:
-
-```bash
-mkdir oom-demo && cd oom-demo && go mod init oom-demo && go get github.com/json-iterator/go@v1.1.12
-# save the program as main.go, then (Linux or macOS: the harness reads syscall.Rusage):
-go run .
-```
+The failure needs no production traffic and no large message: the type graph alone is enough. The abridged program below shows the types and the three decode cases; the full harness also wraps each case in a child process and asserts the outcomes.
 
 ```go
-// Command oom-demo reproduces the jsoniter decoder-compilation failure from the
-// incident: an anonymous embedded pointer creates a cycle in the type graph, and
-// jsoniter's field walk expands that cycle without tracking visited types, so
-// compiling a decoder for the type recurses until the goroutine stack is gone.
-//
-//	go run .        # runs the three cases and prints a per-case verdict
-//
-// Safety. A stack overflow is a fatal runtime error: recover cannot intercept it,
-// and left unbounded the recursion grows that goroutine's stack to the runtime's
-// default ceiling of 1 GB before the process dies. The failing decode therefore
-// runs in a child process of this same binary, under three bounds:
-//
-//  1. debug.SetMaxStack caps the goroutine stack at maxStackSize, so the crash is
-//     small and fast instead of reaching the runtime default;
-//  2. a context timeout kills the child if it does not die on its own;
-//  3. captured stdout and stderr are capped, so the dump cannot grow the harness.
-//
-// These bounds keep a reduced reproduction small. They are not a process-wide
-// memory limit, and peakRSS uses syscall.Rusage, so the harness runs on Linux and
-// macOS.
-//
-// The payload is deliberately tiny: the failure is a property of the type graph,
-// not of the input, so no large message is needed to trigger it.
+// Abridged from the runnable harness. The full program runs each case in a
+// child process (a stack overflow is fatal; recover cannot intercept it),
+// with a timeout and capped output capture.
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"runtime/debug"
-	"strings"
-	"syscall"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
 )
 
-// NodeEmbed is the reduced production type graph: an anonymous embedded pointer
-// to its own type. jsoniter's describeStruct follows an anonymous embedded struct
-// pointer without recording that the type was already visited, so compiling a
-// decoder for NodeEmbed never terminates.
+// NodeEmbed is the reduced production type graph: an anonymous embedded
+// pointer to its own type. jsoniter's describeStruct follows it without
+// recording visited types, so compiling a decoder never terminates.
 type NodeEmbed struct {
 	*NodeEmbed        // anonymous embedded pointer -> cycle in the type graph
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 }
 
-// NodeNamed is the control for the same cycle expressed as a named field.
-// jsoniter memoizes a placeholder for named recursive fields, so compilation
-// terminates and the type is usable.
+// NodeNamed is the control: the same cycle as a named field. jsoniter
+// memoizes a placeholder decoder for named recursive fields, so compilation
+// terminates.
 type NodeNamed struct {
 	Self *NodeNamed `json:"self,omitempty"` // named pointer -> placeholder decoder
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
 }
 
-const (
-	childEnvVar  = "OOM_DEMO_CHILD"
-	maxStackSize = 1 << 20  // 1 MiB, instead of the runtime default of 1 GB
-	captureLimit = 64 << 10 // 64 KiB of child output; the crash dump is ~26 KiB
-	childTimeout = 20 * time.Second
-	errExitCode  = 3
-	decodedLine  = `decoded id="1" name="ev"`
-)
+// 22 bytes; the crash depends on the type graph, not the input.
+var payload = []byte(`+"`"+`{"id":"1","name":"ev"}`+"`"+`)
 
-// payload is 22 bytes; the crash does not depend on its content, only on the type.
-var payload = []byte(`{"id":"1","name":"ev"}`)
-
-// testCase is one comparison, with the outcome the harness asserts on.
-type testCase struct {
-	mode      string
-	name      string
-	wantCrash bool // true: the child must die of a stack overflow
-	wantOut   string
-}
-
-func main() {
-	// Child mode: run one case in an isolated process so the fatal error cannot
-	// take the parent down with it.
-	if mode := os.Getenv(childEnvVar); mode != "" {
-		runChild(mode)
-		return
-	}
-
-	fmt.Printf("go=%s jsoniter=%s\n", runtime.Version(), dependencyVersion("github.com/json-iterator/go"))
-	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
-		fmt.Println("verdict: UNSUPPORTED platform for the peak-RSS measurement")
-		os.Exit(1)
-	}
-	fmt.Println()
-
-	cases := []testCase{
-		{"embed", "jsoniter + anonymous embedded pointer (root cause)", true, ""},
-		{"named", "jsoniter + named recursive pointer (control)", false, decodedLine},
-		{"std", "encoding/json + anonymous embedded pointer (control)", false, decodedLine},
-	}
-	unexpected := 0
-	for _, c := range cases {
-		if !runCase(c) {
-			unexpected++
-		}
-	}
-	fmt.Printf("%d/%d cases behaved as expected\n", len(cases)-unexpected, len(cases))
-	if unexpected > 0 {
-		os.Exit(1)
-	}
-}
-
-// runCase runs one case in a child process, prints what happened, and reports
-// whether the observation matched the expectation. The harness exits non-zero on
-// any mismatch, so it can be used as a test rather than only as a demonstration.
-func runCase(c testCase) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), childTimeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, os.Args[0])
-	cmd.Env = append(os.Environ(), childEnvVar+"="+c.mode)
-	stdout, stderr := &cappedBuffer{max: captureLimit}, &cappedBuffer{max: captureLimit}
-	cmd.Stdout, cmd.Stderr = stdout, stderr
-
-	fmt.Printf("case: %s\n", c.name)
-	start := time.Now()
-	err := cmd.Run()
-	elapsed := time.Since(start)
-
-	timedOut := ctx.Err() != nil
-	crashed := strings.Contains(stderr.String(), "fatal error: stack overflow")
-	switch {
-	case timedOut:
-		fmt.Printf("  result: killed by the %s timeout after %s\n", childTimeout, elapsed.Round(time.Millisecond))
-	case err == nil:
-		fmt.Printf("  result: completed normally in %s\n", elapsed.Round(time.Millisecond))
-	default:
-		fmt.Printf("  result: child exited with code %d after %s\n", exitCode(err), elapsed.Round(time.Millisecond))
-	}
-	if peak := peakRSS(cmd); peak > 0 {
-		fmt.Printf("  child peak RSS: %.1f MiB\n", float64(peak)/(1<<20))
-	}
-	// The first stderr lines name the failure; the repeated describeStruct frames
-	// show where the recursion happens.
-	for _, line := range headLines(stderr.String(), 3) {
-		fmt.Printf("  stderr: %s\n", line)
-	}
-	if n := strings.Count(stderr.String(), "go.describeStruct"); n > 0 {
-		fmt.Printf("  recursing frame: describeStruct — reflect_extension.go:362 (%d frames captured)\n", n)
-	}
-	for _, line := range headLines(stdout.String(), 2) {
-		fmt.Printf("  stdout: %s\n", line)
-	}
-
-	// A truncated capture can hide both the failure text and the decoded values,
-	// so treat it as an inconclusive case instead of a pass.
-	if stdout.truncated || stderr.truncated {
-		fmt.Printf("  verdict: INCONCLUSIVE — capture truncated at %d KiB\n\n", captureLimit>>10)
-		return false
-	}
-	switch {
-	case timedOut:
-		fmt.Printf("  verdict: UNEXPECTED — the child was killed by the timeout\n\n")
-		return false
-	case c.wantCrash && !crashed:
-		fmt.Printf("  verdict: UNEXPECTED — no stack overflow in the child's stderr\n\n")
-		return false
-	case c.wantCrash && crashed:
-		fmt.Printf("  verdict: as expected — the decoder compiles recursively until the stack is gone\n\n")
-		return true
-	case !c.wantCrash && err != nil:
-		fmt.Printf("  verdict: UNEXPECTED — control failed instead of decoding\n\n")
-		return false
-	case !c.wantCrash && !strings.Contains(stdout.String(), c.wantOut):
-		fmt.Printf("  verdict: UNEXPECTED — child stdout lacks %q\n\n", c.wantOut)
-		return false
-	default:
-		fmt.Printf("  verdict: as expected — the control decoded the payload without recursing\n\n")
-		return true
-	}
-}
-
-// runChild performs a single case. The "embed" case never returns.
 func runChild(mode string) {
+	debug.SetMaxStack(1 << 20) // cap the climb at 1 MiB instead of the runtime's 1 GB
 	switch mode {
 	case "embed":
-		debug.SetMaxStack(maxStackSize) // safety 1: bound stack growth
 		var v NodeEmbed
-		// Fatal here: jsoniter compiles a decoder for NodeEmbed before reading
-		// any input, and that compilation recurses without a visit guard.
+		// Fatal: jsoniter compiles a decoder for NodeEmbed before reading
+		// any input, and the compilation recurses without a visited-type guard.
 		_ = jsoniter.Unmarshal(payload, &v)
-		fmt.Println("unreachable: jsoniter did not fail on the embedded cycle")
-		os.Exit(1)
-
 	case "named":
-		debug.SetMaxStack(maxStackSize)
 		var v NodeNamed
-		if err := jsoniter.Unmarshal(payload, &v); err != nil {
-			fmt.Printf("jsoniter named field failed: %v\n", err)
-			os.Exit(errExitCode)
-		}
-		reportDecoded(v.ID, v.Name)
-
+		_ = jsoniter.Unmarshal(payload, &v) // terminates: named field -> placeholder
 	case "std":
-		// encoding/json walks embedded fields with a visited set, so the cycle
-		// terminates there and the nil embedded pointer is harmless here.
 		var v NodeEmbed
-		if err := json.Unmarshal(payload, &v); err != nil {
-			fmt.Printf("encoding/json returned an error (not fatal): %v\n", err)
-			os.Exit(errExitCode)
-		}
-		reportDecoded(v.ID, v.Name)
-
-	default:
-		fmt.Printf("unknown child mode %q\n", mode)
-		os.Exit(errExitCode)
+		_ = json.Unmarshal(payload, &v) // terminates: visited set ends the walk
 	}
-}
-
-// reportDecoded prints the decoded values, and fails the child if the decoder
-// returned without error but produced the wrong fields.
-func reportDecoded(id, name string) {
-	if id != "1" || name != "ev" {
-		fmt.Printf("decoded unexpected values: id=%q name=%q\n", id, name)
-		os.Exit(errExitCode)
-	}
-	fmt.Printf("decoded id=%q name=%q\n", id, name)
-}
-
-// cappedBuffer keeps the first max bytes written and records that it truncated,
-// so a child that emits a large dump cannot grow this process's memory.
-type cappedBuffer struct {
-	buf       bytes.Buffer
-	max       int
-	truncated bool
-}
-
-func (c *cappedBuffer) Write(p []byte) (int, error) {
-	if room := c.max - c.buf.Len(); room > 0 {
-		if len(p) > room {
-			c.buf.Write(p[:room])
-			c.truncated = true
-		} else {
-			c.buf.Write(p)
-		}
-	} else {
-		c.truncated = true
-	}
-	return len(p), nil
-}
-
-func (c *cappedBuffer) String() string { return c.buf.String() }
-
-// peakRSS reports the child's peak resident set size in bytes.
-// Linux reports ru_maxrss in kilobytes; Darwin reports it in bytes.
-func peakRSS(cmd *exec.Cmd) int64 {
-	if cmd.ProcessState == nil {
-		return 0
-	}
-	ru, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)
-	if !ok || ru == nil {
-		return 0
-	}
-	if runtime.GOOS == "linux" {
-		return ru.Maxrss * 1024
-	}
-	return ru.Maxrss
-}
-
-func exitCode(err error) int {
-	if ee, ok := err.(*exec.ExitError); ok {
-		return ee.ExitCode()
-	}
-	return -1
-}
-
-// headLines keeps only the first n non-empty lines of captured output.
-func headLines(s string, n int) []string {
-	var out []string
-	for _, line := range strings.Split(s, "\n") {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		out = append(out, line)
-		if len(out) == n {
-			break
-		}
-	}
-	return out
-}
-
-func dependencyVersion(path string) string {
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "unknown"
-	}
-	for _, dep := range info.Deps {
-		if dep.Path == path {
-			return dep.Version
-		}
-	}
-	return "unknown"
 }
 ```
 
-Observed output (Go 1.24.9, darwin/arm64; timings and pointer values vary per run):
+Observed output of the full harness (Go 1.24.9, darwin/arm64; , darwin/arm64; timings and pointer values vary per run):
 
 ```text
 go=go1.24.9 jsoniter=v1.1.12
