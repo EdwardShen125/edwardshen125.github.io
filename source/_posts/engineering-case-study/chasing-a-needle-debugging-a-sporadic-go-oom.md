@@ -185,15 +185,11 @@ The sonic comparison is a retrospective check against `v1.14.0`, `v1.14.1`, and 
 
 ## Lessons from the investigation
 
-The decisive step was telling the two incidents apart before anything else. A growth curve that tracks business peaks is an accumulation problem; a flat-to-ceiling spike with no traffic correlation is a single allocation path gone wrong. The first shape was already fixed by the codec migration; conflating the two would have pointed the investigation at the wrong variable. What actually narrowed the search was build bisection: it identified a small enough change to trace through the consumer and reduce to a deterministic local failure.
+- When runtime evidence cannot narrow a sporadic failure, the build is the remaining variable. An observation window without a crash is weak evidence; a build delta is a bounded change set that can be traced and reduced.
+- A codec swap tests one path, not the codec. The cache-path swap could not reach the typed decode; only the SDK builds could step through the remaining paths — that asymmetry, not codec preference, chose the method.
+- A legal Go type can exercise an unguarded traversal inside a library, and first-use decoder compilation happens before any input is read — so payload size, traffic volume, and throughput benchmarks cannot see the failure class. Representative type graphs can.
 
-- Use build comparisons when runtime evidence cannot narrow the search: a stable build is a baseline, a suspect build is a bounded change set, and an observation window without a crash is weaker than a reproduction tied to a code path.
-- Trace the library's actual input. The envelope and cache decoders sat next to the failing path, but the concrete event type reached a separate jsoniter decoder; following that handoff revealed the type graph the library was compiling.
-- Validate a replacement against the failure case. The retrospective sonic checks show the same type and payload decoding successfully — representative event models belong in codec evaluation alongside throughput.
-
-This incident made reflected type graphs part of what I review in a dependency change. A legal Go type can exercise an unguarded traversal inside a library. Testing only payload size, traffic volume, or steady-state throughput would miss a failure during first-use decoder compilation.
-
-The investigation connected a production symptom to a build change, a concrete decode path, and a reproducible library failure — and drew the line between the two incidents cleanly enough that the first fix survived the second crisis: jsoniter kept the paths it had stabilized, and only the typed path moved. That chain reduced the incident to a three-case comparison that carries the argument without recreating the production memory spike.
+This incident made reflected type graphs part of what I review in a dependency change.
 
 ---
 
