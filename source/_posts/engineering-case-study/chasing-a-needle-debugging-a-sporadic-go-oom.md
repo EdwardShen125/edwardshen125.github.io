@@ -58,7 +58,7 @@ The production OOM stopped with the migration and never recurred through the mon
 
 ## The mechanism, reconstructed
 
-`NodeEmbed` below is a reduced reproduction of that type graph, not a claim that every production field was identical; the evidence boundary section separates what was observed from what was reconstructed.
+The production event model is reconstructed as containing that shape; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical.
 
 jsoniter [compiles a decoder on first use](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72), before decoding the first byte. Named recursive fields are bounded by jsoniter's [placeholder decoder](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145). An anonymous embedded pointer takes a different path: [`describeStruct` recursively expands the embedded struct](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373) without a visited-type guard. The [decode depth limit](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338) is downstream and cannot protect a process that dies while compiling the decoder.
 
@@ -85,7 +85,7 @@ The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12`
 
 The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239). The same domain shape crossed this boundary daily (upstream services serialized those events with `encoding/json`), and it was only the consumer's jsoniter compilation that died on it.
 
-Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver [delegates to `encoding/json.typeFields`](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51); in `v1.14.1` and `v1.15.4`, it performs that traversal locally [with a visited-type map](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75). Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized decoder compilers [track types already being compiled](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609) and handle recursive fields without repeatedly expanding their decoders. For this `NodeEmbed` case, the field-resolution guard is the relevant protection.
+Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver [delegates to `encoding/json.typeFields`](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51); in `v1.14.1` and `v1.15.4`, it performs that traversal locally [with a visited-type map](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75). Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized decoder compilers [track types already being compiled](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609) and handle recursive fields without repeatedly expanding their decoders. For this `NodeEmbed` case, the field-resolution guard is the relevant protection. These are retrospective checks against `v1.14.0`, `v1.14.1`, and `v1.15.4` (Go `1.24.9`, macOS, JIT and optimized decoder paths both decoding the payload); they verify the reduced case, not the production sonic version or runtime.
 
 ## Reproducing it safely
 
@@ -176,12 +176,6 @@ The full harness exists because a stack overflow is fatal — `recover` cannot i
 - **The parent measures the child's peak RSS**, so the harness's footprint is reported rather than assumed.
 
 The controls carry the argument: the named recursive field and `encoding/json` decode the same payload in about 4 ms at 4.4 MiB, and only the anonymous embedded pointer crashes. The embedded pointer is legal Go and another decoder reads it happily — the failure is a property of the codec's traversal, not of an invalid type. The harness asserts each outcome and exits non-zero on a mismatch, so it works as a test, not only a demonstration.
-
-## Evidence boundary
-
-The production event model is reconstructed as containing the self-nesting shape; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical. The embedded-pointer cycle driving jsoniter into unbounded decoder compilation is verified against source and controlled reproduction. The production 8 GB observation and the local bounded-stack measurements are separate pieces of evidence.
-
-The sonic comparison is a retrospective check against `v1.14.0`, `v1.14.1`, and `v1.15.4` (Go `1.24.9`, macOS): the same `NodeEmbed` payload decoded successfully through both the JIT and optimized decoder paths, confirming sonic's native implementation. These checks support the source explanation for the reduced case; they do not recover the production sonic version or runtime.
 
 ## Lessons from the investigation
 
