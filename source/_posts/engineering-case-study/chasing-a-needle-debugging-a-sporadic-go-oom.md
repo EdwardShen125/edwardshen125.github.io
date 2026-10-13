@@ -25,6 +25,17 @@ The consumer decoded each message in two stages: the event SDK decoded the envel
 
 This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a different change reached the subscription layer: it introduced a typed event model and moved the stage-two typed decode onto the jsoniter I had just put in place. The alerts that followed were the spike this article is about: flat to ceiling in under a second, tied to no traffic pattern. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
 
+The two changes left the service with four decode paths running jsoniter:
+
+| Decode path | jsoniter arrived via | how its codec could be changed |
+| --- | --- | --- |
+| Event envelope (stage one) | my March 7 migration | SDK dependency swap |
+| Cache | my March 7 migration | SDK dependency swap |
+| Executor SDK | my March 7 migration | SDK dependency swap |
+| Typed event model (stage two) | the later change | only by shipping an SDK build |
+
+The first three were dependency pins — swappable one at a time. The fourth was subscription-layer business code, and it shipped only inside the event SDK's builds. That distinction decided how the suspicion could be tested, and later how the failure was isolated.
+
 ## What the failing instrumentation could not see
 
 Four standard instruments were considered:
@@ -38,9 +49,9 @@ All four assumed the process would survive long enough to leave evidence. This f
 
 ## The codec suspicion
 
-The most recent decode-path change was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path. The OOM recurred within a day; I rolled sonic back the next morning.
+The most recent decode-path change was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path — a dependency swap. The typed decode, business code inside the SDK builds, was beyond that kind of swap and stayed on jsoniter. The OOM recurred within a day; I rolled sonic back the next morning.
 
-That cleared the cache path only. The swap had touched none of the other paths jsoniter ran on — and the root cause sat on one of them, the typed decode the second change had wired onto jsoniter. A codec swap cannot step through paths one at a time; a build bisection can. I stopped swapping libraries and started one, treating the recent decode-path changes as a single bundled delta.
+That cleared the cache path only: jsoniter still ran on the envelope, the executor SDK, and the typed decode, and the root cause sat on the last of those. No dependency swap could step through those paths one at a time; stepping the SDK builds could. I stopped swapping libraries and started bisecting builds, treating the recent decode-path changes as a single bundled delta.
 
 ## The bisection
 
