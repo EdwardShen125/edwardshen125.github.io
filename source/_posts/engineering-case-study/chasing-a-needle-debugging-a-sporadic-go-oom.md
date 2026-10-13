@@ -60,7 +60,7 @@ The production OOM stopped with the migration and never recurred through the mon
 
 The production event model is reconstructed as containing the self-nesting structure; `NodeEmbed` is a reduced reproduction, not a claim that every field was identical. The 8 GB ceiling and sub-second jump are production observations; the local reproduction, with its bounded stack, is separate evidence.
 
-jsoniter compiles a decoder on first use, before decoding the first byte. Named recursive fields are bounded by jsoniter's placeholder decoder. An anonymous embedded pointer takes a different path: `describeStruct` recursively expands the embedded struct without a visited-type guard. The decode depth limit is downstream and cannot protect a process that dies while compiling the decoder.
+jsoniter [compiles a decoder on first use](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72), before decoding the first byte. Named recursive fields are bounded by jsoniter's [placeholder decoder](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145). An anonymous embedded pointer takes a different path: [`describeStruct` recursively expands the embedded struct](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373) without a visited-type guard. The [decode depth limit](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338) is downstream and cannot protect a process that dies while compiling the decoder.
 
 ```go
 // jsoniter v1.1.12, reflect_extension.go:348-373, abridged
@@ -83,20 +83,9 @@ type NodeEmbed struct {
 
 The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12`. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Leaving the unused `Name` field out of the payload does not change the outcome either. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it; that measurement describes the failure shape, not the production 8 GB RSS.
 
-The standard library uses a visited map when resolving fields. The same domain shape crossed this boundary daily (upstream services serialized those events with `encoding/json`), and it was only the consumer's jsoniter compilation that died on it.
+The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239). The same domain shape crossed this boundary daily (upstream services serialized those events with `encoding/json`), and it was only the consumer's jsoniter compilation that died on it.
 
-Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver delegates to `encoding/json.typeFields`; in `v1.14.1` and `v1.15.4`, it performs that traversal locally with a visited-type map. Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized decoder compilers track types already being compiled and handle recursive fields without repeatedly expanding their decoders. For this `NodeEmbed` case, the field-resolution guard is the relevant protection.
-
-Source references:
-
-- jsoniter v1.1.12 `reflect_extension.go:348-373` — [embedded-pointer branch](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373)
-- jsoniter v1.1.12 `reflect.go:62-72` — [decoder cache lookup](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72)
-- jsoniter v1.1.12 `reflect.go:135-145` — [placeholder memoization](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145)
-- jsoniter v1.1.12 `iter.go:331-338` — [decode depth guard](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338)
-- Go 1.18 `encoding/json/encode.go:1235-1239` — [visited-field guard](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239)
-- sonic v1.14.0 `internal/resolver/stubs_latest.go:49-51` — [delegation to standard-library field resolution](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51)
-- sonic v1.14.1 `internal/resolver/fields.go:49-75` — [visited-type guard for embedded fields](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75)
-- sonic v1.14.0 `internal/decoder/jitdec/compiler.go:595-609` — [decoder recursion table](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609)
+Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver [delegates to `encoding/json.typeFields`](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51); in `v1.14.1` and `v1.15.4`, it performs that traversal locally [with a visited-type map](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75). Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized decoder compilers [track types already being compiled](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609) and handle recursive fields without repeatedly expanding their decoders. For this `NodeEmbed` case, the field-resolution guard is the relevant protection.
 
 ## Reproducing it safely
 
