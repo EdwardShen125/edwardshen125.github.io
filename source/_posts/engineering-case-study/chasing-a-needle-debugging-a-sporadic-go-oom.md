@@ -31,12 +31,12 @@ The two changes left the service with four decode paths running jsoniter: the ev
 
 Four standard instruments were considered:
 
-- **Logs** left no useful clue. The triggering events were ordinary, and the process died before the consumer could record its state.
-- **Scheduled pprof** sampled too infrequently to catch an unpredictable sub-second spike.
-- **Threshold-triggered pprof** both produced false positives from normal allocation and could miss a jump between polling intervals.
-- **Core dumps** could not help with the dominant failure mode: the memory-limit kill sent `SIGKILL` before a core could be written.
+- **Logs**: the triggering events were ordinary, and the process died before the consumer could record its state.
+- **Scheduled pprof** sampled too infrequently to catch a sub-second spike.
+- **Threshold-triggered pprof** threw false positives from normal allocation and could still miss a jump between polls.
+- **Core dumps**: the memory-limit kill sent `SIGKILL` before a core could be written.
 
-All four assumed the process would survive long enough to leave evidence. This failure did not. After a week, the failure had no time signature: it was indexed by something other than time, and what it most plausibly indexed was the set of recent changes on the decode path, which only the build could step through one at a time.
+All four needed the process to survive long enough to leave evidence; this one did not. After a week it had no time signature — it was indexed by something other than time, and what it most plausibly indexed was the set of recent changes on the decode path, which only the build could step through one at a time.
 
 ## The codec suspicion
 
@@ -46,19 +46,19 @@ That cleared the cache path only: jsoniter still ran on the envelope, the execut
 
 ## The bisection
 
-On March 12 I rolled the service back to the last known stable build and bisected the incident delta, using one staged deploy and observation window per step, for eight days across eight rollbacks. The builds in the search stepped the internal event SDK between versions that carried the typed-event change and versions that did not (SDK versions — jsoniter itself never moved during the bisection). The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together in those builds, so stepping it moved the nested-structure change in and out of the process.
+On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The builds stepped the internal event SDK between versions that carried the typed-event change and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the nested-structure change in and out of the process.
 
-The bisection isolated the build delta that introduced the typed event model onto the jsoniter decode path my migration had put in place. I then traced that delta through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them again, and the unmarshal half was where jsoniter, unguarded, compiled a decoder for the concrete event model. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `NodeEmbed` case reproduced that failure mechanism locally.
+The bisection isolated the typed-event build delta. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete event model, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `NodeEmbed` case reproduced it locally.
 
 **The newest published jsoniter release still reproduced the failure** — `v1.1.12`, the version the service had pinned. The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. The `interface{}` round trip was part of the path that exposed it in this service. Neither change was wrong alone; the March 7 migration had held memory down for days, and the nested type was legal Go.
 
-I therefore evaluated alternative codecs and moved the affected typed-event decode path to sonic, and only that path. The jsoniter migration kept the win it had already delivered: the envelope and cache decodes stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control below demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event model at once.
+I moved the affected typed-event decode path to sonic, and only that path. The jsoniter migration kept the win it had already delivered: the envelope and cache decodes stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control below demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event model at once.
 
 The production OOM stopped with the migration and never recurred through the months that followed, while the service kept running until I left the company. The type graph itself remained unchanged; sonic handled the embedded cycle without unbounded field expansion. The source comparison below explains that difference.
 
 ## The mechanism, reconstructed
 
-The production event model is reconstructed as containing the self-nesting structure; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical. The 8 GB ceiling and sub-second jump are production observations. The local reproduction verifies the mechanism and failure location, while its bounded stack settings are separate from the production RSS measurement.
+The production event model is reconstructed as containing the self-nesting structure; `NodeEmbed` is a reduced reproduction, not a claim that every field was identical. The 8 GB ceiling and sub-second jump are production observations; the local reproduction, with its bounded stack, is separate evidence.
 
 jsoniter compiles a decoder on first use, before decoding the first byte. Named recursive fields are bounded by jsoniter's placeholder decoder. An anonymous embedded pointer takes a different path: `describeStruct` recursively expands the embedded struct without a visited-type guard. The decode depth limit is downstream and cannot protect a process that dies while compiling the decoder.
 
@@ -450,21 +450,21 @@ The harness exists because the failure it triggers cannot be handled inside a pr
 - **The child caps its own stack.** `debug.SetMaxStack(1 << 20)` bounds that goroutine's stack at 1 MiB, so the climb that would otherwise reach the runtime's 1 GB default ends in milliseconds with a peak under 10 MiB. The parent adds a 20 s timeout as a backstop and caps the output it keeps at 64 KiB. These bounds limit the harness's own footprint; they are not a process-wide memory limit.
 - **The parent measures the child's peak RSS**, so the harness's footprint is reported rather than assumed.
 
-The controls carry the argument. The named recursive field and `encoding/json` decode the same payload in about 4 ms at 4.4 MiB; only the anonymous embedded pointer crashes. That is what makes this a property of the codec's traversal rather than of an invalid type: the embedded pointer is legal Go, and another decoder reads it happily. The harness also asserts the outcome of each case and exits non-zero on a mismatch, so the reproduction works as a test rather than only as a demonstration.
+The controls carry the argument: the named recursive field and `encoding/json` decode the same payload in about 4 ms at 4.4 MiB, and only the anonymous embedded pointer crashes. The embedded pointer is legal Go and another decoder reads it happily — the failure is a property of the codec's traversal, not of an invalid type. The harness asserts each outcome and exits non-zero on a mismatch, so it works as a test, not only a demonstration.
 
 ## Evidence boundary
 
 The production event model is reconstructed as containing the self-nesting shape; `NodeEmbed` is a reduced reproduction, not a claim that every production field was identical. The embedded-pointer cycle driving jsoniter into unbounded decoder compilation is verified against source and controlled reproduction. The production 8 GB observation and the local bounded-stack measurements are separate pieces of evidence.
 
-The sonic comparison is a retrospective check against `v1.14.0`, `v1.14.1`, and `v1.15.4`. With Go `1.24.9` on macOS, amd64 builds decoded the same `NodeEmbed` payload successfully through both the JIT and optimized decoder paths; the API check confirmed sonic's native implementation rather than its `encoding/json` compatibility API. These checks support the source explanation for the reduced case. They do not recover the exact production sonic version or recreate the production runtime.
+The sonic comparison is a retrospective check against `v1.14.0`, `v1.14.1`, and `v1.15.4` (Go `1.24.9`, macOS): the same `NodeEmbed` payload decoded successfully through both the JIT and optimized decoder paths, confirming sonic's native implementation. These checks support the source explanation for the reduced case; they do not recover the production sonic version or runtime.
 
 ## Lessons from the investigation
 
 The decisive step was telling the two incidents apart before anything else. A growth curve that tracks business peaks is an accumulation problem; a flat-to-ceiling spike with no traffic correlation is a single allocation path gone wrong. The first shape was already fixed by the codec migration; conflating the two would have pointed the investigation at the wrong variable. What actually narrowed the search was build bisection: it identified a small enough change to trace through the consumer and reduce to a deterministic local failure.
 
-- Use build comparisons when runtime evidence cannot narrow the search. A stable build provides a baseline. A suspect build provides a bounded set of changes to investigate. For a sporadic failure, an observation window without a crash is still weaker evidence than a reproduction tied to a specific code path.
-- Trace the library's actual input. The envelope and cache decoders were adjacent to the failing path, but the concrete event type reached a separate jsoniter decoder. Following that handoff revealed the type graph the library was compiling. The small payload and recursive `describeStruct` frames then explained how an ordinary event could trigger rapid memory growth.
-- Validate a replacement against the failure case. The reduced case remains useful after diagnosis: it tests the behavior that motivated the migration. The retrospective sonic checks show that the same type and payload can decode successfully. Representative event models and decoded values should be part of codec evaluation alongside throughput.
+- Use build comparisons when runtime evidence cannot narrow the search: a stable build is a baseline, a suspect build is a bounded change set, and an observation window without a crash is weaker than a reproduction tied to a code path.
+- Trace the library's actual input. The envelope and cache decoders sat next to the failing path, but the concrete event type reached a separate jsoniter decoder; following that handoff revealed the type graph the library was compiling.
+- Validate a replacement against the failure case. The retrospective sonic checks show the same type and payload decoding successfully — representative event models belong in codec evaluation alongside throughput.
 
 This incident made reflected type graphs part of what I review in a dependency change. A legal Go type can exercise an unguarded traversal inside a library. Testing only payload size, traffic volume, or steady-state throughput would miss a failure during first-use decoder compilation.
 
