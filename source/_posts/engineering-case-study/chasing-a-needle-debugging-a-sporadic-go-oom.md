@@ -40,9 +40,9 @@ All four needed the process to survive long enough to leave evidence; this one d
 
 ## The codec suspicion
 
-The most recent decode-path change was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path — a dependency swap. The typed decode, business code inside the SDK builds, was beyond that kind of swap and stayed on jsoniter. The OOM recurred within a day; I rolled sonic back the next morning.
+The decode-path change I knew about was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path — a dependency swap. The typed decode, business code inside the SDK builds, was beyond that kind of swap and stayed on jsoniter. The OOM recurred within a day; I rolled sonic back the next morning.
 
-That cleared the cache path only: jsoniter still ran on the envelope, the executor SDK, and the typed decode, and the root cause sat on the last of those. No dependency swap could step through those paths one at a time; stepping the SDK builds could. I stopped swapping libraries and started bisecting builds, treating the recent decode-path changes as a single bundled delta.
+That cleared the cache path only: jsoniter still ran on the envelope, the executor SDK, and the typed decode, and the root cause sat on the last of those. No dependency swap could reach the remaining paths; stepping the SDK builds could. I stopped swapping libraries and started bisecting builds, treating the recent decode-path changes as a single bundled delta.
 
 ## The bisection
 
@@ -58,7 +58,7 @@ The production OOM stopped with the migration and never recurred through the mon
 
 ## The mechanism, reconstructed
 
-The production event model is reconstructed as containing the self-nesting structure; `NodeEmbed` is a reduced reproduction, not a claim that every field was identical. The 8 GB ceiling and sub-second jump are production observations; the local reproduction, with its bounded stack, is separate evidence.
+`NodeEmbed` below is a reduced reproduction of that type graph, not a claim that every production field was identical; the evidence boundary section separates what was observed from what was reconstructed.
 
 jsoniter [compiles a decoder on first use](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72), before decoding the first byte. Named recursive fields are bounded by jsoniter's [placeholder decoder](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145). An anonymous embedded pointer takes a different path: [`describeStruct` recursively expands the embedded struct](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373) without a visited-type guard. The [decode depth limit](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338) is downstream and cannot protect a process that dies while compiling the decoder.
 
@@ -89,12 +89,11 @@ Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, i
 
 ## Reproducing it safely
 
-The failure needs no production traffic and no large message: the type graph alone is enough. The abridged program below shows the types and the three decode cases; the full harness also wraps each case in a child process and asserts the outcomes.
+The failure needs no production traffic and no large message: the type graph alone is enough. The abridged program below shows the types and the three decode cases.
 
 ```go
-// Abridged from the runnable harness. The full program runs each case in a
-// child process (a stack overflow is fatal; recover cannot intercept it),
-// with a timeout and capped output capture.
+// Abridged from the runnable harness; the full program isolates each case
+// in a child process, with a timeout and capped output capture.
 package main
 
 import (
@@ -123,7 +122,7 @@ type NodeNamed struct {
 }
 
 // 22 bytes; the crash depends on the type graph, not the input.
-var payload = []byte(`+"`"+`{"id":"1","name":"ev"}`+"`"+`)
+var payload = []byte(`{"id":"1","name":"ev"}`) // 22 bytes
 
 func runChild(mode string) {
 	debug.SetMaxStack(1 << 20) // cap the climb at 1 MiB instead of the runtime's 1 GB
@@ -143,7 +142,7 @@ func runChild(mode string) {
 }
 ```
 
-Observed output of the full harness (Go 1.24.9, darwin/arm64; , darwin/arm64; timings and pointer values vary per run):
+Observed output of the full harness (Go 1.24.9, darwin/arm64; timings and pointer values vary per run):
 
 ```text
 go=go1.24.9 jsoniter=v1.1.12
@@ -170,12 +169,9 @@ case: encoding/json + anonymous embedded pointer (control)
   verdict: as expected — the control decoded the payload without recursing
 
 3/3 cases behaved as expected
-PARENT_EXIT=0
 ```
 
-The harness exists because the failure it triggers cannot be handled inside a process:
-
-- **A stack overflow is fatal, and `recover` cannot intercept it.** The failing decode therefore runs in a child process of the same binary, so the parent survives and can report what happened.
+The full harness exists because a stack overflow is fatal — `recover` cannot intercept it — so each case runs in a child process of the same binary and the parent survives to report:
 - **The child caps its own stack.** `debug.SetMaxStack(1 << 20)` bounds that goroutine's stack at 1 MiB, so the climb that would otherwise reach the runtime's 1 GB default ends in milliseconds with a peak under 10 MiB. The parent adds a 20 s timeout as a backstop and caps the output it keeps at 64 KiB. These bounds limit the harness's own footprint; they are not a process-wide memory limit.
 - **The parent measures the child's peak RSS**, so the harness's footprint is reported rather than assumed.
 
@@ -197,7 +193,7 @@ The decisive step was telling the two incidents apart before anything else. A gr
 
 This incident made reflected type graphs part of what I review in a dependency change. A legal Go type can exercise an unguarded traversal inside a library. Testing only payload size, traffic volume, or steady-state throughput would miss a failure during first-use decoder compilation.
 
-The investigation connected a production symptom to a build change, a concrete decode path, and a reproducible library failure — and drew the line between the two incidents cleanly enough that the first fix survived the second crisis: jsoniter kept the paths it had stabilized, and only the typed path moved. That chain left a small test that readers can run without recreating the production memory spike.
+The investigation connected a production symptom to a build change, a concrete decode path, and a reproducible library failure — and drew the line between the two incidents cleanly enough that the first fix survived the second crisis: jsoniter kept the paths it had stabilized, and only the typed path moved. That chain reduced the incident to a three-case comparison that carries the argument without recreating the production memory spike.
 
 ---
 
