@@ -38,9 +38,9 @@ All four assumed the process would survive long enough to leave evidence. This f
 
 ## The codec suspicion
 
-The most recent decode-path change was jsoniter itself, my own March 7 migration. When a failure appears days after my own change to a subsystem, that change is the first suspect, so that is where the investigation started. On March 11 I tested the suspicion directly: swap jsoniter for sonic on the cache path, one of the paths my migration had touched. If the trigger lived there, the swap should have stopped it. The OOM recurred within a day; I rolled sonic back the next morning.
+The most recent decode-path change was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path. The OOM recurred within a day; I rolled sonic back the next morning.
 
-The result was narrower than it looked, and reading it carelessly would have gone wrong twice. It did clear the cache path — that decode was now a different codec, and the failure was unchanged. It did not clear jsoniter: the swap had touched none of the other paths jsoniter ran on, so the codec remained a suspect everywhere I had not reached. And the eventual root cause lay on exactly such a path — the typed decode inside the subscription layer, which the second change had wired onto jsoniter without my migration ever covering it. What a codec swap could not do was step through those paths one at a time. A build bisection could, so I stopped swapping libraries and started one, treating the recent decode-path changes as a single bundled delta to trace and reproduce.
+That cleared the cache path only. The swap had touched none of the other paths jsoniter ran on — and the root cause sat on one of them, the typed decode the second change had wired onto jsoniter. A codec swap cannot step through paths one at a time; a build bisection can. I stopped swapping libraries and started one, treating the recent decode-path changes as a single bundled delta.
 
 ## The bisection
 
