@@ -25,16 +25,7 @@ The consumer decoded each message in two stages: the event SDK decoded the envel
 
 This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a different change reached the subscription layer: it introduced a typed event model and moved the stage-two typed decode onto the jsoniter I had just put in place. The alerts that followed were the spike this article is about: flat to ceiling in under a second, tied to no traffic pattern. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
 
-The two changes left the service with four decode paths running jsoniter:
-
-| Decode path | jsoniter arrived via | how its codec could be changed |
-| --- | --- | --- |
-| Event envelope (stage one) | my March 7 migration | SDK dependency swap |
-| Cache | my March 7 migration | SDK dependency swap |
-| Executor SDK | my March 7 migration | SDK dependency swap |
-| Typed event model (stage two) | the later change | only by shipping an SDK build |
-
-The first three were dependency pins — swappable one at a time. The fourth was subscription-layer business code, and it shipped only inside the event SDK's builds. That distinction decided how the suspicion could be tested, and later how the failure was isolated.
+The two changes left the service with four decode paths running jsoniter: the event envelope, the cache, an executor SDK — all three from my migration — and the stage-two typed decode, from the later change. The first three were dependency pins, swappable one at a time. The typed decode was subscription-layer business code and shipped only inside the event SDK's builds. That distinction decided how the suspicion could be tested, and later how the failure was isolated.
 
 ## What the failing instrumentation could not see
 
