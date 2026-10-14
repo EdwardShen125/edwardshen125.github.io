@@ -15,7 +15,7 @@ seo_image: chasing-a-needle-oom.png
 
 The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar hit its 8 GB limit and restarted; memory went from flat to the ceiling in under a second, with no correlation to traffic or time of day, and the events involved were ordinary.
 
-The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept coming for over a week before the cause was found: at least one pod lost per day, three or four on the worst days, and none of the standard instruments captured why.
+The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept coming for over a week: at least one pod lost per day, three or four on the worst days, and none of the standard instruments captured why.
 
 <!-- more -->
 
@@ -46,11 +46,11 @@ That cleared the cache path only: jsoniter still ran on the envelope, the execut
 
 ## The bisection
 
-On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The builds stepped the internal event SDK between versions that carried the new concrete event type and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the new event type in and out of the process.
+On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The rollback gave a baseline to bisect from, not an answer by itself: with at least one pod lost per day, a quiet window was weak evidence, and the delta still had to be narrowed to its cause. The builds stepped the internal event SDK between versions that carried the new concrete event type and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the new event type in and out of the process.
 
 The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete Go event type, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `NodeEmbed` case reproduced it locally.
 
-**The newest published jsoniter release still reproduced the failure** — `v1.1.12`, the version the service had pinned. The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. The `interface{}` round trip was part of the path that exposed it in this service. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
+The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. The `interface{}` round trip was part of the path that exposed it in this service. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
 
 I moved the affected typed event decode path to sonic, and only that path. The jsoniter migration kept the win it had already delivered: the envelope and cache decodes stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control below demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event type at once.
 
@@ -81,7 +81,7 @@ type NodeEmbed struct {
 // → fatal error: stack overflow
 ```
 
-The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12`. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Leaving the unused `Name` field out of the payload does not change the outcome. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it; that measurement describes the failure shape, not the production 8 GB RSS.
+The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12` — the newest published release, and the version the service had pinned. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Leaving the unused `Name` field out of the payload does not change the outcome. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it. The reduced case reproduces the failure's shape, not the production 8 GB RSS.
 
 The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239). The same domain shape crossed the service boundary daily (upstream services serialized those events with `encoding/json`), and it was only the consumer's jsoniter compilation that died on it.
 
@@ -89,93 +89,188 @@ Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, i
 
 ## Reproducing it safely
 
-No production traffic and no large message is needed — the type graph alone triggers it. The abridged program below shows the types and the three decode cases.
+No production traffic and no large message is needed: the type graph alone triggers it. Copy the program below into `main.go` and run it.
+
+```bash
+mkdir oom-demo && cd oom-demo
+go mod init oom-demo
+go get github.com/json-iterator/go@v1.1.12
+# save the program below as main.go, then:
+go run .
+```
 
 ```go
-// Abridged from the runnable harness; the full program isolates each case
-// in a child process, with a timeout and capped output capture.
+// Command oom-demo reproduces the failure described in "Chasing a Needle:
+// Debugging a Sporadic Go OOM That Left No Trace": jsoniter compiling a decoder
+// for a type graph that contains an anonymous embedded-pointer cycle.
+//
+// A stack overflow is fatal — recover() cannot catch it — so each case runs in
+// a child process of this same binary, and the parent survives to report it.
+//
+// Safety: the child caps its goroutine stack at 1 MiB instead of the runtime's
+// 1 GB default, and the parent kills a child that hangs after 20 s. These bounds
+// limit this program's own footprint; they are not a process-wide memory limit.
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
 	"runtime/debug"
+	"strings"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 )
 
-// NodeEmbed is the reduced production type graph: an anonymous embedded
-// pointer to its own type. jsoniter's describeStruct follows it without
-// recording visited types, so compiling a decoder never terminates.
+const (
+	childModeEnv = "OOM_DEMO_CHILD" // set in the child so main() runs one case
+	maxStackSize = 1 << 20          // 1 MiB, instead of the runtime's 1 GB default
+	childTimeout = 20 * time.Second // backstop for a child that hangs
+)
+
+// NodeEmbed is the reduced production type graph: an anonymous embedded pointer
+// to its own type. jsoniter's describeStruct follows it without recording
+// visited types, so compiling a decoder never terminates.
 type NodeEmbed struct {
 	*NodeEmbed        // anonymous embedded pointer -> cycle in the type graph
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 }
 
-// NodeNamed is the control: the same cycle as a named field. jsoniter
-// memoizes a placeholder decoder for named recursive fields, so compilation
-// terminates.
+// NodeNamed is the control: the same cycle as a named field. jsoniter memoizes a
+// placeholder decoder for named recursive fields, so compilation terminates.
 type NodeNamed struct {
 	Self *NodeNamed `json:"self,omitempty"` // named pointer -> placeholder decoder
 	ID   string     `json:"id"`
 	Name string     `json:"name"`
 }
 
-// 22 bytes; the crash depends on the type graph, not the input.
+// payload is 22 bytes; the crash depends on the type graph, not on the input.
 var payload = []byte(`{"id":"1","name":"ev"}`)
 
+func main() {
+	// Child mode: run one decode case in an isolated process.
+	if mode := os.Getenv(childModeEnv); mode != "" {
+		runChild(mode)
+		return
+	}
+
+	failed := false
+	for _, c := range []struct {
+		name      string
+		mode      string
+		wantCrash bool
+	}{
+		{"jsoniter + anonymous embedded pointer (root cause)", "embed", true},
+		{"jsoniter + named recursive pointer (control)", "named", false},
+		{"encoding/json + anonymous embedded pointer (control)", "std", false},
+	} {
+		if !runCase(c.name, c.mode, c.wantCrash) {
+			failed = true
+		}
+	}
+	if failed {
+		os.Exit(1)
+	}
+	fmt.Println("all cases behaved as expected")
+}
+
+// runCase runs one case in a child process and reports whether the observed
+// outcome matched the expectation. The child's output is discarded: a crash dump
+// is the same frame repeated, and all the parent needs is how the child ended.
+func runCase(name, mode string, wantCrash bool) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), childTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, os.Args[0])
+	cmd.Env = append(os.Environ(), childModeEnv+"="+mode)
+	stdout, stderr := &strings.Builder{}, &strings.Builder{}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+
+	fmt.Printf("case: %s\n", name)
+	start := time.Now()
+	err := cmd.Run()
+	elapsed := time.Since(start).Round(time.Millisecond)
+
+	crashed := strings.Contains(stderr.String(), "fatal error: stack overflow")
+	switch {
+	case ctx.Err() == context.DeadlineExceeded:
+		fmt.Printf("  result: killed by the %s timeout\n", childTimeout)
+		fmt.Printf("  verdict: UNEXPECTED — neither the crash nor a decode in time\n\n")
+		return false
+	case wantCrash && crashed:
+		fmt.Printf("  result: fatal error: stack overflow after %s\n", elapsed)
+		fmt.Printf("  verdict: as expected — the decoder compiles recursively until the stack is gone\n\n")
+		return true
+	case wantCrash:
+		fmt.Printf("  result: no stack overflow (%v)\n", err)
+		fmt.Printf("  verdict: UNEXPECTED — the failure did not reproduce\n\n")
+		return false
+	case crashed:
+		fmt.Printf("  result: the control crashed\n")
+		fmt.Printf("  verdict: UNEXPECTED — decoding the payload must not recurse\n\n")
+		return false
+	case err != nil || !strings.Contains(stdout.String(), "decoded"):
+		fmt.Printf("  result: the control did not decode (%v)\n", err)
+		fmt.Printf("  verdict: UNEXPECTED\n\n")
+		return false
+	default:
+		fmt.Printf("  result: %s in %s\n", strings.TrimSpace(stdout.String()), elapsed)
+		fmt.Printf("  verdict: as expected — the control decoded the payload without recursing\n\n")
+		return true
+	}
+}
+
+// runChild performs one case. The "embed" case never returns.
 func runChild(mode string) {
-	debug.SetMaxStack(1 << 20) // cap the climb at 1 MiB instead of the runtime's 1 GB
+	debug.SetMaxStack(maxStackSize) // bound stack growth in this child
 	switch mode {
 	case "embed":
 		var v NodeEmbed
-		// Fatal: jsoniter compiles a decoder for NodeEmbed before reading
-		// any input, and the compilation recurses without a visited-type guard.
+		// Fatal: jsoniter compiles a decoder for NodeEmbed before reading any
+		// input, and that compilation recurses without a visited-type guard.
 		_ = jsoniter.Unmarshal(payload, &v)
 	case "named":
 		var v NodeNamed
 		_ = jsoniter.Unmarshal(payload, &v) // terminates: named field -> placeholder
+		fmt.Printf("decoded id=%q name=%q\n", v.ID, v.Name)
 	case "std":
 		var v NodeEmbed
 		_ = json.Unmarshal(payload, &v) // terminates: visited set ends the walk
+		fmt.Printf("decoded id=%q name=%q\n", v.ID, v.Name)
+	default:
+		fmt.Printf("unknown child mode %q\n", mode)
+		os.Exit(1)
 	}
 }
 ```
 
-Observed output of the full harness (Go 1.24.9, darwin/arm64; timings and pointer values vary per run):
+Observed output of that program (Go 1.24.9, darwin/arm64; timings vary per run):
 
 ```text
-go=go1.24.9 jsoniter=v1.1.12
-
 case: jsoniter + anonymous embedded pointer (root cause)
-  result: child exited with code 2 after 9ms
-  child peak RSS: 6.9 MiB
-  stderr: runtime: goroutine stack exceeds 1048576-byte limit
-  stderr: runtime: sp=0x14000260360 stack=[0x14000260000, 0x14000360000]
-  stderr: fatal error: stack overflow
-  recursing frame: describeStruct — reflect_extension.go:362 (84 frames captured)
+  result: fatal error: stack overflow after 9ms
   verdict: as expected — the decoder compiles recursively until the stack is gone
 
 case: jsoniter + named recursive pointer (control)
-  result: completed normally in 3ms
-  child peak RSS: 4.6 MiB
-  stdout: decoded id="1" name="ev"
+  result: decoded id="1" name="ev" in 4ms
   verdict: as expected — the control decoded the payload without recursing
 
 case: encoding/json + anonymous embedded pointer (control)
-  result: completed normally in 4ms
-  child peak RSS: 4.5 MiB
-  stdout: decoded id="1" name="ev"
+  result: decoded id="1" name="ev" in 4ms
   verdict: as expected — the control decoded the payload without recursing
 
-3/3 cases behaved as expected
+all cases behaved as expected
 ```
 
-The full harness exists because a stack overflow is fatal — `recover` cannot intercept it — so each case runs in a child process of the same binary and the parent survives to report:
-- **The child caps its own stack.** `debug.SetMaxStack(1 << 20)` bounds that goroutine's stack at 1 MiB, so the climb that would otherwise reach the runtime's 1 GB default ends in milliseconds with a peak under 10 MiB. The parent adds a 20 s timeout as a backstop and caps the output it keeps at 64 KiB. These bounds limit the harness's own footprint; they are not a process-wide memory limit.
-- **The parent measures the child's peak RSS**, so the harness's footprint is reported rather than assumed.
+The harness exists because a stack overflow is fatal — `recover` cannot intercept it — so each case runs in a child process of the same binary and the parent survives to report:
+- **The child caps its own stack.** `debug.SetMaxStack(1 << 20)` bounds that goroutine's stack at 1 MiB, so the climb that would otherwise reach the runtime's 1 GB default ends in milliseconds. The parent adds a 20 s timeout as a backstop. These bounds limit the program's own footprint; they are not a process-wide memory limit.
+- **Crash output is discarded.** The parent reports how the child ended rather than echoing a dump that is the same frame repeated.
 
-The controls carry the argument: the named recursive field and `encoding/json` decode the same payload in about 4 ms at under 5 MiB, and only the anonymous embedded pointer crashes. The embedded pointer is legal Go and another decoder reads it happily — the failure is a property of the codec's traversal, not of an invalid type. The harness asserts each outcome and exits non-zero on a mismatch, so it works as a test, not only a demonstration.
+The controls carry the argument: the named recursive field and `encoding/json` decode the same payload in milliseconds, and only the anonymous embedded pointer crashes. The embedded pointer is legal Go and another decoder reads it happily — the failure is a property of the codec's traversal, not of an invalid type. The harness asserts each outcome and exits non-zero on a mismatch, so it works as a test rather than only a demonstration: inverting the failing case — decoding it with `encoding/json` — makes it print `UNEXPECTED` and exit 1.
 
 ## Lessons from the investigation
 
