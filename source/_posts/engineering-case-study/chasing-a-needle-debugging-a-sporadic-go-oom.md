@@ -48,7 +48,7 @@ That cleared the cache path only: jsoniter still ran on the envelope, the execut
 
 On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The rollback gave a baseline to bisect from, not an answer by itself: with at least one pod lost per day, a quiet window was weak evidence, and the delta still had to be narrowed to its cause. The builds stepped the internal event SDK between versions that carried the new concrete event type and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the new event type in and out of the process.
 
-The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete Go event type, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `TransferFollowupEvent` case reproduced it locally.
+The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete Go event type, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `CustomerTransferEvent` case reproduced it locally.
 
 The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. The `interface{}` round trip was part of the path that exposed it in this service. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
 
@@ -58,7 +58,7 @@ The production OOM stopped with the migration and never recurred through the mon
 
 ## The mechanism, reconstructed
 
-The production type graph is reconstructed as containing the anonymous embedded-pointer cycle; `TransferFollowupEvent` below is a reduced reproduction, not a claim that every production field was identical.
+The production type graph is reconstructed as containing the anonymous embedded-pointer cycle; `CustomerTransferEvent` below is a reduced reproduction, not a claim that every production field was identical.
 
 jsoniter [compiles a decoder on first use](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72), before decoding the first byte. Named recursive fields are bounded by jsoniter's [placeholder decoder](https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145). An anonymous embedded pointer takes a different path: [`describeStruct` recursively expands the embedded struct](https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373) without a visited-type guard. The [decode depth limit](https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338) is downstream and cannot protect a process that dies while compiling the decoder.
 
@@ -71,15 +71,15 @@ if field.Anonymous() && (tag == "" || tagParts[0] == "") {
 ```
 
 ```go
-type TransferFollowupEvent struct {
-    *TransferFollowupEvent // original dispatch snapshot
+type CustomerTransferEvent struct {
+    *CustomerTransferEvent // the step this re-dispatch answers
     CompanyID      string `json:"companyId"`
-    PlanID         int64  `json:"planId"`
-    NodeID         int64  `json:"nodeId"`
+    FromUser       string `json:"fromUser"`
+    ToUser         string `json:"toUser"`
     DispatchReason string `json:"dispatchReason"`
 }
 
-// jsoniter.Unmarshal([]byte(`{"companyId":"ww4f7c",...}`), &TransferFollowupEvent{})
+// jsoniter.Unmarshal([]byte(`{"companyId":"ww4f7c",...}`), &CustomerTransferEvent{})
 // → fatal error: stack overflow, before the first byte is read
 ```
 
@@ -91,33 +91,28 @@ Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, i
 
 ## Reproducing it safely
 
-The reduced reproduction keeps the incident's business shape, not just its mechanics. A rare SOP path — a staff transfer that reassigns customers in bulk — emits a `NodeTransferCompleted` event; the consumer answers it with a follow-up event that, by the envelope convention of the event layer, embeds its original dispatch as context for re-dispatch:
+The reduced reproduction keeps the incident's business shape, not just its mechanics. The event is a staff transfer: when an employee leaves a role, their customers are reassigned in bulk to colleagues. A transfer can cascade — the receiving employee may themselves be transferring, so the event is re-dispatched, and each re-dispatch carries the step it answers, so the engine can audit the chain and deduplicate re-dispatches. Every step of that chain is the same event type, so the reference has to point at the type itself; and the event layer's convention for carrying an event is the anonymous embedding, which keeps the promoted methods and the flat wire format:
 
 ```go
-// Producer side (stdlib): a rare node-transfer completion, 82 bytes on the wire.
-type NodeTransferCompleted struct {
+// Shared event model (event SDK). Rare path: opt-in tenants only, and most
+// transfers complete in one hop — 107 bytes on the wire.
+type CustomerTransferEvent struct {
 	CompanyID      string `json:"companyId"`
 	PlanID         int64  `json:"planId"`
-	NodeID         int64  `json:"nodeId"`
+	FromUser       string `json:"fromUser"`
+	ToUser         string `json:"toUser"`
 	DispatchReason string `json:"dispatchReason"`
-}
 
-// Consumer side (jsoniter after the March 7 migration): the follow-up event
-// carries the dispatch it came from. The snapshot reuses the event's own type —
-// one more anonymous embedding, same as every other envelope in the layer.
-type TransferFollowupEvent struct {
-	*TransferFollowupEvent // original dispatch snapshot for re-dispatch
-	CompanyID      string `json:"companyId"`
-	PlanID         int64  `json:"planId"`
-	NodeID         int64  `json:"nodeId"`
-	DispatchReason string `json:"dispatchReason"`
+	// The step this re-dispatch answers. Cascades are the same type, so the
+	// field points at the event itself.
+	*CustomerTransferEvent
 }
 ```
 
 Running the round trip — stdlib `Marshal` upstream, jsoniter `Unmarshal` downstream — ends like this:
 
 ```text
-upstream (stdlib)      : {"companyId":"ww4f7c","planId":3021,"nodeId":88,"dispatchReason":"staff_transfer"} <nil>
+upstream (stdlib) : {"companyId":"ww4f7c","planId":3021,"fromUser":"u_zhang","toUser":"u_li","dispatchReason":"staff_transfer"} <nil>
 
 runtime: goroutine stack exceeds 1048576-byte limit
 fatal error: stack overflow
@@ -126,17 +121,17 @@ fatal error: stack overflow
 The upstream half succeeds and prints ordinary JSON; the consumer dies before reading it. Two controls isolate the trigger:
 
 ```go
-// Control 1 — same cycle, named field: jsoniter memoizes a placeholder
+// Control 1 — same chain, named field: jsoniter memoizes a placeholder
 // decoder for named recursive fields, so compilation terminates.
-type TransferFollowupEvent struct {
-	Original      *TransferFollowupEvent `json:"original,omitempty"`
-	CompanyID     string                 `json:"companyId"`
-	DispatchReason string                `json:"dispatchReason"`
+type CustomerTransferEvent struct {
+	Answers        *CustomerTransferEvent `json:"answers,omitempty"`
+	CompanyID      string                 `json:"companyId"`
+	DispatchReason string                 `json:"dispatchReason"`
 }
 
 // Control 2 — same anonymous embedding, stdlib decoder: typeFields
 // resolves fields with a visited set, so the walk terminates.
-var v TransferFollowupEvent
+var v CustomerTransferEvent
 _ = json.Unmarshal(payload, &v) // decodes in ~4ms
 ```
 
