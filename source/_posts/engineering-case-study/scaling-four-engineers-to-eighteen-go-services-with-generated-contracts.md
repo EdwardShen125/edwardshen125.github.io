@@ -21,9 +21,11 @@ Four Go engineers built eighteen domain services and one auxiliary backend repos
 
 ## Context and requirements
 
-The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. That roadmap required weekly feature releases rather than a long platform-build cycle. I **initiated and led** the platform program that ran February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI — built in parallel with the first business services. The platform then remained the default path as the backend grew to eighteen Go domain services spanning identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one auxiliary backend repository, `geoip-update`; the API gateway is counted separately.
+The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. That roadmap required weekly feature releases rather than a long platform-build cycle. I **initiated and led** the platform program that ran from February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI, all built in parallel with the first business services. The platform then became the default path across identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one auxiliary backend repository, `geoip-update`; the API gateway is counted separately.
 
 The same four engineers had to ship against money-movement flows and around-the-clock availability while the platform was being built. We also made one choice early: standardize on [go-zero](https://github.com/zeromicro/go-zero) rather than build another framework. We used the platform to encode conventions while relying on go-zero for runtime infrastructure.
+
+The release-unit boundary followed a real difference in change frequency. Live-ops code changed weekly by design: time-boxed events, promotions, and campaign pages moved with the product roadmap. Ledger and identity code changed less often and required more conservative review. Keeping them in separate deployable units meant a weekly activity release did not require redeploying the money path or the authentication path. That principle set the coarse release boundaries; the remaining domain split was an ownership and evolution choice, and the platform's contract, generation, and default-runtime mechanisms kept the resulting governance cost manageable.
 
 Each service needed auth, error codes, structured logging, RPC wiring, gateway registration, and tracing. Maintaining these by hand across the service fleet would consume integration time and let implementations diverge. The platform needed:
 
@@ -82,11 +84,11 @@ The contract repository held fifty-five `.api` contract files and sixty-eight ge
 
 ### Fill the generation gaps with plugins
 
-Vanilla goctl generated HTTP handlers from `.api` but not proto or Swagger, and the platform needed both. We wrote two goctl plugins, goctl-proto and goctl-swagger, so one `.api` file produces handlers, proto, and Swagger in the same commit. Both install with `go install` and run in goctl's plugin mode: they extend the standard toolchain instead of replacing it.
+Vanilla goctl generated HTTP handlers from `.api` but not proto or Swagger. We added goctl-proto and goctl-swagger plugins so one `.api` file produced all three in the same commit.
 
 ### The scaffold as specification
 
-The onion/DDD structure (application, domain, infrastructure, and service-context layers; repository interfaces in the domain with implementations injected from infrastructure; outbox-pattern domain events) lived in a README and in custom goctl templates. A service generated from the template starts compliant: the layering, the event outbox, and the repository seams all exist before the first line of business code. The README documented the structure, and the template generated it.
+The onion/DDD structure lived in the README and custom goctl templates. A generated service started with the layering, outbox, and repository seams already in place, before business code was added.
 
 ### Transactional domain events through the outbox
 
@@ -97,6 +99,8 @@ Low-latency ws-hub notifications were published directly to Kafka. Transactional
 ### Domain boundaries and data ownership
 
 All eighteen services shared one TiDB cluster, so the boundary was drawn at the table level. The user service owned auth, KYC, and customer-profile tables; the ledger service owned currency orders, account balances, and token metadata. Cross-service access ran over gRPC, and a repository-layer scan confirmed zero cross-domain table access. Disjoint table ownership preserved service boundaries without operating eighteen databases.
+
+These were ownership and change boundaries rather than eighteen independent failure domains: the services shared one TiDB cluster and the platform's gateway, Kafka, and tracing infrastructure, so a cluster-level failure or a problematic migration could still affect multiple domains.
 
 ### Platform-wide error codes
 
@@ -122,6 +126,8 @@ return errUserNotFound.Build(err)
 ### Gateway as the composition edge
 
 The gateway wrapped a maintained go-zero fork and owned everything cross-cutting: JWT auth, header processing, response wrapping, CORS, response caching, and an i18n hook on the response chain that localizes response content per user locale. Consumer-facing interfaces enabled caching through gateway configuration, so a service did not have to implement its own response-cache path. Because localization also lived in the gateway, services stayed locale-blind; adding a language required one gateway change.
+
+Keeping these authentication and edge policies in one gateway implementation also reduced security-policy drift across services. Each service still enforced its own domain authorization, while route-level authentication and cache policy came from the same contract-driven configuration path. That made the boundary easier to review and reduced the chance that independently implemented services would apply inconsistent rules.
 
 The cache setting stayed in the same interface contract. A consumer-facing banner route looked like this:
 
@@ -181,21 +187,21 @@ For this editor, I would add a BFF endpoint that owns the page shape and localiz
 
 ## Results
 
-The adoption result was that all eighteen Go domain services came from the scaffold. Rare advanced gRPC cases used hand-written proto, but no service was hand-rolled outside the template; three shared CI pipelines covered backend and frontend repositories.
+All eighteen Go domain services came from the scaffold. Rare advanced gRPC cases used hand-written proto, but no service was hand-rolled outside the template.
 
-The development-cost result was an estimated 60% reduction in onboarding work, measured in boilerplate lines and person-days to a first deployed endpoint. It was *an internal estimate, not a controlled experiment*.
+The estimated development-cost result was a 60% reduction in onboarding work, measured in boilerplate lines and person-days to a first deployed endpoint. It was *an internal estimate, not a controlled experiment*.
 
-The repository-scale context also included the auxiliary `geoip-update` repository. Across forty repositories, the platform recorded eleven thousand commits over that same March-to-October window. Those numbers show the volume of concurrent change the platform supported; they are not productivity measurements by themselves. The gateway carried fourteen generated descriptor sets — *a repository count, not a service count* — and services used eight SDKs layered on the six internal base libraries.
+The platform took four months of focused work alongside the first business services. It replaced days of recurring boilerplate per service with a generation command and shared outbox and error-registry conventions for services handling money. The same scaffold supported the June and July live-ops expansion.
 
-The platform took four months of focused work alongside the first business services. It replaced days of recurring boilerplate per service with a generation command and shared outbox and error-registry conventions for services handling money. Its users included the full seventeen-person product team: frontend developers used the shared React and Next.js pipelines and generated Swagger, and QA could trace errors to a service and function. The June and July live-ops expansion shipped referrals, membership programs, and interactive campaigns on the same scaffold.
+The engineering result was a governable form of domain decomposition for a four-engineer backend team. Contract-first design, code generation, and platform defaults kept the cost of repeated service setup, contract coordination, and shared conventions under control. The evidence measures governance and delivery cost; it does not claim that one service topology is universally better than another.
 
 ## Trade-offs
 
-The maintained go-zero fork is a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering adds indirection for thin CRUD services even when generated. The central error-code registry requires coordination so two services cannot silently claim the same ID.
+The platform reduced repeated setup, but it added its own costs. The maintained go-zero fork was a permanent maintenance duty; we took fixes on our schedule, not upstream's. Onion layering added indirection for thin CRUD services even when generated, and the central error-code registry required coordination so two services could not silently claim the same ID.
 
-This investment would be harder to justify on a short product runway, with no more than four or five services, or if platform work became a separate project that delayed product delivery.
+This investment was harder to justify on a short product runway or with only a few services. The platform's role was to make domain decomposition affordable: release boundaries followed ownership and change frequency, while generation kept repeated service setup and shared conventions manageable.
 
-The remaining leaks were at the seams rather than inside services: a contract change with no generated diff visible to consumers, and an admin page composing four domain contracts in the browser. Generation made per-service defaults cheap; the seams needed their own visibility.
+The remaining gaps were at the cross-service seams: contract changes had no generated diff visible to consumers, and one admin page composed four domain contracts in the browser. Generation made per-service defaults cheap; it did not replace consumer-visible contract checks or a proper composition boundary.
 
 ---
 
