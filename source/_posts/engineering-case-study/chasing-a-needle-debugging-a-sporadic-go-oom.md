@@ -13,7 +13,7 @@ description: A Go consumer hit 8 GB in under a second, days after a codec migrat
 seo_image: chasing-a-needle-oom.png
 ---
 
-The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar hit its 8 GB limit and restarted; memory went from flat to the ceiling in under a second, with no correlation to traffic or time of day, and the events involved were ordinary.
+The alert came from Grafana. A Go service consuming SOP-dispatch events on Pulsar hit its 8 GB limit and restarted; memory went from flat to the ceiling in under a second, with no correlation to traffic or time of day.
 
 The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept coming for over a week: at least one pod lost per day, three or four on the worst days, and none of the standard instruments captured why.
 
@@ -23,7 +23,7 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer turned that value back into bytes and unmarshaled them into a concrete Go event type.
 
-This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature was a staff transfer: when an employee leaves a role, their customers are reassigned in bulk to colleagues — an opt-in path, rare even among the tenants that had it. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
+This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature was a staff transfer: when an employee leaves a role, their customers are reassigned in bulk to colleagues — an opt-in path, rare even among tenants that had it. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
 The second iteration added cascade support: when the receiving employee is also transferring, the event is re-dispatched, and each re-dispatch carries the step it answers, so the engine can audit the chain and deduplicate. Every step of that chain is the same event type, so the field carrying the previous step points at the type itself — one more anonymous embedding, the event layer's standing convention. The stage-two typed decode now ran on the jsoniter I had just put in place. The alerts that followed were the second shape — this article's subject. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
 
@@ -38,7 +38,7 @@ Four standard instruments were considered:
 - **Threshold-triggered pprof** threw false positives from normal allocation and could still miss a jump between polls.
 - **Core dumps**: the memory-limit kill sent `SIGKILL` before a core could be written.
 
-All four needed the process to survive long enough to leave evidence; this one did not. After a week it had no time signature — it was indexed by something other than time, and what it most plausibly indexed was the set of recent changes on the decode path, which only the build could step through one at a time.
+All four needed the process to survive long enough to leave evidence; this one did not. After a week it had no time signature — what it most plausibly indexed was the set of recent changes on the decode path, which only the build could step through one at a time.
 
 ## The codec suspicion
 
@@ -48,21 +48,21 @@ That cleared the cache path only: jsoniter still ran on the envelope, the execut
 
 ## The bisection
 
-On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The rollback gave a baseline to bisect from, not an answer by itself: with at least one pod lost per day, a quiet window was weak evidence, and the delta still had to be narrowed to its cause. The builds stepped the internal event SDK between versions that carried the new concrete event type and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the new event type in and out of the process.
+On March 12 I rolled back to the last known stable build and bisected the incident delta — one staged deploy and observation window per step, eight days across eight rollbacks. The rollback gave a baseline, not an answer: with pods still dying daily, a quiet window was weak evidence, and the delta still had to be narrowed to its cause. The builds stepped the internal event SDK between versions that carried the new concrete event type and versions that did not; jsoniter itself never moved. The SDK version was the deployable handle for the bundled change: subscription-layer code and its dependency pins shipped together, so stepping it moved the new event type in and out of the process.
 
 The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete Go event type, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `CustomerTransferEvent` case reproduced it locally.
 
-The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. The `interface{}` round trip was part of the path that exposed it in this service. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
+The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
 
 ## Why the automated suite stayed green
 
-The suite that had verified the first release stayed green for a mechanical reason. It drove real events through the consumer on a test tenant, but by the time this iteration ran, that tenant's transfer toggle had been turned off for a parallel feature's testing. The consumer routes by event code: with the toggle off, no message carried the transfer code, so the typed unmarshal behind it never executed. jsoniter compiles a decoder on first use — zero executions meant zero compilations, and zero chances to crash. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call handlers with struct literals and never touch a codec.
+The suite that had verified the first release stayed green for a mechanical reason. It drove real events through the consumer on a test tenant, but by the time this iteration ran, that tenant's transfer toggle had been turned off for a parallel feature's testing. The consumer routes by event code: with the toggle off, no message carried the transfer code, so the typed unmarshal behind it never executed. jsoniter compiles a decoder on first use — zero executions meant zero compilations. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call handlers with struct literals and never touch a codec.
 
 ## The fix
 
 With the cause isolated, the fix followed directly: I moved the affected typed event decode path to sonic, and only that path. The jsoniter migration kept the win it had already delivered: the envelope and cache decodes stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control below demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event type at once.
 
-The production OOM stopped with the migration and never recurred through the months that followed, while the service kept running until I left the company. The type graph itself remained unchanged; sonic handled the embedded cycle without unbounded field expansion. The source comparison below explains that difference.
+The production OOM stopped with the migration and never recurred through the months that followed, while the service kept running until I left the company. The type graph itself remained unchanged; the source comparison below explains why sonic handles the embedded cycle.
 
 ## The mechanism, reconstructed
 
@@ -91,7 +91,7 @@ type CustomerTransferEvent struct {
 // → fatal error: stack overflow, before the first byte is read
 ```
 
-The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12` — the newest published release, and the version the service had pinned. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Leaving fields out of the payload does not change the outcome. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it. The reduced case reproduces the failure's shape, not the production 8 GB RSS.
+The incident ran Go 1.18, and the crash reproduces there with jsoniter `v1.1.12` — the newest published release, and the version the service had pinned. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe. Unbounded, the failing decode grows until the goroutine hits the runtime's default 1 GB stack ceiling, which is why the harness below caps it. The reduced case reproduces the failure's shape, not the production 8 GB RSS.
 
 First use also explains the failure's rhythm. A stack overflow is a runtime death, not a panic, so the consumer's retry machinery — nack on failure, drop after max redeliveries — never ran: the goroutine died inside the recursion with no way to return, and the nack call was unreachable code. The unacknowledged transfer message stayed in the subscription, so each restarted pod met it again on redelivery, recompiled the decoder, and died again. One poisoned message could keep costing a pod a day, until it exhausted its redelivery count — and the next tenant transfer started the cycle over.
 
@@ -145,7 +145,7 @@ var v CustomerTransferEvent
 _ = json.Unmarshal(payload, &v) // decodes in ~4ms
 ```
 
-Both controls decode the same payload in milliseconds; only the anonymous embedded pointer under jsoniter crashes. That is what makes the failure a property of the codec's traversal rather than of an invalid type: the embedded pointer is legal Go, the producer serializes the same domain daily, and another decoder reads it happily. It also explains why the failure was sporadic: compilation happens once per process per type, and the transfer path was rare — so most pods never met the type at all, and the ones that did died on first contact.
+Both controls decode the same payload in milliseconds; only the anonymous embedded pointer under jsoniter crashes. The failure is a property of the codec's traversal, not of an invalid type: the embedded pointer is legal Go, and another decoder reads it happily. It also explains why the failure was sporadic: compilation happens once per process per type, and the transfer path was rare — so most pods never met the type at all, and the ones that did died on first contact.
 
 A stack overflow is fatal — `recover` cannot intercept it — so a runnable reproduction isolates each case in a child process, caps the child's stack at 1 MiB with `debug.SetMaxStack(1 << 20)` (instead of the runtime's 1 GB default), and adds a timeout as a backstop. These bounds limit the program's own footprint; they are not a process-wide memory limit. The full harness asserts each outcome and exits non-zero on a mismatch, so it works as a test rather than only a demonstration: inverting the failing case — decoding it with `encoding/json` — makes it print `UNEXPECTED` and exit 1.
 
@@ -153,7 +153,7 @@ A stack overflow is fatal — `recover` cannot intercept it — so a runnable re
 
 - When runtime evidence cannot narrow a sporadic failure, the build is the remaining variable. An observation window without a crash is weak evidence; a build delta is a bounded change set that can be traced and reduced.
 - A codec swap tests one path, not the codec. The cache-path swap could not reach the typed decode; only the SDK builds could step through the remaining paths — that asymmetry, not codec preference, chose the method.
-- A legal Go type can exercise an unguarded traversal inside a library, and first-use decoder compilation happens before any input is read — so payload size, traffic volume, and throughput benchmarks cannot see the failure class. Representative type graphs can.
+- A legal Go type can exercise an unguarded traversal inside a library, and first-use decoder compilation happens before any input is read — so throughput benchmarks and payload tests cannot see this failure class. Representative type graphs can.
 
 This incident made reflected type graphs part of what I review in a dependency change.
 
