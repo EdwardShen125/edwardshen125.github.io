@@ -21,7 +21,7 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 {% asset_img chasing-a-needle-oom.png Incident build: SOP event consumption path, two decode stages, jsoniter decoder compiler, embedded-cycle recursion and the 8 GB alert %}
 
-The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer turned that value back into bytes and unmarshaled them into a concrete Go event type.
+The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer turned that value back into bytes and unmarshaled them into a concrete Go event type. Each event type had its own code on the wire — send-message, tag-change, transfer — and its own registered handler with its own typed unmarshal.
 
 This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature was a staff transfer: when an employee leaves a role, their customers are reassigned in bulk to colleagues — an opt-in path, rare even among tenants that had it. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
@@ -52,11 +52,11 @@ On March 12 I rolled back to the last known stable build and bisected the incide
 
 The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer: the event SDK decoded the envelope into `Data interface{}`, the subscription layer marshaled that value back to bytes and unmarshaled them into the concrete Go event type, and the unmarshal half was where jsoniter, unguarded, compiled a decoder. Reading the code, I matched the mechanism to the production symptoms: an anonymous embedded-pointer cycle. The reduced `CustomerTransferEvent` case reproduced it locally.
 
-The root cause was the collision the two changes had created: a type graph with an anonymous embedded-pointer cycle had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
+The root cause was the collision the two changes had created: a type whose fields recursively contained themselves — an anonymous embedded-pointer cycle — had arrived on a decode path that jsoniter — unguarded on that branch — now compiled. Neither change was wrong alone; the March 7 migration had held memory down for days, and the recursive type graph was valid Go.
 
 ## Why the automated suite stayed green
 
-The suite that had verified the first release stayed green for a mechanical reason. It drove real events through the consumer on a test tenant, but by the time this iteration ran, that tenant's transfer toggle had been turned off for a parallel feature's testing. The consumer routes by event code: with the toggle off, no message carried the transfer code, so the typed unmarshal behind it never executed. jsoniter compiles a decoder on first use — zero executions meant zero compilations. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call handlers with struct literals and never touch a codec.
+The suite that had verified the first release stayed green for a mechanical reason. It drove real events through the consumer on a test tenant, but by the time this iteration ran, that tenant's transfer toggle had been turned off for a parallel feature's testing. Every event type carries its own code on the wire, and the consumer dispatches on that code — each code reaches its own unmarshal into its own Go type. With the toggle off, no message carried the transfer code, so the transfer unmarshal never executed. And jsoniter builds the code→type machinery lazily: it compiles a type's decoder the first time that type is decoded, and caches it for the process's life — zero executions meant zero compilations. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call handlers with struct literals and never touch a codec.
 
 ## The fix
 
