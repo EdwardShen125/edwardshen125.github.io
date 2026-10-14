@@ -13,7 +13,7 @@ description: How four Go engineers used a shared API DSL, code generation, and p
 seo_image: cover.png
 ---
 
-Four Go engineers built eighteen domain services and one auxiliary backend repository for a consumer transaction platform with weekly live-ops releases — time-boxed in-game events and promotions whose cadence set the delivery rhythm. To keep integration work manageable, we used a single API DSL to generate service conventions, [Protocol Buffers](https://protobuf.dev/) contracts, and [Swagger/OpenAPI](https://swagger.io/specification/) documentation.
+Four Go engineers built eighteen domain services for a consumer transaction platform with weekly live-ops releases — time-boxed in-game events and promotions whose cadence set the delivery rhythm. To keep integration work manageable, we used a single API DSL to generate service conventions, [Protocol Buffers](https://protobuf.dev/) contracts, and [Swagger/OpenAPI](https://swagger.io/specification/) documentation.
 
 <!-- more -->
 
@@ -21,7 +21,7 @@ Four Go engineers built eighteen domain services and one auxiliary backend repos
 
 ## Context and requirements
 
-The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. That roadmap required weekly feature releases rather than a long platform-build cycle. I **initiated and led** the platform program that ran from February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI, all built in parallel with the first business services. The platform then became the default path across identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one auxiliary backend repository, `geoip-update`; the API gateway is counted separately.
+The product team was assembled from scratch in early 2025 with seventeen people: four Go engineers building the backend, six frontend developers, two QA, two UI designers, and three product managers driving the live-ops roadmap. That roadmap required weekly feature releases rather than a long platform-build cycle. I **initiated and led** the platform program that ran from February to May: an architecture template, a contract toolchain, a shared gateway, base libraries, and CI, all built in parallel with the first business services. The platform then became the default path across identity and access, financial transactions and ledger integrations, consumer engagement, growth and live-ops, and platform infrastructure. The repository statistics also include one tooling repository (`geoip-update`) beyond the eighteen services; the API gateway is counted separately.
 
 The same four engineers had to ship against money-movement flows and around-the-clock availability while the platform was being built. We also made one choice early: standardize on [go-zero](https://github.com/zeromicro/go-zero) rather than build another framework. We used the platform to encode conventions while relying on go-zero for runtime infrastructure.
 
