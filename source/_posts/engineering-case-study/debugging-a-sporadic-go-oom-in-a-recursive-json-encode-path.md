@@ -21,7 +21,7 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 {% asset_img debugging-recursive-json-encode-oom.png Incident build: SOP event chain, publish path, jsoniter encoder compiler, embedded-cycle recursion and the 8 GB alert %}
 
-Events moved through this service in both directions. Consumed events arrived as envelopes — the event SDK decoded each one into `Data interface{}`, and the subscription layer unmarshaled that value into a concrete Go event type; each event type had its own code on the wire and its own handler. Produced events were published back through the same SDK: the publisher wrapped the event in an envelope and marshaled it with the SDK's shared `json` package.
+Events moved through this service in both directions: it consumed upstream events through the SDK's envelope decoder, and published its own events back through the same SDK's `json` package. Each event type had its own code on the wire and its own handler.
 
 This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved the JSON package behind three internal SDK paths — the event SDK's shared `json`, a cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. One package-level swap armed both directions at once: every decode and every publish on those paths now went through jsoniter.
 
