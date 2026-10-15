@@ -23,9 +23,9 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer turned that value back into bytes and unmarshaled them into a concrete Go event type. Each event type had its own code on the wire — send-message, tag-change, reassign — and its own registered handler with its own typed unmarshal.
 
-This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature moved customers between employees — an opt-in path, rare even among tenants that had it. It had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
+This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature was the fallback of a customer-reassignment flow: when a reassignment finds its target employee unavailable — already leaving, frozen, or excluded — the system picks the next candidate and re-dispatches, carrying the attempt it replaces. The fallback path was rare by construction: it required the primary path to fail first, and failures were a small fraction of an already uncommon flow. It had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
-The second iteration added cascade support: a reassignment can itself trigger a further reassignment, so the event is re-dispatched, and each re-dispatch carries the step it answers, so the engine can audit the chain and deduplicate. Every step of that chain is the same event type, so the field carrying the previous step points at the type itself. In Go, that field was an anonymous embedded pointer, following the event layer's standing convention. The stage-two typed decode now ran on the jsoniter I had just put in place. The alerts that followed were the second shape — this article's subject. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
+The second iteration added cascade support: a fallback's new target can also be unavailable, so the fallback itself falls back — each retry carries the attempt it replaces, so the engine can audit the chain and deduplicate. Every step of that chain is the same event type, so the field carrying the previous attempt points at the type itself. In Go, that field was an anonymous embedded pointer, following the event layer's standing convention. The stage-two typed decode now ran on the jsoniter I had just put in place. The alerts that followed were the second shape — this article's subject. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
 
 The two changes left the service with four decode paths running jsoniter: the event envelope, the cache, an executor SDK — all three from my migration — and the stage-two typed decode, from the later change. The first three were dependency pins, swappable one at a time. The typed decode was subscription-layer business code and shipped only inside the event SDK's builds. That distinction decided how the suspicion could be tested, and later how the failure was isolated.
 
@@ -70,11 +70,11 @@ if field.Anonymous() && (tag == "" || tagParts[0] == "") {
 
 ```go
 type TransferEvent struct {
-    *TransferEvent // the step this re-dispatch answers
-    CompanyID      string `json:"companyId"`
-    From       string `json:"fromUser"`
-    To         string `json:"toUser"`
-    Reason string `json:"dispatchReason"`
+    *TransferEvent // the attempt this fallback replaces
+    CompanyID string `json:"companyId"`
+    From      string `json:"from"`
+    To        string `json:"to"`
+    Reason    string `json:"reason"`
 }
 
 // jsoniter.Unmarshal([]byte(`{"companyId":"acme",...}`), &TransferEvent{})
@@ -87,9 +87,9 @@ The incident ran on Go 1.18, and the reduced case reproduces there with jsoniter
 
 The local reproduction used one goroutine and ended when that goroutine reached Go's default maximum stack of about 1 GB. Production used multiple consumer goroutines inside an 8 GB Pod. Several first-use decodes could therefore grow process memory concurrently, allowing the Pod limit to be reached before any individual goroutine reached its own stack limit. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
 
-Jsoniter compiled each type's decoder lazily. Most Pods never received the rare reassignment event. A Pod that did receive one could enter the recursive path through several consumer goroutines; because the decoder became available only after compilation completed, concurrent first-use cache misses could have placed several goroutines in the same recursive path.
+Jsoniter compiled each type's decoder lazily. Most Pods never received the rare fallback event. A Pod that did receive one could enter the recursive path through several consumer goroutines; because the decoder became available only after compilation completed, concurrent first-use cache misses could have placed several goroutines in the same recursive path.
 
-The decode call never returned to the message handler. The handler therefore had no opportunity to acknowledge or negatively acknowledge the message. When the Pod was OOM-killed, its consumer connection closed with the reassignment message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same type and decode path could repeat the failure. This was consumer-disconnect redelivery, not an application-issued negative acknowledgment. Whether the cycle eventually reached a dead-letter topic depended on the configured retry and dead-letter behavior; the OOM itself did not advance a business-level nack counter.
+The decode call never returned to the message handler. The handler therefore had no opportunity to acknowledge or negatively acknowledge the message. When the Pod was OOM-killed, its consumer connection closed with the fallback message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same type and decode path could repeat the failure. This was consumer-disconnect redelivery, not an application-issued negative acknowledgment. Whether the cycle eventually reached a dead-letter topic depended on the configured retry and dead-letter behavior; the OOM itself did not advance a business-level nack counter.
 
 The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239). The same domain shape crossed the service boundary daily under `encoding/json`; only the consumer's jsoniter compilation entered the failing traversal.
 
