@@ -23,7 +23,7 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 Events moved through this service in both directions: it consumed upstream events through the SDK's envelope decoder, and published its own events back through the same SDK's `json` package. Each event type had its own code on the wire and its own handler.
 
-This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved the JSON package behind three internal SDK paths — the event SDK's shared `json`, a cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. One package-level swap armed both directions at once: every decode and every publish on those paths now went through jsoniter.
+This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved the JSON package behind three internal SDK paths — the event SDK's shared `json`, a cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. One package-level swap armed both directions: decode and publish now went through jsoniter.
 
 Days later, a feature iteration landed in this service. It consumed [WeCom](https://developer.work.weixin.qq.com/document/)'s owner-change event: when an employee departs, WeCom hands their customers over, and this service's assignment engine distributed those customers among the remaining staff by rule, publishing an assignment event for each split. Departures are rare — a handful per tenant per month — so these events were a small fraction of the millions of daily events. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
@@ -54,7 +54,6 @@ On March 12 I rolled back to the last known stable build and bisected the incide
 
 The bisection isolated the build delta that introduced the concrete event type. Tracing it through the service showed the assignment engine building each chain event and publishing it through the SDK's `json` package — and the publish was where jsoniter lazily compiled an encoder for the type. The reduced `TransferEvent` case reproduced the resulting unbounded traversal locally.
 
-The production service consumed messages with multiple goroutines, which shaped how the spike reached the Pod limit — that mechanism is reconstructed below.
 
 ## The mechanism, reconstructed
 
@@ -85,11 +84,11 @@ type TransferEvent struct {
 
 ## Why production became an OOM
 
-The incident ran on Go 1.18, and the reduced case reproduces there with jsoniter `v1.1.12` — the newest published release, and the version the service had pinned. The same embedded-pointer case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe.
+The incident ran on Go 1.18, and the reduced case reproduces there with jsoniter `v1.1.12` — the version the service had pinned. The same case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe.
 
-The local reproduction used one goroutine and ended when that goroutine reached Go's default maximum stack of about 1 GB. Production used multiple goroutines inside an 8 GB Pod — the engine publishing a chain, the consumer decoding its output — and jsoniter compiled each type's codec lazily, so concurrent first-use cache misses could place several goroutines in the same recursive path: process memory grew in parallel, and the Pod limit could be reached before any single goroutine hit its own stack limit. Most Pods never received a rare assignment event at all. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
+The local reproduction used one goroutine and ended when that goroutine reached Go's default maximum stack of about 1 GB. Production used multiple goroutines inside an 8 GB Pod, and jsoniter compiled each type's codec lazily, so concurrent first-use cache misses could place several goroutines in the same recursive path: process memory grew in parallel, and the Pod limit could be reached before any single goroutine hit its own stack limit. Most Pods never received a rare assignment event at all. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
 
-The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued negative acknowledgment. Whether the cycle eventually reached a dead-letter topic depended on the configured retry and dead-letter behavior; the OOM itself did not advance a business-level nack counter.
+The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued nack — the OOM never advanced any retry counter.
 
 The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239) — the very function jsoniter's branch lacks. The same domain shape had been serialized under `encoding/json` since the feature first shipped; only jsoniter's compilation entered the failing traversal.
 
@@ -138,11 +137,11 @@ _, _ = jsoniter.Marshal(NamedEvent{ID: "assign-1"}) // completes
 _, _ = json.Marshal(Event{ID: "assign-1"}) // completes
 ```
 
-The production type had more fields; this is a reduced type graph, and the single-goroutine demo does not reproduce the Pod's memory profile — that difference is reconstructed above.
+The production type had more fields; this is a reduced type graph, and the single-goroutine demo does not reproduce the Pod's memory profile.
 
 ## Why the automated suite stayed green
 
-The suite that had verified the first release stayed green for a mechanical reason. It exercised the real chain end to end on a test tenant — simulate a departure, let the assignment engine publish its events, consume them — but by the time this iteration ran, that tenant's assignment engine had been switched off for a parallel feature's testing. With the engine off, the chain stopped at its source: no assignment event was ever built, so the publish — and the encoder compilation behind it — never ran. And jsoniter builds each type's codec lazily: it compiles it the first time that type is encoded or decoded, and caches it for the process's life — zero publishes meant zero compilations. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call the engine with struct literals and never serialize an event.
+The suite that had verified the first release stayed green for a mechanical reason. It exercised the real chain end to end on a test tenant — simulate a departure, let the assignment engine publish its events, consume them — but by the time this iteration ran, that tenant's assignment engine had been switched off for a parallel feature's testing. With the engine off, the chain stopped at its source: no assignment event was ever built, so the publish — and the encoder compilation behind it — never ran. And jsoniter builds each type's codec lazily: it compiles it the first time that type is encoded or decoded, and caches it for the process's life — zero publishes meant zero compilations. The suite never reached this change. Neither did unit tests, which call the engine with struct literals and never serialize an event.
 
 ## The fix
 
