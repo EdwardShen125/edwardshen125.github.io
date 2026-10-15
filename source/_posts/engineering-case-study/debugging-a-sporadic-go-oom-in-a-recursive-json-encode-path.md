@@ -19,11 +19,11 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 <!-- more -->
 
-{% asset_img debugging-recursive-json-encode-oom.png Incident build: SOP event chain, publish path, jsoniter encoder compiler, embedded-cycle recursion and the 8 GB alert %}
+{% asset_img debugging-recursive-json-encode-oom.png Incident build: SOP event chain, assignment engine to publish path, jsoniter codec compiler, embedded-cycle recursion and the 8 GB alert %}
 
 Events moved through this service in both directions: it consumed upstream events through the SDK's envelope decoder, and published its own events back through the same SDK's `json` package. Each event type had its own code on the wire and its own handler.
 
-This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved the JSON package behind three internal SDK paths — the event SDK's shared `json`, a cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. One package-level swap armed both directions: decode and publish now went through jsoniter.
+This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved the JSON package behind three internal SDK paths — the event SDK's shared `json`, a cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go). At our consume rate, stdlib's unmarshal allocated heavily per event; jsoniter reused its read buffers, memory fell back and stayed down. One package-level swap armed both directions: decode and publish now went through jsoniter.
 
 Days later, a feature iteration landed in this service. It consumed [WeCom](https://developer.work.weixin.qq.com/document/)'s owner-change event: when an employee departs, WeCom hands their customers over, and this service's assignment engine distributed those customers among the remaining staff by rule, publishing an assignment event for each split. Departures are rare — a handful per tenant per month — so these events were a small fraction of the millions of daily events. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
