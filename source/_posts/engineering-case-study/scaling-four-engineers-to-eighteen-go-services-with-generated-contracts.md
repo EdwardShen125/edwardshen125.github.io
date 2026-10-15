@@ -205,6 +205,6 @@ The remaining gaps were at the cross-service seams: contract changes had no gene
 
 ---
 
-*Previous in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/).*
+*Previous in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Decode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-decode-path/)*.
 
-*Next in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/).*
+*Next in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/)*.

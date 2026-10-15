@@ -226,4 +226,4 @@ I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-
 
 ---
 
-*Next in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/).*
+*Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Decode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-decode-path/)*.
