@@ -56,12 +56,12 @@
   <text x="538.0" y="124.0" class="section">SOP Consumer Service</text>
     <rect id="consumer-boundary-header" data-graph-role="reserved" data-reserved-kind="container-header" x="528" y="106" width="171.7" height="30" fill="none" stroke="none"/>
   </g>
-  <path id="publish-review-stroke" data-graph-role="decoration" data-owner="publish" d="M 240,270 L 240,400" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.87"/>
-  <path id="publish" data-graph-role="edge" data-edge-id="publish" data-source="producers" data-target="pulsar" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Pulsar producer" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 240,270 L 240,400" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
+  <path id="publish-review-stroke" data-graph-role="decoration" data-owner="publish" d="M 240,270 L 240,290.4 L 231,290.4 L 231,400" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.87"/>
+  <path id="publish" data-graph-role="edge" data-edge-id="publish" data-source="producers" data-target="pulsar" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="Pulsar producer" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 240,270 L 240,290.4 L 231,290.4 L 231,400" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
   <path id="deliver-review-stroke" data-graph-role="decoration" data-owner="deliver" d="M 380,460 L 404,460 L 404,205 L 560,205" fill="none" stroke="#7a5c99" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.65"/>
   <path id="deliver" data-graph-role="edge" data-edge-id="deliver" data-source="pulsar" data-target="stage1" data-edge-kind="flow" data-topic-id="" data-flow="async" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="subscription" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 380,460 L 404,460 L 404,205 L 560,205" fill="none" stroke="#7a5c99" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowF)"/>
-  <path id="handoff-review-stroke" data-graph-role="decoration" data-owner="handoff" d="M 720,270 L 720,288.5 L 710,288.5 L 710,350" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.61"/>
-  <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="stage1" data-target="stage2" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 720,270 L 720,288.5 L 710,288.5 L 710,350" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="handoff-review-stroke" data-graph-role="decoration" data-owner="handoff" d="M 711,270 L 711,288.5 L 710,288.5 L 710,350" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.61"/>
+  <path id="handoff" data-graph-role="edge" data-edge-id="handoff" data-source="stage1" data-target="stage2" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 711,270 L 711,288.5 L 710,288.5 L 710,350" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
   <path id="compile-review-stroke" data-graph-role="decoration" data-owner="compile" d="M 860,415 L 880.4,415 L 880.4,436 L 1000,436" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="1.03"/>
   <path id="compile" data-graph-role="edge" data-edge-id="compile" data-source="stage2" data-target="decoder-compile" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="reflection" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 860,415 L 880.4,415 L 880.4,436 L 1000,436" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
   <path id="recursion-bridge-mask" data-graph-role="bridge-mask" data-owner="recursion" d="M 1000,454 L 979.6,454 L 979.6,441 A 5 5 0 0 0 979.6,431 L 979.6,376 L 1125,376 L 1125,380" fill="none" stroke="#f7f2e8" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -71,6 +71,9 @@
   <path id="oom" data-graph-role="edge" data-edge-id="oom" data-source="decoder-compile" data-target="dashboard" data-edge-kind="flow" data-topic-id="" data-flow="error" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="pod restart" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 1250,445 L 1540,445 L 1540,175 L 1540,175" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
   <path id="dispatch-review-stroke" data-graph-role="decoration" data-owner="dispatch" d="M 710,480 L 710,540" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.2"/>
   <path id="dispatch" data-graph-role="edge" data-edge-id="dispatch" data-source="stage2" data-target="handlers" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 710,480 L 710,540" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="redeliver-bridge-mask" data-graph-role="bridge-mask" data-owner="redeliver" d="M 249,400 L 249,379.6 L 399,379.6 A 5 5 0 0 0 409,379.6 L 414.73,379.6 L 414.73,290.4 L 705,290.4 A 5 5 0 0 0 715,290.4 L 729,290.4 L 729,270" fill="none" stroke="#f7f2e8" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="redeliver-review-stroke" data-graph-role="decoration" data-owner="redeliver" d="M 249,400 L 249,379.6 L 399,379.6 A 5 5 0 0 0 409,379.6 L 414.73,379.6 L 414.73,290.4 L 705,290.4 A 5 5 0 0 0 715,290.4 L 729,290.4 L 729,270" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.34"/>
+  <path id="redeliver" data-graph-role="edge" data-edge-id="redeliver" data-source="pulsar" data-target="stage1" data-edge-kind="flow" data-topic-id="" data-flow="error" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="shared subscription" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="4" data-route-stretch="1.0" data-bridges="404,379.6;710,290.4" d="M 249,400 L 249,379.6 L 399,379.6 A 5 5 0 0 0 409,379.6 L 414.73,379.6 L 414.73,290.4 L 705,290.4 A 5 5 0 0 0 715,290.4 L 729,290.4 L 729,270" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
   <g id="node-producers" data-graph-role="node" data-node-id="producers" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="100,150,380,270">
   <rect x="100.0" y="150.0" width="280.0" height="120.0" rx="7" fill="#fffdf7" stroke="#365f56" stroke-width="1.8"/>
   <path data-graph-role="decoration" d="M 106.15 152.951 H 372.15 Q 377.15 152.951 377.15 158.951 V 263.951" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
@@ -100,7 +103,7 @@
   <path data-graph-role="decoration" d="M 566.83 350.667 H 852.83 Q 857.83 350.667 857.83 356.667 V 471.667" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
   <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="272.0" x="574.0" y="368.0" class="node-type" font-size="10.0">CONTAINER</text>
   <text data-text-role="title" data-full-text="Stage 2 · Typed Decode" data-text-max-width="272.0" x="574.0" y="391.0" class="node-title" font-size="15" text-anchor="start">Stage 2 · Typed Decode</text>
-  <text data-text-role="description" data-line="1" data-full-text="re-marshal then decode into event model" x="574.0" y="410.0" class="node-sub" font-size="11.5" text-anchor="start">re-marshal then decode into event model</text>
+  <text data-text-role="description" data-line="1" data-full-text="decode into the concrete Go event type" x="574.0" y="410.0" class="node-sub" font-size="11.5" text-anchor="start">decode into the concrete Go event type</text>
   <text data-text-role="technology" data-full-text="subscription layer · jsoniter" data-text-max-width="276.0" x="848.0" y="471.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">subscription layer · jsoniter</text>
   </g>
   <g id="node-decoder-compile" data-graph-role="node" data-node-id="decoder-compile" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="consumer-boundary" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1000,380,1250,510">
@@ -108,8 +111,8 @@
   <path data-graph-role="decoration" d="M 1007.456 380.858 H 1243.456 Q 1248.456 380.858 1248.456 386.858 V 501.858" fill="none" stroke="#365f56" stroke-width="0.8" opacity="0.42"/>
   <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="222.0" x="1014.0" y="398.0" class="node-type" font-size="10.0">CONTAINER</text>
   <text data-text-role="title" data-full-text="Decoder Compiler" data-text-max-width="222.0" x="1014.0" y="421.0" class="node-title" font-size="15" text-anchor="start">Decoder Compiler</text>
-  <text data-text-role="description" data-line="1" data-full-text="first-use compile walks the type graph" x="1014.0" y="436.0" class="node-sub" font-size="11.5" text-anchor="start">first-use compile</text>
-  <text data-text-role="description" data-line="2" data-full-text="first-use compile walks the type graph" x="1014.0" y="450.0" class="node-sub" font-size="11.5" text-anchor="start">walks the type graph</text>
+  <text data-text-role="description" data-line="1" data-full-text="first-use compile walks the type graph; misses grow in parallel" x="1014.0" y="436.0" class="node-sub" font-size="11.5" text-anchor="start">first-use compile walks the type</text>
+  <text data-text-role="description" data-line="2" data-full-text="first-use compile walks the type graph; misses grow in parallel" x="1014.0" y="450.0" class="node-sub" font-size="11.5" text-anchor="start">graph; misses grow in parallel</text>
   <text data-text-role="technology" data-full-text="jsoniter · describeStruct" data-text-max-width="226.0" x="1238.0" y="501.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">jsoniter · describeStruct</text>
   </g>
   <g id="node-handlers" data-graph-role="node" data-node-id="handlers" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="consumer-boundary" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="560,540,860,636">
@@ -128,10 +131,10 @@
   <text data-text-role="description" data-line="1" data-full-text="alerts on the 8 GB pod limit" x="1314.0" y="180.0" class="node-sub" font-size="11.5" text-anchor="start">alerts on the 8 GB pod limit</text>
   <text data-text-role="technology" data-full-text="Grafana" data-text-max-width="216.0" x="1528.0" y="221.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Grafana</text>
   </g>
-  <g id="publish-label" data-graph-role="label" data-owner="publish" data-graph-bounds="137.75,315,223.62,347">
-  <rect x="137.75" y="315.0" width="85.87" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
-  <text x="180.68" y="330.0" text-anchor="middle" class="arrow-label" font-size="11.5">publish</text>
-  <text x="180.68" y="342.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Pulsar producer]</text>
+  <g id="publish-label" data-graph-role="label" data-owner="publish" data-graph-bounds="128.75,325.2,214.62,357.2">
+  <rect x="128.75" y="325.2" width="85.87" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="171.68" y="340.2" text-anchor="middle" class="arrow-label" font-size="11.5">publish</text>
+  <text x="171.68" y="352.2" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[Pulsar producer]</text>
   </g>
   <g id="deliver-label" data-graph-role="label" data-owner="deliver" data-graph-bounds="319.99,312.5,390.73,344.5">
   <rect x="319.99" y="312.5" width="70.74" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
@@ -153,15 +156,20 @@
   <text x="1052.3" y="354.0" text-anchor="middle" class="arrow-label" font-size="11.5">embedded cycle → unbounded recursion</text>
   <text x="1052.3" y="366.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[no visited set]</text>
   </g>
-  <g id="oom-label" data-graph-role="label" data-owner="oom" data-graph-bounds="1345.6,408,1444.4,440">
-  <rect x="1345.6" y="408.0" width="98.8" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
-  <text x="1395.0" y="423.0" text-anchor="middle" class="arrow-label" font-size="11.5">needle to 8 GB</text>
+  <g id="oom-label" data-graph-role="label" data-owner="oom" data-graph-bounds="1298.8,408,1491.21,440">
+  <rect x="1298.8" y="408.0" width="192.41" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1395.0" y="423.0" text-anchor="middle" class="arrow-label" font-size="11.5">flat to 8 GB in under a second</text>
   <text x="1395.0" y="435.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[pod restart]</text>
   </g>
   <g id="dispatch-label" data-graph-role="label" data-owner="dispatch" data-graph-bounds="619.62,490,706.46,522">
   <rect x="619.62" y="490.0" width="86.84" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
   <text x="663.04" y="505.0" text-anchor="middle" class="arrow-label" font-size="11.5">typed event</text>
   <text x="663.04" y="517.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[in-process]</text>
+  </g>
+  <g id="redeliver-label" data-graph-role="label" data-owner="redeliver" data-graph-bounds="428.56,271.4,549.44,303.4">
+  <rect x="428.56" y="271.4" width="120.88" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="489.0" y="286.4" text-anchor="middle" class="arrow-label" font-size="11.5">redeliver unacked</text>
+  <text x="489.0" y="298.4" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[shared subscription]</text>
   </g>
   <g id="legend" data-graph-role="legend">
     <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="716" width="520.72" height="46" rx="10" fill="none" stroke="none"/>

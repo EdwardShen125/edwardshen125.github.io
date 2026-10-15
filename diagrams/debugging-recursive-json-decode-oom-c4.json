@@ -97,7 +97,7 @@
       "width": 300,
       "height": 130,
       "label": "Stage 2 · Typed Decode",
-      "description": "re-marshal then decode into event model",
+      "description": "decode into the concrete Go event type",
       "technology": "subscription layer · jsoniter"
     },
     {
@@ -110,7 +110,7 @@
       "width": 250,
       "height": 130,
       "label": "Decoder Compiler",
-      "description": "first-use compile walks the type graph",
+      "description": "first-use compile walks the type graph; misses grow in parallel",
       "technology": "jsoniter · describeStruct"
     },
     {
@@ -197,7 +197,7 @@
       "source_port": "right",
       "target_port": "right",
       "flow": "error",
-      "label": "needle to 8 GB",
+      "label": "flat to 8 GB in under a second",
       "protocol": "pod restart"
     },
     {
@@ -209,6 +209,16 @@
       "flow": "read",
       "label": "typed event",
       "protocol": "in-process"
+    },
+    {
+      "id": "redeliver",
+      "source": "pulsar",
+      "target": "stage1",
+      "source_port": "top",
+      "target_port": "bottom",
+      "flow": "error",
+      "label": "redeliver unacked",
+      "protocol": "shared subscription"
     }
   ],
   "boundary_width": null

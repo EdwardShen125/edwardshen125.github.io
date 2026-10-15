@@ -16,25 +16,25 @@
       "profile": "standard"
     },
     "metrics": {
-      "bridged_crossings": 1,
+      "bridged_crossings": 3,
       "max_route_stretch": 1.245,
       "minimum_container_gutter": 24.0,
       "minimum_node_gap": 60.0,
-      "shortest_segment": 4.0,
-      "total_bends": 10
+      "shortest_segment": 1.0,
+      "total_bends": 16
     },
     "ok": true,
     "profile": "standard",
-    "score": 86,
+    "score": 60,
     "violations": []
   },
   "edges": [
     {
-      "bends": 0,
+      "bends": 2,
       "bridges": [],
       "crossings": [],
       "id": "publish",
-      "length": 130.0,
+      "length": 139.0,
       "route": [
         [
           240.0,
@@ -42,6 +42,14 @@
         ],
         [
           240.0,
+          290.4
+        ],
+        [
+          231.0,
+          290.4
+        ],
+        [
+          231.0,
           400.0
         ]
       ],
@@ -53,7 +61,7 @@
       ],
       "target": "pulsar",
       "target_port": [
-        240.0,
+        231.0,
         400.0
       ],
       "waypoints": []
@@ -100,14 +108,14 @@
       "bridges": [],
       "crossings": [],
       "id": "handoff",
-      "length": 90.0,
+      "length": 81.0,
       "route": [
         [
-          720.0,
+          711.0,
           270.0
         ],
         [
-          720.0,
+          711.0,
           288.5
         ],
         [
@@ -122,7 +130,7 @@
       "route_stretch": 1.0,
       "source": "stage1",
       "source_port": [
-        720.0,
+        711.0,
         270.0
       ],
       "target": "stage2",
@@ -285,6 +293,69 @@
         540.0
       ],
       "waypoints": []
+    },
+    {
+      "bends": 4,
+      "bridges": [
+        [
+          404.0,
+          379.6
+        ],
+        [
+          710.0,
+          290.4
+        ]
+      ],
+      "crossings": [
+        [
+          404.0,
+          379.6
+        ],
+        [
+          710.0,
+          290.4
+        ]
+      ],
+      "id": "redeliver",
+      "length": 610.0,
+      "route": [
+        [
+          249.0,
+          400.0
+        ],
+        [
+          249.0,
+          379.6
+        ],
+        [
+          414.73,
+          379.6
+        ],
+        [
+          414.73,
+          290.4
+        ],
+        [
+          729.0,
+          290.4
+        ],
+        [
+          729.0,
+          270.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "pulsar",
+      "source_port": [
+        249.0,
+        400.0
+      ],
+      "target": "stage1",
+      "target_port": [
+        729.0,
+        270.0
+      ],
+      "waypoints": []
     }
   ],
   "input_schema": "v1",
@@ -298,6 +369,21 @@
         ]
       ],
       "element": "recursion",
+      "severity": "info"
+    },
+    {
+      "code": "EDGE_CROSSING_BRIDGED",
+      "coordinates": [
+        [
+          404.0,
+          379.6
+        ],
+        [
+          710.0,
+          290.4
+        ]
+      ],
+      "element": "redeliver",
       "severity": "info"
     }
   ],
@@ -351,8 +437,8 @@
     "name": "C4 Review Canvas"
   },
   "summary": {
-    "bridged_crossings": 1,
-    "edges": 7,
+    "bridged_crossings": 3,
+    "edges": 8,
     "nodes": 7
   },
   "text_metrics": "heuristic-v1",
