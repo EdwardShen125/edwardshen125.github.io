@@ -23,9 +23,9 @@ The service ran across twelve pods, supporting SOP workflows for more than 30,00
 
 The consumer decoded each message in two stages: the event SDK decoded the envelope into `Data interface{}`, then the subscription layer turned that value back into bytes and unmarshaled them into a concrete Go event type. Each event type had its own code on the wire — send-message, tag-change, owner-change — and its own registered handler with its own typed unmarshal.
 
-This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature consumed an upstream owner-change event: when an employee departs, the platform reassigns their customers to colleagues — the standard departure handover on the chat-work suite this SCRM ran on. Departures themselves are rare — a handful per tenant per month — so the event was a small fraction of the millions of daily events. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
+This was the second memory incident on that path in a short window, and the two looked nothing alike. The first was a slow climb: memory rose with business peaks and eventually reached the limit. That one I had already fixed: on March 7 I moved three internal decode paths — envelope, cache, and an executor SDK — from `encoding/json` to [jsoniter](https://github.com/json-iterator/go), and memory fell back and stayed down. Days later, a feature iteration reached the subscription layer. The feature consumed an upstream owner-change event: when an employee departs, the platform reassigns their customers to colleagues — the standard departure handover of the chat platform this SCRM ran on. Departures themselves are rare — a handful per tenant per month — so the event was a small fraction of the millions of daily events. The feature had shipped once before with a flat event type, verified end to end by the automated suite on a test tenant.
 
-The second iteration added chain support for departures that came in batches: when a whole team leaves — an org restructuring — the receiving employee is often on the departure list too, and the platform does not allow a customer to remain with a departing employee, so the handover fires again from the new owner. Each re-dispatch carries the handover it continues, so the engine can audit the chain and deduplicate. Every step of that chain is the same event type, so the field carrying the previous handover points at the type itself. In Go, that field was an anonymous embedded pointer, following the event layer's standing convention. The stage-two typed decode now ran on the jsoniter I had just put in place. The alerts that followed were the second shape — this article's subject. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
+The second iteration added chain support for departures that came in batches: when a whole team leaves — an org restructuring — the receiving employee is often on the departure list too, and the chat platform does not allow a customer to remain with a departing employee, so the handover fires again from the new owner. Each re-dispatch carries the handover it continues, so the engine can audit the chain and deduplicate. Every step of that chain is the same event type, so the field carrying the previous handover points at the type itself. In Go, that field was an anonymous embedded pointer, following the event layer's standing convention. The stage-two typed decode now ran on the jsoniter I had just put in place. The alerts that followed were the second shape — this article's subject. A growth curve points at accumulation; a spike points at a single allocation path gone wrong — and the instruments that watched the first had nothing to say about the second.
 
 The two changes left the service with four decode paths running jsoniter: the event envelope, the cache, an executor SDK — all three from my migration — and the stage-two typed decode, from the later change. The first three were dependency pins, swappable one at a time. The typed decode was subscription-layer business code and shipped only inside the event SDK's builds. That distinction decided how the suspicion could be tested, and later how the failure was isolated.
 
@@ -52,7 +52,7 @@ On March 12 I rolled back to the last known stable build and bisected the incide
 
 The bisection isolated the build delta that introduced the concrete event type. Tracing it through the consumer showed that the event SDK decoded the envelope into `Data interface{}`, then the subscription layer marshaled that value back to bytes and unmarshaled it into the concrete Go event type. That second unmarshal was where jsoniter lazily compiled the decoder. The reduced `TransferEvent` case reproduced the resulting unbounded traversal locally.
 
-The production service consumed messages with multiple goroutines, so concurrent first-use decodes could amplify the process-level memory spike. The event was too fast for a useful RSS profile; the exact contribution from goroutine stacks, heap objects, and runtime allocations could not be recovered.
+The production service consumed messages with multiple goroutines, which shaped how the spike reached the Pod limit — that mechanism is reconstructed below.
 
 ## The mechanism, reconstructed
 
@@ -115,7 +115,7 @@ type Event struct {
 }
 
 func main() {
-	payload := []byte(`{"id":"transfer-1"}`)
+	payload := []byte(`{"id":"handover-1"}`)
 	var event Event
 	jsoniter.Unmarshal(payload, &event)
 	fmt.Println("unreachable")
@@ -143,7 +143,8 @@ var stdlib Event
 _ = json.Unmarshal(payload, &stdlib) // completes
 ```
 
-The production type had more fields; this is a reduced type graph. The local single-goroutine case ends as stack overflow, while production used multiple consumer goroutines inside an 8 GB Pod. That difference explains why the article follows the same decoder defect to a production OOM without claiming that the demo reproduces the Pod's exact memory profile.
+The production type had more fields; this is a reduced type graph, and the single-goroutine demo does not reproduce the Pod's memory profile — that difference is reconstructed above.
+
 ## Why the automated suite stayed green
 
 The suite that had verified the first release stayed green for a mechanical reason. It drove real events through the consumer on a test tenant, but by the time this iteration ran, that tenant's handover toggle had been turned off for a parallel feature's testing. Every event type carries its own code on the wire, and the consumer dispatches on that code — each code reaches its own unmarshal into its own Go type. With the toggle off, no message carried the owner-change code, so its typed unmarshal never executed. And jsoniter builds each type's decoder lazily: it compiles it the first time that type is decoded, and caches it for the process's life — zero executions meant zero compilations. The suite did not test this change and pass; it never reached it. Neither did unit tests, which call handlers with struct literals and never touch a codec.
