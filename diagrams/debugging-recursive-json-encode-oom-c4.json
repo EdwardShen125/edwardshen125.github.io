@@ -8,12 +8,12 @@
   "c4_level": "container",
   "review_state": "PRODUCTION VALIDATED",
   "rough_seed": 20261011,
-  "scope": "SOP Event Consumption Path",
+  "scope": "SOP Event Chain — Publish Path",
   "quality_profile": "standard",
   "text_policy": "strict",
   "width": 1600,
   "height": 800,
-  "title": "SOP Event Consumption Path · Container Review",
+  "title": "SOP Event Chain · Publish Path",
   "subtitle": "where the sporadic OOM lived",
   "legend_orientation": "horizontal",
   "legend_x": 48,
@@ -46,21 +46,21 @@
       "y": 100,
       "width": 760,
       "height": 560,
-      "label": "SOP Consumer Service"
+      "label": "SOP Service"
     }
   ],
   "nodes": [
     {
-      "id": "producers",
+      "id": "wecom",
       "kind": "review_card",
-      "c4_type": "container",
+      "c4_type": "external_system",
       "x": 100,
       "y": 150,
       "width": 280,
-      "height": 120,
-      "label": "SOP Producers",
-      "description": "serialize transitions with stdlib json",
-      "technology": "Go · encoding/json"
+      "height": 110,
+      "label": "WeCom",
+      "description": "emits the rare owner-change event on employee departure",
+      "technology": "chat platform"
     },
     {
       "id": "pulsar",
@@ -71,60 +71,60 @@
       "width": 280,
       "height": 120,
       "label": "Event Topics",
-      "description": "SOP dispatch events, ordinary payloads",
+      "description": "SOP events, ordinary payloads",
       "technology": "Pulsar"
     },
     {
-      "id": "stage1",
+      "id": "engine",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "consumer-boundary",
       "x": 560,
-      "y": 140,
+      "y": 150,
       "width": 320,
-      "height": 130,
-      "label": "Stage 1 · Envelope Decode",
-      "description": "decodes envelope, Data stays interface{}",
-      "technology": "event SDK · encoding/json"
+      "height": 120,
+      "label": "Assignment Engine",
+      "description": "consumes owner-change, splits customers, builds chain events",
+      "technology": "Go"
     },
     {
-      "id": "stage2",
+      "id": "publish",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "consumer-boundary",
       "x": 560,
-      "y": 350,
-      "width": 300,
-      "height": 130,
-      "label": "Stage 2 · Typed Decode",
-      "description": "decode into the concrete Go event type",
-      "technology": "subscription layer · jsoniter"
+      "y": 330,
+      "width": 320,
+      "height": 120,
+      "label": "Publish Path",
+      "description": "marshals each event via the SDK's shared json",
+      "technology": "event SDK · jsoniter"
     },
     {
-      "id": "decoder-compile",
+      "id": "compiler",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "consumer-boundary",
       "x": 1000,
-      "y": 380,
+      "y": 330,
       "width": 250,
       "height": 130,
-      "label": "Decoder Compiler",
+      "label": "Codec Compiler",
       "description": "first-use compile walks the type graph; misses grow in parallel",
       "technology": "jsoniter · describeStruct"
     },
     {
-      "id": "handlers",
+      "id": "envelope",
       "kind": "review_card",
       "c4_type": "container",
       "parent": "consumer-boundary",
       "x": 560,
-      "y": 540,
-      "width": 300,
+      "y": 510,
+      "width": 320,
       "height": 96,
-      "label": "Event Handlers",
-      "description": "business logic per event type",
-      "technology": "Go"
+      "label": "Envelope Decode",
+      "description": "consumed events, not the failing path",
+      "technology": "event SDK · jsoniter"
     },
     {
       "id": "dashboard",
@@ -141,19 +141,19 @@
   ],
   "arrows": [
     {
-      "id": "publish",
-      "source": "producers",
+      "id": "emit",
+      "source": "wecom",
       "target": "pulsar",
       "source_port": "bottom",
       "target_port": "top",
       "flow": "async",
-      "label": "publish",
-      "protocol": "Pulsar producer"
+      "label": "owner-change",
+      "protocol": "rare: a few per tenant monthly"
     },
     {
-      "id": "deliver",
+      "id": "consume",
       "source": "pulsar",
-      "target": "stage1",
+      "target": "engine",
       "source_port": "right",
       "target_port": "left",
       "flow": "async",
@@ -161,29 +161,29 @@
       "protocol": "subscription"
     },
     {
-      "id": "handoff",
-      "source": "stage1",
-      "target": "stage2",
+      "id": "build",
+      "source": "engine",
+      "target": "publish",
       "source_port": "bottom",
       "target_port": "top",
-      "flow": "read",
-      "label": "Data interface{}",
-      "protocol": "in-process"
+      "flow": "control",
+      "label": "chain events",
+      "protocol": "each carries the previous"
     },
     {
       "id": "compile",
-      "source": "stage2",
-      "target": "decoder-compile",
+      "source": "publish",
+      "target": "compiler",
       "source_port": "right",
       "target_port": "left",
       "flow": "control",
-      "label": "compile",
+      "label": "lazy compile",
       "protocol": "reflection"
     },
     {
       "id": "recursion",
-      "source": "decoder-compile",
-      "target": "decoder-compile",
+      "source": "compiler",
+      "target": "compiler",
       "source_port": "left",
       "target_port": "top",
       "flow": "error",
@@ -192,7 +192,7 @@
     },
     {
       "id": "oom",
-      "source": "decoder-compile",
+      "source": "compiler",
       "target": "dashboard",
       "source_port": "right",
       "target_port": "right",
@@ -201,21 +201,11 @@
       "protocol": "pod restart"
     },
     {
-      "id": "dispatch",
-      "source": "stage2",
-      "target": "handlers",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "read",
-      "label": "typed event",
-      "protocol": "in-process"
-    },
-    {
       "id": "redeliver",
       "source": "pulsar",
-      "target": "stage1",
-      "source_port": "top",
-      "target_port": "bottom",
+      "target": "engine",
+      "source_port": "bottom",
+      "target_port": "right",
       "flow": "error",
       "label": "redeliver unacked",
       "protocol": "shared subscription"
