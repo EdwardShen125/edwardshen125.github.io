@@ -44,6 +44,8 @@ The design we shipped put the boundary where the domain already had one. **A roo
 
 This is why the actor-versus-ECS framing never quite matched the decision. Both models appear — actor isolation at the room boundary, ECS data layout inside it — each doing what it is good at. ECS was chosen at selection time, before any code ran, to avoid the actor model's costs at player granularity; the room is what made that choice compatible with filling a multicore machine.
 
+The ECS side of the selection drew on [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw) — Timothy Ford's GDC 2017 talk, itself an argument for a strict ECS over the classic actor model. Nothing of its netcode half applied here: Overwatch is a 60 Hz client-predicted shooter, this was a server-authoritative casual title where the client renders what the room tick decides. What translated was the architecture half — components hold state, systems hold behavior, iteration walks contiguous storage — mapped onto a Go server instead of a C++ engine.
+
 ## The architecture
 
 {% asset_img architecture.png "One Go instance, two concurrency layers: rooms truly parallel across cores, serial tick-driven ECS inside each room" %}
