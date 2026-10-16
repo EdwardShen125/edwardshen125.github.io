@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1840 1080" width="1840" height="1080" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="9" data-visual-theme="C4 Review Canvas" data-diagram-type="c4" data-motion-scene="" data-semantic-profile="c4-review" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#365f56"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#a44a3f"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#356a8a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c06b35"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7a5c99"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b13e53"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#746b60"/>
+    </marker>
+    <pattern id="reviewGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.8" fill="#8c7d68" fill-opacity="0.18"/>
+    </pattern>
+    <style>
+    text { font-family: 'Avenir Next', Avenir, 'Segoe UI', 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif; }
+    .title { font-size: 27px; font-weight: 700; fill: #24312f; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #6f756f; }
+    .section { font-size: 13px; font-weight: 700; fill: #5b5144; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #756753; }
+    .node-title { font-weight: 700; fill: #24312f; }
+    .node-sub { font-weight: 500; fill: #5f665f; }
+    .node-type { font-size: 10px; font-weight: 700; fill: #8a6f43; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #4b5563; }
+    .legend { font-size: 12px; font-weight: 500; fill: #5f665f; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #656b61; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #656b61; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #24312f; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1840.0" height="1080.0" fill="#f7f2e8"/>
+  <rect data-graph-role="decoration" width="1840.0" height="1080.0" fill="url(#reviewGrid)"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">One Go Instance, Two Concurrency Layers</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">rooms run truly in parallel; inside each room a serial tick-driven ECS</text>
+  <g id="style-signature" data-graph-role="decoration" data-style-signature="c4-review-board">
+    <rect x="1616.0" y="22.0" width="176.0" height="34.0" rx="7" fill="#fffdf7" stroke="#8c7d68" stroke-width="1.2" stroke-dasharray="6 4"/>
+    <path d="M 1628.0 39.0 l 5 5 9 -11" fill="none" stroke="#365f56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text data-full-text="C4 · CONTAINER VIEW" x="1650.0" y="36.0" font-size="8.5" font-weight="800" fill="#8a6f43">C4 · CONTAINER VIEW</text>
+    <text data-full-text="PRODUCTION VALIDATED" x="1650.0" y="49.0" font-size="8" font-weight="700" fill="#5f665f">PRODUCTION VALIDATED</text>
+  </g>
+  <path id="a1-review-stroke" data-graph-role="decoration" data-owner="a1" d="M 340,860 L 359.6,860 L 359.6,660 L 380,660" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.24"/>
+  <path id="a1" data-graph-role="edge" data-edge-id="a1" data-source="clients" data-target="conn" data-edge-kind="flow" data-topic-id="" data-flow="sync" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="game protocol" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 340,860 L 359.6,860 L 359.6,660 L 380,660" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a2-review-stroke" data-graph-role="decoration" data-owner="a2" d="M 700,660 L 720.4,660 L 720.4,520 L 800,520" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="-0.06"/>
+  <path id="a2" data-graph-role="edge" data-edge-id="a2" data-source="conn" data-target="rooms" data-edge-kind="flow" data-topic-id="" data-flow="sync" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 700,660 L 720.4,660 L 720.4,520 L 800,520" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a4-review-stroke" data-graph-role="decoration" data-owner="a4" d="M 940,170 L 940,190.4 L 1040,190.4 L 1040,320" fill="none" stroke="#365f56" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="1.02"/>
+  <path id="a4" data-graph-role="edge" data-edge-id="a4" data-source="roompool" data-target="rooms" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 940,170 L 940,190.4 L 1040,190.4 L 1040,320" fill="none" stroke="#365f56" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a6-review-stroke" data-graph-role="decoration" data-owner="a6" d="M 1280,520 L 1380,520" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.22"/>
+  <path id="a6" data-graph-role="edge" data-edge-id="a6" data-source="rooms" data-target="aoi" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="in-process" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1280,520 L 1380,520" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="a8-review-stroke" data-graph-role="decoration" data-owner="a8" d="M 1550,640 L 1550,660.4 L 1304,660.4 L 1304,940 L 60,940 L 60,759.6 L 200,759.6 L 200,780" fill="none" stroke="#356a8a" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="0.49"/>
+  <path id="a8" data-graph-role="edge" data-edge-id="a8" data-source="aoi" data-target="clients" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="game protocol" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="6" data-route-stretch="1.43" data-bridges="" d="M 1550,640 L 1550,660.4 L 1304,660.4 L 1304,940 L 60,940 L 60,759.6 L 200,759.6 L 200,780" fill="none" stroke="#356a8a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="a9-bridge-mask" data-graph-role="bridge-mask" data-owner="a9" d="M 1040,720 L 1040,815 L 1299,815 A 5 5 0 0 0 1309,815 L 1380,815" fill="none" stroke="#f7f2e8" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path id="a9-review-stroke" data-graph-role="decoration" data-owner="a9" d="M 1040,720 L 1040,815 L 1299,815 A 5 5 0 0 0 1309,815 L 1380,815" fill="none" stroke="#a44a3f" stroke-width="0.9" stroke-dasharray="2.5,2" opacity="0.30" stroke-dashoffset="1.01"/>
+  <path id="a9" data-graph-role="edge" data-edge-id="a9" data-source="rooms" data-target="persist" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="async flush" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="1304,815" d="M 1040,720 L 1040,815 L 1299,815 A 5 5 0 0 0 1309,815 L 1380,815" fill="none" stroke="#a44a3f" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <g id="node-clients" data-graph-role="node" data-node-id="clients" data-semantic-role="external_system" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="60,780,340,940">
+  <rect x="60.0" y="780.0" width="280.0" height="160.0" rx="7" fill="#fffdf7" stroke="#356a8a" stroke-width="1.8" stroke-dasharray="6 4"/>
+  <path data-graph-role="decoration" d="M 66.513 780.522 H 332.513 Q 337.513 780.522 337.513 786.522 V 931.522" fill="none" stroke="#356a8a" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="EXTERNAL SYSTEM" data-text-max-width="252.0" x="74.0" y="798.0" class="node-type" font-size="10.0">EXTERNAL SYSTEM</text>
+  <text data-text-role="title" data-full-text="Game clients" data-text-max-width="252.0" x="74.0" y="821.0" class="node-title" font-size="15" text-anchor="start">Game clients</text>
+  <text data-text-role="description" data-line="1" data-full-text="click-to-move; commands batched per tick" x="74.0" y="840.0" class="node-sub" font-size="11.5" text-anchor="start">click-to-move; commands batched per tick</text>
+  <text data-text-role="technology" data-full-text="simulated-client fleet in load tests" data-text-max-width="256.0" x="328.0" y="931.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">simulated-client fleet in load tests</text>
+  </g>
+  <g id="node-conn" data-graph-role="node" data-node-id="conn" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="380,560,700,760">
+  <rect x="380.0" y="560.0" width="320.0" height="200.0" rx="7" fill="#fffdf7" stroke="#245a7d" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 387.335 562.312 H 693.335 Q 698.335 562.312 698.335 568.312 V 753.312" fill="none" stroke="#245a7d" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="292.0" x="394.0" y="578.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Connection layer" data-text-max-width="292.0" x="394.0" y="601.0" class="node-title" font-size="15" text-anchor="start">Connection layer</text>
+  <text data-text-role="description" data-line="1" data-full-text="accepts commands; batches them; input floor = tick period" x="394.0" y="616.0" class="node-sub" font-size="11.5" text-anchor="start">accepts commands; batches</text>
+  <text data-text-role="description" data-line="2" data-full-text="accepts commands; batches them; input floor = tick period" x="394.0" y="630.0" class="node-sub" font-size="11.5" text-anchor="start">them; input floor = tick period</text>
+  <text data-text-role="technology" data-full-text="Go, game protocol" data-text-max-width="296.0" x="688.0" y="751.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">Go, game protocol</text>
+  </g>
+  <g id="node-roompool" data-graph-role="node" data-node-id="roompool" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="760,40,1120,170">
+  <rect x="760.0" y="40.0" width="360.0" height="130.0" rx="7" fill="#fffdf7" stroke="#245a7d" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 768.28 40.97 H 1114.28 Q 1119.28 40.97 1119.28 46.97 V 161.97" fill="none" stroke="#245a7d" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="332.0" x="774.0" y="58.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Room pool" data-text-max-width="332.0" x="774.0" y="81.0" class="node-title" font-size="15" text-anchor="start">Room pool</text>
+  <text data-text-role="description" data-line="1" data-full-text="pre-allocated by tier; matched to level and intent" x="774.0" y="100.0" class="node-sub" font-size="11.5" text-anchor="start">pre-allocated by tier; matched to level and intent</text>
+  <text data-text-role="technology" data-full-text="in-process scheduler" data-text-max-width="336.0" x="1108.0" y="161.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">in-process scheduler</text>
+  </g>
+  <g id="node-aoi" data-graph-role="node" data-node-id="aoi" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1380,400,1720,640">
+  <rect x="1380.0" y="400.0" width="340.0" height="240.0" rx="7" fill="#fffdf7" stroke="#245a7d" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 1388.282 401.533 H 1714.282 Q 1719.282 401.533 1719.282 407.533 V 632.533" fill="none" stroke="#245a7d" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="312.0" x="1394.0" y="418.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="AOI broadcast" data-text-max-width="312.0" x="1394.0" y="441.0" class="node-title" font-size="15" text-anchor="start">AOI broadcast</text>
+  <text data-text-role="description" data-line="1" data-full-text="state changes reach only in-sight viewers; room caps bound fanout" x="1394.0" y="456.0" class="node-sub" font-size="11.5" text-anchor="start">state changes reach only in-sight</text>
+  <text data-text-role="description" data-line="2" data-full-text="state changes reach only in-sight viewers; room caps bound fanout" x="1394.0" y="470.0" class="node-sub" font-size="11.5" text-anchor="start">viewers; room caps bound fanout</text>
+  <text data-text-role="technology" data-full-text="in-process, per room" data-text-max-width="316.0" x="1708.0" y="631.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">in-process, per room</text>
+  </g>
+  <g id="node-persist" data-graph-role="node" data-node-id="persist" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1380,740,1720,890">
+  <rect x="1380.0" y="740.0" width="340.0" height="150.0" rx="7" fill="#fffdf7" stroke="#a44a3f" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 1387.342 741.888 H 1713.342 Q 1718.342 741.888 1718.342 747.888 V 882.888" fill="none" stroke="#a44a3f" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="312.0" x="1394.0" y="758.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Async snapshot" data-text-max-width="312.0" x="1394.0" y="781.0" class="node-title" font-size="15" text-anchor="start">Async snapshot</text>
+  <text data-text-role="description" data-line="1" data-full-text="snapshot outside the tick; timer flush" x="1394.0" y="800.0" class="node-sub" font-size="11.5" text-anchor="start">snapshot outside the tick; timer flush</text>
+  <text data-text-role="technology" data-full-text="timer flush" data-text-max-width="316.0" x="1708.0" y="881.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">timer flush</text>
+  </g>
+  <g id="node-rooms" data-graph-role="node" data-node-id="rooms" data-semantic-role="container" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="800,320,1280,720">
+  <rect x="800.0" y="320.0" width="480.0" height="400.0" rx="7" fill="#fffdf7" stroke="#8a6d3b" stroke-width="1.8"/>
+  <path data-graph-role="decoration" d="M 807.068 320.992 H 1273.068 Q 1278.068 320.992 1278.068 326.992 V 711.992" fill="none" stroke="#8a6d3b" stroke-width="0.8" opacity="0.42"/>
+  <text data-text-role="type" data-full-text="CONTAINER" data-text-max-width="452.0" x="814.0" y="338.0" class="node-type" font-size="10.0">CONTAINER</text>
+  <text data-text-role="title" data-full-text="Room ticks — one per room, ~10 Hz" data-text-max-width="452.0" x="814.0" y="361.0" class="node-title" font-size="15" text-anchor="start">Room ticks — one per room, ~10 Hz</text>
+  <text data-text-role="description" data-line="1" data-full-text="each room: system pass over component types, then entity pass over fixed-capacity arrays" x="814.0" y="376.0" class="node-sub" font-size="11.5" text-anchor="start">each room: system pass over component types,</text>
+  <text data-text-role="description" data-line="2" data-full-text="each room: system pass over component types, then entity pass over fixed-capacity arrays" x="814.0" y="390.0" class="node-sub" font-size="11.5" text-anchor="start">then entity pass over fixed-capacity arrays</text>
+  <text data-text-role="technology" data-full-text="serial ECS per room; rooms truly parallel across cores" data-text-max-width="456.0" x="1268.0" y="711.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">serial ECS per room; rooms truly parallel across cores</text>
+  </g>
+  <g id="a1-label" data-graph-role="label" data-owner="a1" data-graph-bounds="269.24,740,345.25,772">
+  <rect x="269.24" y="740.0" width="76.01" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="307.24" y="755.0" text-anchor="middle" class="arrow-label" font-size="11.5">cmds</text>
+  <text x="307.24" y="767.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[game protocol]</text>
+  </g>
+  <g id="a2-label" data-graph-role="label" data-owner="a2" data-graph-bounds="693.61,483,790.8,515">
+  <rect x="693.61" y="483.0" width="97.19" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="742.2" y="498.0" text-anchor="middle" class="arrow-label" font-size="11.5">batched input</text>
+  <text x="742.2" y="510.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[in-process]</text>
+  </g>
+  <g id="a4-label" data-graph-role="label" data-owner="a4" data-graph-bounds="924.24,235.2,1035.92,267.2">
+  <rect x="924.24" y="235.2" width="111.68" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="980.08" y="250.2" text-anchor="middle" class="arrow-label" font-size="11.5">assign / recycle</text>
+  <text x="980.08" y="262.2" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[in-process]</text>
+  </g>
+  <g id="a6-label" data-graph-role="label" data-owner="a6" data-graph-bounds="1298.45,483,1361.54,515">
+  <rect x="1298.45" y="483.0" width="63.09" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1330.0" y="498.0" text-anchor="middle" class="arrow-label" font-size="11.5">changes</text>
+  <text x="1330.0" y="510.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[in-process]</text>
+  </g>
+  <g id="a8-label" data-graph-role="label" data-owner="a8" data-graph-bounds="636.74,903,727.26,935">
+  <rect x="636.74" y="903.0" width="90.52" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="682.0" y="918.0" text-anchor="middle" class="arrow-label" font-size="11.5">view updates</text>
+  <text x="682.0" y="930.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[game protocol]</text>
+  </g>
+  <g id="a9-label" data-graph-role="label" data-owner="a9" data-graph-bounds="1175.32,778,1244.68,810">
+  <rect x="1175.32" y="778.0" width="69.36" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
+  <text x="1210.0" y="793.0" text-anchor="middle" class="arrow-label" font-size="11.5">snapshot</text>
+  <text x="1210.0" y="805.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[async flush]</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="30" y="966" width="666.64" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="40.0" y1="980.0" x2="70.0" y2="980.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="80.0" y="984.0" class="legend">room lifecycle</text>
+    <line data-graph-role="decoration" x1="193.44" y1="980.0" x2="223.44" y2="980.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="233.44" y="984.0" class="legend">batched player input</text>
+    <line data-graph-role="decoration" x1="389.12" y1="980.0" x2="419.12" y2="980.0" stroke="#a44a3f" stroke-width="2.0" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="429.12" y="984.0" class="legend">async snapshot</text>
+    <line data-graph-role="decoration" x1="551.9200000000001" y1="980.0" x2="581.9200000000001" y2="980.0" stroke="#356a8a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="591.9200000000001" y="984.0" class="legend">AOI broadcast</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="40,1028,474,1044">
+  <text x="40.0" y="1040.0" class="footnote">one instance of the fleet — peak: 20+ instances × 10K+ players</text>
+  </g>
+</svg>

@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 9,
+  "semantic_profile": "c4-review",
+  "diagram_type": "c4",
+  "c4_level": "container",
+  "review_state": "PRODUCTION VALIDATED",
+  "rough_seed": 42,
+  "scope": "one game server instance",
+  "quality_profile": "standard",
+  "text_policy": "strict",
+  "width": 1840,
+  "height": 1080,
+  "title": "One Go Instance, Two Concurrency Layers",
+  "subtitle": "rooms run truly in parallel; inside each room a serial tick-driven ECS",
+  "legend_orientation": "horizontal",
+  "legend_x": 40,
+  "legend_y": 980,
+  "legend": [
+    {
+      "flow": "control",
+      "label": "room lifecycle"
+    },
+    {
+      "flow": "sync",
+      "label": "batched player input"
+    },
+    {
+      "flow": "write",
+      "label": "async snapshot"
+    },
+    {
+      "flow": "read",
+      "label": "AOI broadcast"
+    }
+  ],
+  "footer": "one instance of the fleet — peak: 20+ instances × 10K+ players",
+  "footer_x": 40,
+  "footer_y": 1040,
+  "nodes": [
+    {
+      "id": "clients",
+      "kind": "review_card",
+      "c4_type": "external_system",
+      "x": 60,
+      "y": 780,
+      "width": 280,
+      "height": 160,
+      "label": "Game clients",
+      "description": "click-to-move; commands batched per tick",
+      "technology": "simulated-client fleet in load tests",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "conn",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 380,
+      "y": 560,
+      "width": 320,
+      "height": 200,
+      "label": "Connection layer",
+      "description": "accepts commands; batches them; input floor = tick period",
+      "technology": "Go, game protocol",
+      "stroke": "#245a7d"
+    },
+    {
+      "id": "roompool",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 760,
+      "y": 40,
+      "width": 360,
+      "height": 130,
+      "label": "Room pool",
+      "description": "pre-allocated by tier; matched to level and intent",
+      "technology": "in-process scheduler",
+      "stroke": "#245a7d"
+    },
+    {
+      "id": "aoi",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 1380,
+      "y": 400,
+      "width": 340,
+      "height": 240,
+      "label": "AOI broadcast",
+      "description": "state changes reach only in-sight viewers; room caps bound fanout",
+      "technology": "in-process, per room",
+      "stroke": "#245a7d"
+    },
+    {
+      "id": "persist",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 1380,
+      "y": 740,
+      "width": 340,
+      "height": 150,
+      "label": "Async snapshot",
+      "description": "snapshot outside the tick; timer flush",
+      "technology": "timer flush",
+      "stroke": "#a44a3f"
+    },
+    {
+      "id": "rooms",
+      "kind": "review_card",
+      "c4_type": "container",
+      "x": 800,
+      "y": 320,
+      "width": 480,
+      "height": 400,
+      "label": "Room ticks — one per room, ~10 Hz",
+      "description": "each room: system pass over component types, then entity pass over fixed-capacity arrays",
+      "technology": "serial ECS per room; rooms truly parallel across cores",
+      "stroke": "#8a6d3b"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "a1",
+      "source": "clients",
+      "target": "conn",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "sync",
+      "label": "cmds",
+      "protocol": "game protocol"
+    },
+    {
+      "id": "a2",
+      "source": "conn",
+      "target": "rooms",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "sync",
+      "label": "batched input",
+      "protocol": "in-process"
+    },
+    {
+      "id": "a4",
+      "source": "roompool",
+      "target": "rooms",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "assign / recycle",
+      "protocol": "in-process"
+    },
+    {
+      "id": "a6",
+      "source": "rooms",
+      "target": "aoi",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read",
+      "label": "changes",
+      "protocol": "in-process"
+    },
+    {
+      "id": "a8",
+      "source": "aoi",
+      "target": "clients",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "view updates",
+      "protocol": "game protocol"
+    },
+    {
+      "id": "a9",
+      "source": "rooms",
+      "target": "persist",
+      "source_port": "bottom",
+      "target_port": "left",
+      "flow": "write",
+      "label": "snapshot",
+      "protocol": "async flush"
+    }
+  ]
+}

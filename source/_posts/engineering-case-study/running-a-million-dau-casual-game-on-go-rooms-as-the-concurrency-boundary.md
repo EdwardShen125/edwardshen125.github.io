@@ -8,6 +8,7 @@ tags:
   - game-server
   - ecs
   - concurrency
+seo_image: architecture.png
 description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running rooms truly in parallel on multiple cores, with a serial tick-driven ECS inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps into pre-allocated arrays."
 ---
 
@@ -45,6 +46,8 @@ This is why the actor-versus-ECS framing never quite matched the decision. Both 
 
 ## The architecture
 
+{% asset_img architecture.png "One Go instance, two concurrency layers: rooms truly parallel across cores, serial tick-driven ECS inside each room" %}
+
 At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand — a traffic ramp arrives as a wave of room spin-ups, not as allocation work on the hot path — and recycled when the waterline falls.
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
@@ -59,7 +62,7 @@ Because the game was planned for national-IP traffic from the start, load testin
 
 The symptom appeared at density: room ticks frequently overran their budget, and the clients showed it first as an inability to align state within their latency-tolerance window — the server's answers about room state arrived later than the client's interpolation could absorb. That observation mattered diagnostically: it localized the problem to the room's update cycle rather than to the network or the broadcast path.
 
-pprof attributed the lost budget to map operations. The component-access path still went through maps in the hot loop — lookups and growth on every component touch of every entity in every tick — and at room scale that overhead, plus the allocation churn that came with it, consumed the tick budget. The fix was to finish what the architecture implied: move component storage into pre-allocated fixed-capacity arrays indexed directly, and reuse the memory across room lifecycles. Ticks returned inside their budget, and the same change removed a steady source of garbage-collector pressure — the allocation profile of the hot path went quiet.
+[pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations. The component-access path still went through maps in the hot loop — lookups and growth on every component touch of every entity in every tick — and at room scale that overhead, plus the allocation churn that came with it, consumed the tick budget. The fix was to finish what the architecture implied: move component storage into pre-allocated fixed-capacity arrays indexed directly, and reuse the memory across room lifecycles. Ticks returned inside their budget, and the same change removed a steady source of [garbage-collector](https://go.dev/doc/gc-guide) pressure — the allocation profile of the hot path went quiet.
 
 Two non-findings are worth recording. Broadcast fanout was never the problem — area-of-interest filtering and the room population caps had already bounded it. And the failure never reached production: it was found by the load test, which is the load test doing its job.
 
