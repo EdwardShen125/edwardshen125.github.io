@@ -144,7 +144,7 @@
       "target_port": "top",
       "flow": "async",
       "label": "owner-change",
-      "protocol": "rare: a few per tenant monthly"
+      "protocol": "event topic"
     },
     {
       "id": "consume",
@@ -164,7 +164,7 @@
       "target_port": "top",
       "flow": "control",
       "label": "chain events",
-      "protocol": "each carries the previous"
+      "protocol": "in-process"
     },
     {
       "id": "compile",
@@ -184,7 +184,7 @@
       "target_port": "top",
       "flow": "error",
       "label": "embedded cycle → unbounded recursion",
-      "protocol": "no visited set"
+      "protocol": "unvisited type"
     },
     {
       "id": "oom",
