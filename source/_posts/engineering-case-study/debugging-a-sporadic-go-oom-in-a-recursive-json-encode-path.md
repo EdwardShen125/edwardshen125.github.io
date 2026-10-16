@@ -227,8 +227,6 @@ The production OOM stopped after the migration and never recurred through the mo
 - I swapped one package-level `json` variable to fix slow memory growth and silently moved the publish path to jsoniter with it. Now, before any dependency swap, I list every caller of what I'm touching.
 - The dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM; we found it in the retrospective. Now a consumer incident starts with DLQ depth and retry counters, before any profiling.
 
-This incident made reflected type graphs part of what I review in a dependency change.
-
 ---
 
 *Previous in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/)*.
