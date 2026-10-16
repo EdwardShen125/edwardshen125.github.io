@@ -167,15 +167,13 @@
   <text x="702.2" y="72.0" text-anchor="middle" font-size="8.5" font-weight="800" fill="#8a6f43">[shared subscription]</text>
   </g>
   <g id="legend" data-graph-role="legend">
-    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="716" width="520.72" height="46" rx="10" fill="none" stroke="none"/>
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="38" y="716" width="410.96" height="46" rx="10" fill="none" stroke="none"/>
     <line data-graph-role="decoration" x1="48.0" y1="730.0" x2="78.0" y2="730.0" stroke="#7a5c99" stroke-width="2.0" marker-end="url(#arrowF)"/>
     <text data-graph-role="decoration" x="88.0" y="734.0" class="legend">event stream</text>
-    <line data-graph-role="decoration" x1="196.88" y1="730.0" x2="226.88" y2="730.0" stroke="#356a8a" stroke-width="2.0" marker-end="url(#arrowC)"/>
-    <text data-graph-role="decoration" x="236.88" y="734.0" class="legend">decode</text>
-    <line data-graph-role="decoration" x1="306.64" y1="730.0" x2="336.64" y2="730.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
-    <text data-graph-role="decoration" x="346.64" y="734.0" class="legend">compiler path</text>
-    <line data-graph-role="decoration" x1="456.24" y1="730.0" x2="486.24" y2="730.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
-    <text data-graph-role="decoration" x="496.24" y="734.0" class="legend">failure</text>
+    <line data-graph-role="decoration" x1="196.88" y1="730.0" x2="226.88" y2="730.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="236.88" y="734.0" class="legend">compiler path</text>
+    <line data-graph-role="decoration" x1="346.48" y1="730.0" x2="376.48" y2="730.0" stroke="#365f56" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="386.48" y="734.0" class="legend">failure</text>
   </g>
   <g id="footer" data-graph-role="reserved" data-graph-bounds="48,768,524,784">
   <text x="48.0" y="780.0" class="footnote">Edward Shen · Distributed Systems Series · container-level semantics</text>

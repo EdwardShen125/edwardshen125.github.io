@@ -24,10 +24,6 @@
       "label": "event stream"
     },
     {
-      "flow": "read",
-      "label": "decode"
-    },
-    {
       "flow": "control",
       "label": "compiler path"
     },
