@@ -86,9 +86,48 @@ type TransferEvent struct {
 
 The incident ran on Go 1.18, and the reduced case reproduces there with jsoniter `v1.1.12` — the version the service had pinned. The same case reproduced in every release from `v1.1.5` through `v1.1.12`, while the standard library and a named recursive pointer field remained safe.
 
-The local reproduction used one goroutine and ended when that goroutine reached Go's default maximum stack of about 1 GB. Production used multiple goroutines inside an 8 GB Pod, and jsoniter compiled each type's codec lazily, so concurrent first-use cache misses could place several goroutines in the same recursive path: process memory grew in parallel, and the Pod limit could be reached before any single goroutine hit its own stack limit. Most Pods never received a rare assignment event at all. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
+Production ran multiple goroutines inside an 8 GB Pod, and jsoniter compiled each type's codec lazily, so concurrent first-use cache misses could place several goroutines in the same recursive path: process memory grew in parallel, and the Pod limit could be reached before any single goroutine hit its own stack limit — the harness below demonstrates that arithmetic. Most Pods never received a rare assignment event at all. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
 
 The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued nack — the OOM never advanced any retry counter.
+
+A small harness reproduces that loop locally, scaled down 16× (64 MB stack walls instead of Go's ~1 GB default) and with the pod limit simulated by an RSS threshold. Each child process is one "pod": eight goroutines hit the same first-use compile, and the parent replays the unacknowledged message every time the child dies:
+
+```go
+// child: one "pod". debug.SetMaxStack caps each goroutine's climb.
+func child(n, stackMB int) {
+	debug.SetMaxStack(stackMB << 20)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _ = jsoniter.Marshal(Event{ID: "assign-1"})
+		}()
+	}
+	wg.Wait() // unreachable: the process dies inside the first-use compile
+}
+
+// parent: the "cluster". Redelivers on every death, like the shared
+// subscription did after each OOM-killed pod disconnected.
+for redelivery := 1; redelivery <= 3; redelivery++ {
+	cmd := exec.Command(os.Args[0], "8", "64")
+	start := time.Now()
+	_ = cmd.Run()
+	peakMB := peakRSS(cmd) // from syscall.Rusage
+	fmt.Printf("redelivery %d: pod died in %v, peak RSS %d MB", ...)
+	if peakMB >= podLimitMB {
+		fmt.Printf(" — over the %d MB pod limit: an OOMKill before any single %d MB stack wall\n", ...)
+	}
+}
+```
+
+```text
+redelivery 1: pod died in 100ms, peak RSS 737 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+redelivery 2: pod died in 79ms, peak RSS 672 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+redelivery 3: pod died in 92ms, peak RSS 788 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+```
+
+The peak scales with concurrency — eight goroutines × one stack each — which is the arithmetic behind the production OOM: process memory grew in parallel while the stack limit only ever guarded one goroutine at a time. On this laptop the child still dies to the stack wall (there is no cgroup to kill it first); inside a real container limit, the memory wall arrives before any goroutine's stack does, the process dies without a word, and the parent's redelivery loop is exactly the cross-pod cycle the incident showed.
 
 The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239) — the very function jsoniter's branch lacks. The same domain shape had been serialized under `encoding/json` since the feature first shipped; only jsoniter's compilation entered the failing traversal.
 
@@ -137,7 +176,7 @@ _, _ = jsoniter.Marshal(NamedEvent{ID: "assign-1"}) // completes
 _, _ = json.Marshal(Event{ID: "assign-1"}) // completes
 ```
 
-The production type had more fields; this is a reduced type graph, and the single-goroutine demo does not reproduce the Pod's memory profile.
+The production type had more fields; this is a reduced type graph. The concurrent harness above reproduces the memory arithmetic; without a container limit it cannot reproduce the OOM-kill itself.
 
 ## Why the automated suite stayed green
 
