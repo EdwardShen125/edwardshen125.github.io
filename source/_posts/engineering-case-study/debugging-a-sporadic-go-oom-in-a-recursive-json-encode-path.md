@@ -223,10 +223,12 @@ The production OOM stopped after the migration and never recurred through the mo
 
 ## Lessons from the investigation
 
-- When runtime evidence cannot narrow a sporadic failure, the build is the remaining variable — and a codec swap tests only the paths it can reach. A quiet window is weak evidence; a build delta is a bounded change set, and reachability, not codec preference, decides what a negative result proves.
-- Review a dependency swap by mechanism, not intent, and test what it actually touches. One shared `json` variable armed publish while I intended a decode-side migration; and because first-use codec compilation happens before any byte moves, throughput benchmarks and payload tests cannot see this failure class — representative type graphs can.
-- Treat the broker's failure machinery as part of the failure path — and as free evidence. A mid-publish death turns a codec defect into a cross-Pod incident through unacknowledged redelivery; meanwhile the dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM. On any consumer incident, check DLQ depth and retry counters before you touch a profile.
-- A green run proves nothing unless the test asserts it executed what it was supposed to. Our suite went green over a switched-off engine because greens and empty greens are indistinguishable; a feature's tests should fail loudly when the feature stops running.
+- Logs, pprof, and core dumps all assumed the process would survive long enough to leave evidence; it died in under a second. Build bisection was the only tool left, and it worked — eight rollbacks to one build delta. For a fast-fatal failure, step builds early instead of waiting for runtime evidence.
+- Swapping the cache codec to sonic proved the cache was clean, nothing more — the publish path still ran jsoniter and kept killing pods. A negative result only covers the paths the swap actually reached; I stopped swapping and started bisecting.
+- I swapped one package-level `json` variable to fix slow memory growth and silently moved the publish path to jsoniter with it. Now, before any dependency swap, I list every caller of what I'm touching — shared state moves in both directions.
+- jsoniter compiles a codec the first time it sees a type, before reading any input, so neither payload tests nor throughput benchmarks can catch a recursive type graph. Since this incident, codec evaluations include the project's real event types, not just fixtures.
+- The dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM; we found it in the retrospective. Now a consumer incident starts with DLQ depth and retry counters, before any profiling.
+- The automated suite stayed green because the tenant's assignment engine was switched off — green and never-ran look identical. A feature's tests should fail when the feature stops executing, not pass silently.
 
 This incident made reflected type graphs part of what I review in a dependency change.
 
