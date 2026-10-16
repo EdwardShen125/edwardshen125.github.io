@@ -223,7 +223,7 @@ The production OOM stopped after the migration and never recurred through the mo
 
 ## Lessons from the investigation
 
-- Logs, pprof, and core dumps all assumed the process would survive long enough to leave evidence; it died in under a second. Build bisection was the only tool left, and it worked — eight rollbacks to one build delta. For a fast-fatal failure, step builds early instead of waiting for runtime evidence.
+- The shape of the failure decided the tool. A sub-second spike with no time signature ruled out accumulation, pointed at a single allocation path, and made every runtime instrument useless — the process died before leaving evidence. I lost days to codec swaps and quiet windows before accepting that; build bisection was the expensive but only decisive step — eight rollbacks to one delta. For a fast-fatal failure, read the shape first and step builds early.
 - I swapped one package-level `json` variable to fix slow memory growth and silently moved the publish path to jsoniter with it. Now, before any dependency swap, I list every caller of what I'm touching.
 - The dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM; we found it in the retrospective. Now a consumer incident starts with DLQ depth and retry counters, before any profiling.
 
