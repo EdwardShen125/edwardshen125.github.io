@@ -135,33 +135,7 @@ Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, i
 
 ## Reproducing the mechanism safely
 
-The smallest useful reproduction keeps only the recursive type and the publish call. Run the failing case in a child process or with a low stack limit; it is a fatal runtime error and cannot be recovered with `recover`.
-
-```go
-package main
-
-import (
-	"fmt"
-
-	jsoniter "github.com/json-iterator/go"
-)
-
-type Event struct {
-	*Event // anonymous embedded pointer to the same type
-	ID string `json:"id"`
-}
-
-func main() {
-	_, _ = jsoniter.Marshal(Event{ID: "assign-1"}) // publish-side call
-	fmt.Println("unreachable")
-}
-
-// jsoniter v1.1.12:
-// fatal error: stack overflow
-// before the first JSON byte is written
-```
-
-No input exists to be wrong: the failure happens while jsoniter lazily compiles an encoder for `Event` — `describeStruct` sees the anonymous embedded pointer, expands `Event` again, and never reaches the value. Two controls isolate the trigger:
+The harness above reduces the incident to three moving parts: the recursive `Event` type, one publish call, and goroutines hitting the same first-use compile. The single-goroutine case inside each child is the smallest form of it — `jsoniter.Marshal(Event{ID: "assign-1"})` dies before the first byte is written, and `recover` cannot catch it. No input exists to be wrong: `describeStruct` sees the anonymous embedded pointer, expands `Event` again, and never reaches the value. Two controls isolate the trigger:
 
 ```go
 // Named recursive field: jsoniter's placeholder codec terminates compilation.
@@ -176,7 +150,7 @@ _, _ = jsoniter.Marshal(NamedEvent{ID: "assign-1"}) // completes
 _, _ = json.Marshal(Event{ID: "assign-1"}) // completes
 ```
 
-The production type had more fields; this is a reduced type graph. The concurrent harness above reproduces the memory arithmetic; without a container limit it cannot reproduce the OOM-kill itself.
+The production type had more fields; this is a reduced type graph, and without a container limit the harness cannot reproduce the OOM-kill itself.
 
 ## Why the automated suite stayed green
 
