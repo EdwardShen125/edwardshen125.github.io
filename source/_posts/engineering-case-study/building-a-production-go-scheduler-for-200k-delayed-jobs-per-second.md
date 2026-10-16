@@ -226,4 +226,4 @@ I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-
 
 ---
 
-*Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Decode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/)*.
+*Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/)*.

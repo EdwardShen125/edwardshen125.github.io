@@ -44,7 +44,7 @@ All four needed the process to survive long enough to leave evidence; this one d
 
 ## The codec suspicion
 
-The JSON change I knew about was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for sonic on the cache path — a dependency swap. The publish path, business code inside the SDK builds, was beyond that kind of swap and stayed on jsoniter. The OOM recurred within a day; I rolled sonic back the next morning.
+The JSON change I knew about was my own March 7 migration, so jsoniter was the first suspect. On March 11 I swapped it for [sonic](https://github.com/bytedance/sonic) on the cache path — a dependency swap. The publish path, business code inside the SDK builds, was beyond that kind of swap and stayed on jsoniter. The OOM recurred within a day; I rolled sonic back the next morning.
 
 That experiment ruled out the cache path, not jsoniter as a whole. Jsoniter still ran on the envelope, the executor SDK, and the publish path. No dependency swap could reach those remaining paths; stepping the SDK builds could. I stopped swapping libraries and started bisecting builds, treating the recent JSON changes as a single bundled delta.
 
