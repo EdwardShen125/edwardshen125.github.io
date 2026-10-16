@@ -223,13 +223,10 @@ The production OOM stopped after the migration and never recurred through the mo
 
 ## Lessons from the investigation
 
-- When runtime evidence cannot narrow a sporadic failure, the build is the remaining variable. An observation window without a crash is weak evidence; a build delta is a bounded change set that can be traced and reduced.
-- Before swapping a codec to clear a suspicion, map which code paths the swap can actually reach. Reachability, not codec preference, decides what a negative result proves.
-- A legal Go type can exercise an unguarded traversal inside a library, and first-use codec compilation happens before any byte is read or written — so throughput benchmarks and payload tests cannot see this failure class. Representative type graphs can.
-- A service that dies mid-publish turns a local codec failure into a cross-Pod incident through unacknowledged redelivery. The retry and dead-letter configuration must be treated as part of the failure path, not as an assumption about application-level nack handling.
-- Check the broker's own failure records first. The dead-letter topic held the failing messages, their retry trails, and the event code for the whole week we chased the OOM; it was discovered in the retrospective. On any consumer incident, DLQ depth and retry counters are free evidence before you touch a profile.
-- A package-level dependency swap changes more surface than the path you meant to move. I intended a decode-side migration; one shared variable armed publish too. Review what a swap touches by mechanism — shared state, both directions — not by intent.
-- A green run proves nothing unless the test asserts it executed what it was supposed to. Our suite went green over a switched-off engine because greens and empty greens are indistinguishable; a test that verifies a feature should fail loudly when the feature stops running.
+- When runtime evidence cannot narrow a sporadic failure, the build is the remaining variable — and a codec swap tests only the paths it can reach. A quiet window is weak evidence; a build delta is a bounded change set, and reachability, not codec preference, decides what a negative result proves.
+- Review a dependency swap by mechanism, not intent, and test what it actually touches. One shared `json` variable armed publish while I intended a decode-side migration; and because first-use codec compilation happens before any byte moves, throughput benchmarks and payload tests cannot see this failure class — representative type graphs can.
+- Treat the broker's failure machinery as part of the failure path — and as free evidence. A mid-publish death turns a codec defect into a cross-Pod incident through unacknowledged redelivery; meanwhile the dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM. On any consumer incident, check DLQ depth and retry counters before you touch a profile.
+- A green run proves nothing unless the test asserts it executed what it was supposed to. Our suite went green over a switched-off engine because greens and empty greens are indistinguishable; a feature's tests should fail loudly when the feature stops running.
 
 This incident made reflected type graphs part of what I review in a dependency change.
 
