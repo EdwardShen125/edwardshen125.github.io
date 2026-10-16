@@ -141,7 +141,7 @@ The production type had more fields; this is a reduced type graph, and the singl
 
 ## Why the automated suite stayed green
 
-The suite that had verified the first release stayed green for a mechanical reason. It exercised the real chain end to end on a test tenant — simulate a departure, let the assignment engine publish its events, consume them — but by the time this iteration ran, that tenant's assignment engine had been switched off for a parallel feature's testing. With the engine off, the chain stopped at its source: no assignment event was ever built, so the publish — and the encoder compilation behind it — never ran. And jsoniter builds each type's codec lazily: it compiles it the first time that type is encoded or decoded, and caches it for the process's life — zero publishes meant zero compilations. The suite never reached this change. Neither did unit tests, which call the engine with struct literals and never serialize an event.
+The suite that had verified the first release stayed green for a mechanical reason. It exercised the real chain on a test tenant — simulate a departure, let the engine publish, consume — but by the time this iteration ran, that tenant's engine had been switched off for a parallel feature's testing, and nothing flagged the gap: the suite's greens looked exactly like a passed run. With the engine off, no assignment event was ever built; nothing published; and jsoniter compiles a codec only on first use — zero publishes meant zero compilations. The green was real but empty: no test ever reached this change. Unit tests could not either — they call the engine with struct literals and never serialize an event.
 
 ## The fix
 
