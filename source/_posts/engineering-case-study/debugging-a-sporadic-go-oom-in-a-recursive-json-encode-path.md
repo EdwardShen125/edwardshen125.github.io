@@ -90,41 +90,104 @@ Production ran multiple goroutines inside an 8 GB Pod, and jsoniter compiled eac
 
 The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued nack — the OOM never advanced any retry counter. The burst ended only when the message exhausted its redelivery budget and landed in the dead-letter topic: each departing employee's event burned through a handful of pods, then went quiet.
 
-A small harness reproduces that loop locally, scaled down 16× (64 MB stack walls instead of Go's ~1 GB default) and with the pod limit simulated by an RSS threshold. Each child process is one "pod": eight goroutines hit the same first-use compile, and the parent replays the unacknowledged message every time the child dies:
+The harness below reproduces that loop locally as a single copy-paste program, scaled down 16× (64 MB stack walls instead of Go's ~1 GB default) and with the pod limit simulated by an RSS threshold. Each child process is one "pod": eight goroutines hit the same first-use compile, and the parent replays the unacknowledged message every time the child dies:
 
 ```go
-// child: one "pod". debug.SetMaxStack caps each goroutine's climb.
-func child(n, stackMB int) {
+// Command oom-harness reproduces the incident's cross-pod cycle in miniature.
+// Each child process is one "pod": N goroutines hit the same first-use
+// jsoniter compile of a self-embedding type. The parent is the "cluster":
+// on every death it replays the unacknowledged message, as the shared
+// subscription did after each OOM-killed pod disconnected.
+//
+//	go run .          # runs three redelivery rounds, prints per-pod peak RSS
+//
+// Safety: the child caps each goroutine's stack at 64 MB (16x below the
+// runtime default), the parent fixes three rounds, and each pod dies in
+// ~100ms — the whole run stays under a second and under 800 MB.
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"runtime/debug"
+	"sync"
+	"syscall"
+	"time"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+// Event is the incident's type graph, reduced: an anonymous embedded
+// self-pointer. Compiling a codec for it recurses without a visited set.
+type Event struct {
+	*Event
+	ID string `json:"id"`
+}
+
+const (
+	workers    = 8   // concurrent first-use compiles per pod
+	stackMB    = 64  // per-goroutine stack ceiling (production: ~1 GB)
+	podLimitMB = 300 // simulated pod memory limit (production: 8 GB)
+)
+
+// child is one "pod": workers goroutines, one poison publish each.
+func child() {
 	debug.SetMaxStack(stackMB << 20)
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, _ = jsoniter.Marshal(Event{ID: "assign-1"})
+			_, _ = jsoniter.Marshal(Event{ID: "assign-1"}) // the publish that never returns
 		}()
 	}
 	wg.Wait() // unreachable: the process dies inside the first-use compile
 }
 
-// parent: the "cluster". Redelivers on every death, like the shared
-// subscription did after each OOM-killed pod disconnected.
-for redelivery := 1; redelivery <= 3; redelivery++ {
-	cmd := exec.Command(os.Args[0], "8", "64")
-	start := time.Now()
-	_ = cmd.Run()
-	peakMB := peakRSS(cmd) // from syscall.Rusage
-	fmt.Printf("redelivery %d: pod died in %v, peak RSS %d MB", ...)
-	if peakMB >= podLimitMB {
-		fmt.Printf(" — over the %d MB pod limit: an OOMKill before any single %d MB stack wall\n", ...)
+// peakRSS reads the finished child's peak resident set from Rusage.
+// Linux reports ru_maxrss in KB, macOS in bytes.
+func peakRSS(cmd *exec.Cmd) int {
+	if cmd.ProcessState == nil {
+		return 0
+	}
+	ru, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)
+	if !ok {
+		return 0
+	}
+	kb := ru.Maxrss
+	if kb > 1<<20 { // bytes -> KB
+		kb /= 1024
+	}
+	return int(kb) / 1024
+}
+
+func main() {
+	if len(os.Args) > 1 { // child mode: invoked by the parent below
+		child()
+		return
+	}
+	for redelivery := 1; redelivery <= 3; redelivery++ {
+		cmd := exec.Command(os.Args[0], "pod")
+		start := time.Now()
+		_ = cmd.Run()
+		peak := peakRSS(cmd)
+		fmt.Printf("redelivery %d: pod died in %v, peak RSS %d MB", redelivery,
+			time.Since(start).Round(time.Millisecond), peak)
+		if peak >= podLimitMB {
+			fmt.Printf(" — over the %d MB pod limit: an OOMKill before any single %d MB stack wall\n",
+				podLimitMB, stackMB)
+		} else {
+			fmt.Println()
+		}
 	}
 }
 ```
 
 ```text
-redelivery 1: pod died in 100ms, peak RSS 737 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
-redelivery 2: pod died in 79ms, peak RSS 672 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
-redelivery 3: pod died in 92ms, peak RSS 788 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+redelivery 1: pod died in 100ms, peak RSS 773 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+redelivery 2: pod died in 85ms, peak RSS 760 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
+redelivery 3: pod died in 86ms, peak RSS 773 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall
 ```
 
 The peak scales with concurrency — eight goroutines × one stack each — which is the arithmetic behind the production OOM: process memory grew in parallel while the stack limit only ever guarded one goroutine at a time. On this laptop the child still dies to the stack wall (there is no cgroup to kill it first); inside a real container limit, the memory wall arrives before any goroutine's stack does, the process dies without a word, and the parent's redelivery loop is exactly the cross-pod cycle the incident showed.
