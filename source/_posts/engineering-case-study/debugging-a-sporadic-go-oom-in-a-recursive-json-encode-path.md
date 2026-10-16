@@ -15,7 +15,7 @@ seo_image: debugging-recursive-json-encode-oom.png
 
 The alert came from Grafana. A Go service on the SOP event chain reached its 8 GB Pod memory limit and restarted; process memory went from flat to the limit in under a second, with no correlation to traffic or time of day.
 
-The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept coming for over a week: at least one pod lost per day, three or four on the worst days, and none of the standard instruments captured why.
+The service ran across twelve pods, supporting SOP workflows for more than 30,000 enterprise customers. It consumed close to ten million events per day and supported daily outreach to hundreds of thousands of end users. The alerts kept coming for over a week: on most days a burst — one pod lost, then another within minutes as if the failure moved between them — and three or four on the worst days, until each burst exhausted itself and went quiet. Nothing in the standard instruments captured why.
 
 <!-- more -->
 
@@ -88,7 +88,7 @@ The incident ran on Go 1.18, and the reduced case reproduces there with jsoniter
 
 Production ran multiple goroutines inside an 8 GB Pod, and jsoniter compiled each type's codec lazily, so concurrent first-use cache misses could place several goroutines in the same recursive path: process memory grew in parallel, and the Pod limit could be reached before any single goroutine hit its own stack limit — the harness below demonstrates that arithmetic. Most Pods never received a rare assignment event at all. Because the spike ended too quickly for a useful profile, the exact RSS contribution from goroutine stacks, heap objects, and runtime allocations remains unknown.
 
-The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued nack — the OOM never advanced any retry counter.
+The publish call never returned: the assignment event the engine was emitting never reached the broker, and the owner-change message the service had consumed to trigger it was never acknowledged either. When the Pod was OOM-killed, its consumer connection closed with that consumed message unacknowledged. With a shared subscription, Pulsar could then redeliver that message to another consumer Pod, where the same chain would repeat the failure. This was consumer-disconnect redelivery, not an application-issued nack — the OOM never advanced any retry counter. The burst ended only when the message exhausted its redelivery budget and landed in the dead-letter topic: each departing employee's event burned through a handful of pods, then went quiet.
 
 A small harness reproduces that loop locally, scaled down 16× (64 MB stack walls instead of Go's ~1 GB default) and with the pod limit simulated by an RSS threshold. Each child process is one "pod": eight goroutines hit the same first-use compile, and the parent replays the unacknowledged message every time the child dies:
 
