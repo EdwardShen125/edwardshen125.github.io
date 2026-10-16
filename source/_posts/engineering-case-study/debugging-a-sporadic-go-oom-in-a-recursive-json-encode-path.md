@@ -224,11 +224,8 @@ The production OOM stopped after the migration and never recurred through the mo
 ## Lessons from the investigation
 
 - Logs, pprof, and core dumps all assumed the process would survive long enough to leave evidence; it died in under a second. Build bisection was the only tool left, and it worked — eight rollbacks to one build delta. For a fast-fatal failure, step builds early instead of waiting for runtime evidence.
-- Swapping the cache codec to sonic proved the cache was clean, nothing more — the publish path still ran jsoniter and kept killing pods. A negative result only covers the paths the swap actually reached; I stopped swapping and started bisecting.
-- I swapped one package-level `json` variable to fix slow memory growth and silently moved the publish path to jsoniter with it. Now, before any dependency swap, I list every caller of what I'm touching — shared state moves in both directions.
-- jsoniter compiles a codec the first time it sees a type, before reading any input, so neither payload tests nor throughput benchmarks can catch a recursive type graph. Since this incident, codec evaluations include the project's real event types, not just fixtures.
+- I swapped one package-level `json` variable to fix slow memory growth and silently moved the publish path to jsoniter with it. Now, before any dependency swap, I list every caller of what I'm touching.
 - The dead-letter topic held the failing messages and their retry trails for the whole week we chased the OOM; we found it in the retrospective. Now a consumer incident starts with DLQ depth and retry counters, before any profiling.
-- The automated suite stayed green because the tenant's assignment engine was switched off — green and never-ran look identical. A feature's tests should fail when the feature stops executing, not pass silently.
 
 This incident made reflected type graphs part of what I review in a dependency change.
 
