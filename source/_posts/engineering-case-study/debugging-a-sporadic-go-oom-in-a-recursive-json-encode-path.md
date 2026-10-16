@@ -192,13 +192,7 @@ redelivery 3: pod died in 86ms, peak RSS 773 MB — over the 300 MB pod limit: a
 
 The peak scales with concurrency — eight goroutines × one stack each — which is the arithmetic behind the production OOM: process memory grew in parallel while the stack limit only ever guarded one goroutine at a time. On this laptop the child still dies to the stack wall (there is no cgroup to kill it first); inside a real container limit, the memory wall arrives before any goroutine's stack does, the process dies without a word, and the parent's redelivery loop is exactly the cross-pod cycle the incident showed.
 
-The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239) — the very function jsoniter's branch lacks. The same domain shape had been serialized under `encoding/json` since the feature first shipped; only jsoniter's compilation entered the failing traversal.
-
-Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver [delegates to `encoding/json.typeFields`](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51); in `v1.14.1` and `v1.15.4`, it performs that traversal locally [with a visited-type map](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75). Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized codec compilers [track types already being compiled](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609) and handle recursive fields without repeatedly expanding their work. For this embedded-cycle case, the field-resolution guard is the relevant protection. These are retrospective checks against `v1.14.0`, `v1.14.1`, and `v1.15.4` (Go `1.24.9`, macOS, both the JIT and optimized paths encoding and decoding the payload); they verify the reduced case, not the production sonic version or runtime.
-
-## Reproducing the mechanism safely
-
-The harness above reduces the incident to three moving parts: the recursive `Event` type, one publish call, and goroutines hitting the same first-use compile. The single-goroutine case inside each child is the smallest form of it — `jsoniter.Marshal(Event{ID: "assign-1"})` dies before the first byte is written, and `recover` cannot catch it. No input exists to be wrong: `describeStruct` sees the anonymous embedded pointer, expands `Event` again, and never reaches the value. Two controls isolate the trigger:
+Two controls in the harness's style isolate the trigger — same call, same shape, one property changed each time:
 
 ```go
 // Named recursive field: jsoniter's placeholder codec terminates compilation.
@@ -213,7 +207,9 @@ _, _ = jsoniter.Marshal(NamedEvent{ID: "assign-1"}) // completes
 _, _ = json.Marshal(Event{ID: "assign-1"}) // completes
 ```
 
-The production type had more fields; this is a reduced type graph, and without a container limit the harness cannot reproduce the OOM-kill itself.
+The standard library uses a [visited map when resolving fields](https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239) — the very function jsoniter's branch lacks. The same domain shape had been serialized under `encoding/json` since the feature first shipped; only jsoniter's compilation entered the failing traversal.
+
+Sonic avoids the failing traversal at the field-resolution step. In `v1.14.0`, its resolver [delegates to `encoding/json.typeFields`](https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51); in `v1.14.1` and `v1.15.4`, it performs that traversal locally [with a visited-type map](https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75). Both approaches stop revisiting the anonymously embedded type. Separately, sonic's JIT and optimized codec compilers [track types already being compiled](https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609) and handle recursive fields without repeatedly expanding their work. For this embedded-cycle case, the field-resolution guard is the relevant protection. These are retrospective checks against `v1.14.0`, `v1.14.1`, and `v1.15.4` (Go `1.24.9`, macOS, both the JIT and optimized paths encoding and decoding the payload); they verify the reduced case, not the production sonic version or runtime.
 
 ## Why the automated suite stayed green
 
@@ -221,7 +217,7 @@ The suite that had verified the first release stayed green for a mechanical reas
 
 ## The fix
 
-With the cause isolated, the fix followed directly: I moved the publish path's JSON package to sonic, and only that path — validated first against the reduced reproduction, which sonic encodes without entering the failing traversal. The jsoniter migration kept the win it had already delivered: the envelope and cache paths stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control below demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event type at once.
+With the cause isolated, the fix followed directly: I moved the publish path's JSON package to sonic, and only that path — validated first against the reduced reproduction, which sonic encodes without entering the failing traversal. The jsoniter migration kept the win it had already delivered: the envelope and cache paths stayed on it, and the slow-climb incident did not come back. Fixing the type instead (adding a field name or tag to break the anonymous embedding) would also have closed this failure, as the named-field control demonstrates; the migration was chosen because it left the shared event contract untouched while covering every event type at once.
 
 The production OOM stopped after the migration and never recurred through the months that followed, while the service kept running until I left the company. The reduced reproduction also stopped triggering the fatal recursive failure under sonic. These results make the publish-path encoder the strongest operational explanation for the OOM. They do not identify the exact production RSS split between goroutine stacks, heap, and runtime allocations; the spike ended before a useful profile could be captured. The type graph itself remained unchanged; the source comparison below explains why sonic handles the embedded cycle.
 
