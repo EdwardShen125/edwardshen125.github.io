@@ -101,7 +101,7 @@ activity peak (a third of rooms full):            ≈ 7.3 cores  (92% of 8)
 all-rooms-full hypothetical:                      ≈ 11 cores  (never observed)
 ```
 
-Eight logical cores per instance, with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
+Eight vCPUs per instance with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
 
 That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room goroutine spends most of every 100-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of two thousand per second at this scale — which profiling never surfaced as material.
 
@@ -111,7 +111,7 @@ Memory is calculated from the recorded room profile:
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The 32 GiB machines were used where those non-room allocations or pre-allocated room state were larger.
+The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on Tencent Cloud — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
 
 The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
@@ -128,9 +128,9 @@ Two non-findings are worth recording. Broadcast fanout was never the problem —
 
 ## Results
 
-The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across twenty-plus high-spec instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
+The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across twenty-plus instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
-The exact hardware SKU and per-room population cap are omitted here; the fleet ran on high-spec instances. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
+The per-room population caps varied by room class, so no single cap figure is quoted; the instance shape itself is the one given in the capacity model. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
 ## Trade-offs
 
