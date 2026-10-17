@@ -93,15 +93,17 @@ For a 10,000-player instance with 50-player rooms, the CPU model is the next siz
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
 ```
 
-With 200 rooms, a 10 Hz tick, a 5 ms CPU cost per room per tick, and a 70% utilization target:
+The 5 ms figure is the full-room measurement — one hundred players, the load-test worst case. Rooms ran at thirty to fifty players on average, where the same linear scaling puts a room near 1.5–2.5 ms per tick. Sizing used the average; the full-room figure was the validation ceiling:
 
 ```text
-200 × 0.005 × 10 / 0.70 ≈ 14.3 cores
+average load:  154 rooms × 2.5 ms × 10 Hz / 0.70 ≈ 5.5 cores
+activity peak (a third of rooms full):            ≈ 7.3 cores  (92% of 8)
+all-rooms-full hypothetical:                      ≈ 11 cores  (never observed)
 ```
 
-Rounding up and leaving room for networking, persistence, GC, scheduling, and short bursts gives 16 logical cores.
+Eight logical cores per instance, with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
 
-That sixteen cores serve two hundred room goroutines is not a contradiction: a room goroutine spends 95 of every 100 milliseconds asleep in its tick timer, so at most fifteen rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — two thousand per second at this scale — which profiling never surfaced as material.
+That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room goroutine spends most of every 100-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of two thousand per second at this scale — which profiling never surfaced as material.
 
 Memory is calculated from the recorded room profile:
 
@@ -109,7 +111,7 @@ Memory is calculated from the recorded room profile:
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The per-room profile was 1–4 MiB. Two hundred rooms therefore contributed roughly 200–800 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The 32 GiB machines were used where those non-room allocations or pre-allocated room state were larger.
+The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The 32 GiB machines were used where those non-room allocations or pre-allocated room state were larger.
 
 The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
