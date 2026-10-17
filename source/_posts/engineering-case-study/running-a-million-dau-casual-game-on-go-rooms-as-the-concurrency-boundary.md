@@ -31,7 +31,7 @@ A design point in the tens of millions decomposes into two independent numbers: 
 Per-instance density set the requirements:
 
 - Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but perceptible if the server hesitated.
-- A bounded update cycle per room. Each room ticked at roughly 10 Hz, so each tick had a 100-millisecond wall-clock deadline; the room's actual CPU consumption was only part of that interval. Whatever the room did before that deadline defined the player's worst-case interaction latency.
+- A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Every movement and interaction was broadcast to the players who could see it. Fanout had to be bounded by design, not by hope.
 
 
@@ -70,7 +70,7 @@ The capacity model uses four figures: peak players, players per room, players pe
 | Peak concurrency | about 200,000 | Fleet capacity target |
 | Players per room | 30–100 | Converts players into rooms |
 | Instance density | 10,000 players/instance | Converts players into instances |
-| Tick rate | roughly 10 Hz | 100 ms wall-clock deadline |
+| Tick rate | 20 Hz | 50 ms wall-clock deadline |
 
 The key calculations are:
 
@@ -93,17 +93,17 @@ For a 10,000-player instance with 50-player rooms, the CPU model is the next siz
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
 ```
 
-The 5 ms figure is the full-room measurement — one hundred players, the load-test worst case. Rooms ran at thirty to fifty players on average, where the same linear scaling puts a room near 1.5–2.5 ms per tick. Sizing used the average; the full-room figure was the validation ceiling:
+What a tick costs comes from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room lands in the low single-digit milliseconds per tick — that figure is a reconstruction from the load-test shape, not a recorded number — and an average thirty-to-fifty-player room costs roughly half of it. Sizing used the average:
 
 ```text
-average load:  154 rooms × 2.5 ms × 10 Hz / 0.70 ≈ 5.5 cores
-activity peak (a third of rooms full):            ≈ 7.3 cores  (92% of 8)
-all-rooms-full hypothetical:                      ≈ 11 cores  (never observed)
+average load:  154 rooms × ~1.7 ms × 20 Hz / 0.70 ≈ 7.5 cores
+activity peak (a third of rooms full):            ≈ 9.7 cores
+all-rooms-full hypothetical:                      ≈ 20 cores  (never observed)
 ```
 
-Eight vCPUs per instance with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
+Eight vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
 
-That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room goroutine spends most of every 100-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of two thousand per second at this scale — which profiling never surfaced as material.
+That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
 
 Memory is calculated from the recorded room profile:
 

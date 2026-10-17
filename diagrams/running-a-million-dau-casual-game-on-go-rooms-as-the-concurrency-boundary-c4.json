@@ -113,7 +113,7 @@
       "y": 320,
       "width": 480,
       "height": 400,
-      "label": "Room ticks — one per room, ~10 Hz",
+      "label": "Room ticks — one per room, 20 Hz",
       "description": "each room: system pass over component types, then entity pass over fixed-capacity arrays",
       "technology": "serial ECS per room; Go-scheduled room goroutines",
       "stroke": "#8a6d3b"
