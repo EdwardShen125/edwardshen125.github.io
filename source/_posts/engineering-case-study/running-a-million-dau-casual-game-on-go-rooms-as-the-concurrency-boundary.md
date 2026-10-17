@@ -101,7 +101,7 @@ activity peak (a third of rooms full):            ≈ 9.7 cores
 all-rooms-full hypothetical:                      ≈ 20 cores  (never observed)
 ```
 
-Eight vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts; the all-full hypothetical exceeds one machine, but an entire instance's rooms simultaneously full was an operational state the population caps made unreachable — matchmaking filled rooms across instances before saturating one.
+Eight vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts. The all-full hypothetical was never a per-machine problem to solve with bigger cores — it was the fleet's horizontal-scaling trigger: when matchmaking could no longer spread full rooms across instances, the answer was more instances, not bigger ones, which is the same scaling decision the tens-of-millions design point had already committed to.
 
 That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
 
