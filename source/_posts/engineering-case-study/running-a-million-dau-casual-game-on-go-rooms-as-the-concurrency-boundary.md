@@ -9,7 +9,7 @@ tags:
   - ecs
   - concurrency
 seo_image: architecture.png
-description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
+description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
 The capacity target was set before the server had a shape. The game was a QQ-licensed pet title in the casual category, and traffic would arrive the way Tencent ramps a national title: exposure slots opened gradually over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions, which meant the architecture had to scale horizontally by instance count without any redesign, and each instance had to be dense enough that the instance count stayed operationally sane.
@@ -111,7 +111,7 @@ Memory is calculated from the recorded room profile:
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on Tencent Cloud — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
+The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
 
 The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
