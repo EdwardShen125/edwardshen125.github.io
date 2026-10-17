@@ -101,6 +101,8 @@ With 200 rooms, a 10 Hz tick, a 5 ms CPU cost per room per tick, and a 70% utili
 
 Rounding up and leaving room for networking, persistence, GC, scheduling, and short bursts gives 16 logical cores.
 
+That sixteen cores serve two hundred room goroutines is not a contradiction: a room goroutine spends 95 of every 100 milliseconds asleep in its tick timer, so at most fifteen rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — two thousand per second at this scale — which profiling never surfaced as material.
+
 Memory is calculated from the recorded room profile:
 
 ```text
