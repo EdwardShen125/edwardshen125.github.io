@@ -16,7 +16,7 @@ The capacity target was fixed before the server had a shape. The game was a QQ-l
 
 The design point was roughly 200,000 concurrent players at activity peaks.
 
-The game's backend was more than this one service — but the room service is the piece this article covers, and one decision in it carried more load than the entity-component system — the data-oriented architecture inside the rooms. That decision was not about data layout at all: the room itself, as the concurrency boundary. The game's own interactions had already fixed that boundary — movement, visibility, and contested spots all resolved inside one room — so each room ran as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
+The game's backend had other services; this article covers the room service, where one decision mattered more than the entity-component system — the data-oriented architecture inside the rooms. That decision was the room itself as the concurrency boundary: the game's interactions — movement, visibility, contested spots — all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
 Inside the room service's process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two synchronization semantics, one shared tick budget.
 
@@ -37,13 +37,13 @@ Per-instance density set the requirements:
 
 ## Two ways to organize ownership and execution
 
-The selection question was not "actor or ECS?" Those models answer different questions. An actor model defines who owns mutable state and how work reaches it. ECS defines how a simulation stores component data and runs systems over entities. The useful comparison for this game was where to place the ownership boundary, and what execution model to use inside that boundary.
+The selection question was not "actor or ECS?" Those models answer different questions. An actor model defines who owns mutable state and how work reaches it. ECS defines how a simulation stores component data and runs systems over entities.
 
 A player-level actor was one possible ownership boundary. Each player would own state in a goroutine and receive commands through a mailbox. That would isolate players, but it would cut across the game's interaction boundary: movement, visibility, contested collection spots, and PVP all require several players and room state to be evaluated together. A query such as "which players are within this area of interest?" would become cross-actor messaging and result assembly. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, rather than the player, was the unit in which state changed together.
 
 A single global tick was the other extreme: one loop would iterate every room and entity in the process. It would make ordering simple, but it would couple unrelated rooms to one scheduler and one latency budget. A slow or unusually busy room could delay every other room, and one serial loop could not use the machine's available processors effectively at the observed density.
 
-The shipped design combined the two useful ideas at different layers. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop, there were no additional goroutines and no message passing: entities were component records, systems were iteration passes over them, and a tick walked the room's systems serially. Fixed-capacity component arrays made those traversals predictable and avoided unnecessary map and allocation work.
+The shipped design combined the two useful ideas at different layers. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop, there were no additional goroutines and no message passing: entities were component records, systems were iteration passes over them, and a tick walked the room's systems serially. Fixed-capacity component arrays made those traversals predictable.
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
 
@@ -120,7 +120,7 @@ The inputs came from the load test described below; the equations exist to make 
 
 Because the game was planned for national-IP traffic from the start, load testing was treated as part of the design, not a release gate at the end. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density.
 
-The symptom appeared at density: room ticks frequently overran their deadline, and clients showed it first as room-state updates arriving later than the interaction window could tolerate. That was the investigation signal, not proof that the network or broadcast path was innocent; the profile identified where the budget was actually going.
+The symptom appeared at density: room ticks frequently overran their deadline, and clients showed it first as room-state updates arriving later than the interaction window could tolerate. That localized the problem to the room's update cycle; the profile showed where inside it the budget went.
 
 [pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations. The hot loop paid for repeated map lookups, while inserts and growth added allocation and resizing costs. At room scale, that overhead consumed the tick deadline. The fix was to move component storage into pre-allocated fixed-capacity arrays indexed directly, and reuse the memory across room lifecycles. Ticks returned inside their deadline, and the hot path stopped showing allocation churn in profiles.
 
@@ -130,11 +130,11 @@ Two non-findings are worth recording. Broadcast fanout was never the problem —
 
 The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
-The per-room population caps varied by room class, so no single cap figure is quoted; the instance shape itself is the one given in the capacity model. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
+Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
 ## Trade-offs
 
-Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; memory reuse across room lifecycles mitigates but does not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
+Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; recycling rooms back into the pool mitigates but does not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
 
 Room isolation also draws a hard boundary. State shared across rooms does not belong inside any room's tick; it has to live on a separate tier with its own consistency rules. The room model made that boundary explicit rather than accidental — but anything that quietly assumes cross-room state becomes an architectural change, not a feature.
 
