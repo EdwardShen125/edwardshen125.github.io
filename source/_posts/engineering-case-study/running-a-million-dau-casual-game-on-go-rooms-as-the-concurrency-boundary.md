@@ -12,9 +12,7 @@ seo_image: architecture.png
 description: "The room service of a QQ-licensed casual game with a million daily users, sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
-The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
-
-The design point was roughly 200,000 concurrent players at activity peaks.
+The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions — roughly 200,000 concurrent players at activity peaks. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
 The game's backend had other services; this article covers the room service, where one decision mattered more than the entity-component system — the data-oriented architecture inside the rooms. That decision was the room itself as the concurrency boundary: the game's interactions — movement, visibility, contested spots — all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
@@ -87,7 +85,7 @@ ceil(200,000 / 10,000) = 20 instances
 
 That 20 instances is the active-capacity lower bound. A production fleet needs additional capacity for uneven placement, warm rooms, reconnects, rolling changes, and instance failure.
 
-For a 10,000-player instance with 50-player rooms:
+For a 10,000-player instance, sizing at the middle of the room range (50 players):
 
 ```text
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
