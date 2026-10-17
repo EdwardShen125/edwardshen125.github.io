@@ -12,13 +12,13 @@ seo_image: architecture.png
 description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
-The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title, and growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
+The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
-The design point was roughly 200,000 concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
+The design point was roughly 200,000 concurrent players at activity peaks.
 
 ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already fixed — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
-Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, and a hard ceiling on how much computation any single room's update cycle could afford.
+Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, one shared tick budget.
 
 I led the server architecture selection and the ECS implementation this article describes.
 
@@ -32,7 +32,7 @@ Per-instance density set the requirements:
 
 - Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but perceptible if the server hesitated.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
-- Broadcast costs that stay flat as a room fills. Every movement and interaction was broadcast to the players who could see it. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
+- Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
 
 ## Two ways to organize ownership and execution
@@ -63,7 +63,7 @@ Persistence sits outside the tick entirely. Rooms snapshot asynchronously and fl
 
 ## Capacity model
 
-The capacity model uses four figures: peak players, players per room, players per instance, and tick rate. The formulas show how they relate.
+The capacity model uses four figures: peak players, players per room, players per instance, and tick rate.
 
 | Input | Value | Meaning |
 | --- | ---: | --- |
@@ -87,7 +87,7 @@ ceil(200,000 / 10,000) = 20 instances
 
 That 20 instances is the active-capacity lower bound. A production fleet needs additional capacity for uneven placement, warm rooms, reconnects, rolling changes, and instance failure.
 
-For a 10,000-player instance with 50-player rooms, the CPU model is the next sizing step:
+For a 10,000-player instance with 50-player rooms:
 
 ```text
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
