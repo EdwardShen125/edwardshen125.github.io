@@ -16,7 +16,7 @@ The capacity target was fixed before the server had a shape. The game was a QQ-l
 
 The design point was roughly 200,000 concurrent players at activity peaks.
 
-ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already fixed — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
+One decision carried more load than the entity-component system — the data-oriented architecture inside the rooms — and it was not a data-layout decision at all: the room itself, as the concurrency boundary. The game's own interactions had already fixed that boundary — movement, visibility, and contested spots all resolved inside one room — so each room ran as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
 Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, one shared tick budget.
 
