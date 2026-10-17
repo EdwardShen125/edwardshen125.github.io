@@ -9,18 +9,18 @@ tags:
   - ecs
   - concurrency
 seo_image: architecture.png
-description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
+description: "The room service of a QQ-licensed casual game with a million daily users, sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
 The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
 The design point was roughly 200,000 concurrent players at activity peaks.
 
-One decision carried more load than the entity-component system — the data-oriented architecture inside the rooms — and it was not a data-layout decision at all: the room itself, as the concurrency boundary. The game's own interactions had already fixed that boundary — movement, visibility, and contested spots all resolved inside one room — so each room ran as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
+The game's backend was more than this one service — but the room service is the piece this article covers, and one decision in it carried more load than the entity-component system — the data-oriented architecture inside the rooms. That decision was not about data layout at all: the room itself, as the concurrency boundary. The game's own interactions had already fixed that boundary — movement, visibility, and contested spots all resolved inside one room — so each room ran as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
-Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, one shared tick budget.
+Inside the room service's process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two synchronization semantics, one shared tick budget.
 
-I led the server architecture selection and the ECS implementation this article describes.
+I led the room service's architecture selection and the ECS implementation this article describes.
 
 <!-- more -->
 
