@@ -13,8 +13,8 @@
   "text_policy": "strict",
   "width": 1840,
   "height": 1080,
-  "title": "One Go Instance, Two Concurrency Layers",
-  "subtitle": "rooms run truly in parallel; inside each room a serial tick-driven ECS",
+  "title": "One Go Instance, Room Goroutines Across Processors",
+  "subtitle": "Go schedules room goroutines across processors; inside each room a serial tick-driven ECS",
   "legend_orientation": "horizontal",
   "legend_x": 40,
   "legend_y": 980,
@@ -115,7 +115,7 @@
       "height": 400,
       "label": "Room ticks — one per room, ~10 Hz",
       "description": "each room: system pass over component types, then entity pass over fixed-capacity arrays",
-      "technology": "serial ECS per room; rooms truly parallel across cores",
+      "technology": "serial ECS per room; Go-scheduled room goroutines",
       "stroke": "#8a6d3b"
     }
   ],

@@ -42,8 +42,8 @@
   </defs>
   <rect data-graph-role="background" width="1840.0" height="1080.0" fill="#f7f2e8"/>
   <rect data-graph-role="decoration" width="1840.0" height="1080.0" fill="url(#reviewGrid)"/>
-  <text x="48.0" y="48" text-anchor="start" class="title">One Go Instance, Two Concurrency Layers</text>
-  <text x="48.0" y="72" text-anchor="start" class="subtitle">rooms run truly in parallel; inside each room a serial tick-driven ECS</text>
+  <text x="48.0" y="48" text-anchor="start" class="title">One Go Instance, Room Goroutines Across Processors</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">Go schedules room goroutines across processors; inside each room a serial tick-driven ECS</text>
   <g id="style-signature" data-graph-role="decoration" data-style-signature="c4-review-board">
     <rect x="1616.0" y="22.0" width="176.0" height="34.0" rx="7" fill="#fffdf7" stroke="#8c7d68" stroke-width="1.2" stroke-dasharray="6 4"/>
     <path d="M 1628.0 39.0 l 5 5 9 -11" fill="none" stroke="#365f56" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -112,7 +112,7 @@
   <text data-text-role="title" data-full-text="Room ticks — one per room, ~10 Hz" data-text-max-width="452.0" x="814.0" y="361.0" class="node-title" font-size="15" text-anchor="start">Room ticks — one per room, ~10 Hz</text>
   <text data-text-role="description" data-line="1" data-full-text="each room: system pass over component types, then entity pass over fixed-capacity arrays" x="814.0" y="376.0" class="node-sub" font-size="11.5" text-anchor="start">each room: system pass over component types,</text>
   <text data-text-role="description" data-line="2" data-full-text="each room: system pass over component types, then entity pass over fixed-capacity arrays" x="814.0" y="390.0" class="node-sub" font-size="11.5" text-anchor="start">then entity pass over fixed-capacity arrays</text>
-  <text data-text-role="technology" data-full-text="serial ECS per room; rooms truly parallel across cores" data-text-max-width="456.0" x="1268.0" y="711.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">serial ECS per room; rooms truly parallel across cores</text>
+  <text data-text-role="technology" data-full-text="serial ECS per room; Go-scheduled room goroutines" data-text-max-width="456.0" x="1268.0" y="711.0" text-anchor="end" font-size="9.5" font-weight="700" fill="#8a6f43">serial ECS per room; Go-scheduled room goroutines</text>
   </g>
   <g id="a1-label" data-graph-role="label" data-owner="a1" data-graph-bounds="269.24,740,345.25,772">
   <rect x="269.24" y="740.0" width="76.01" height="32" rx="7" fill="#f7f2e8" opacity="0.94"/>
