@@ -14,7 +14,7 @@ description: "A QQ-licensed casual game with a million daily users sized for ten
 
 The capacity target was set before the server had a shape. The game was a QQ-licensed pet title in the casual category, and traffic would arrive the way Tencent ramps a national title: exposure slots opened gradually over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions, which meant the architecture had to scale horizontally by instance count without any redesign, and each instance had to be dense enough that the instance count stayed operationally sane.
 
-The design point was roughly 200,000 peak concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
+The design point was roughly 200,000 concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
 
 ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already drawn — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
@@ -105,13 +105,13 @@ all-rooms-full hypothetical:                      ≈ 20 cores  (never observed)
 
 That 8 cores serve over 150 room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
 
-Memory is calculated from the recorded room profile:
+Memory follows the same reconstruction discipline as the CPU figure:
 
 ```text
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
+The reconstructed per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
 
 The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
