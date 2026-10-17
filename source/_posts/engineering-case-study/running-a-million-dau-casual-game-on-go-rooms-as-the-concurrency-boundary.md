@@ -12,7 +12,7 @@ seo_image: architecture.png
 description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
-The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title, and its growth would come from Tencent opening entry points inside QQ step by step over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
+The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title, and growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
 The design point was roughly 200,000 concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
 
