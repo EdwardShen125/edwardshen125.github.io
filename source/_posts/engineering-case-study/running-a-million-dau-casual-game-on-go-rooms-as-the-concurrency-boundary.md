@@ -16,7 +16,7 @@ The capacity target was set before the server had a shape. The game was a QQ-lic
 
 The design point was roughly 200,000 peak concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
 
-ECS alone was not the decision that let this server carry two hundred thousand players. The room was: a boundary the game's own interactions had already drawn — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
+ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already drawn — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
 Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, and a hard ceiling on how much computation any single room's update cycle could afford.
 
@@ -85,7 +85,7 @@ At the peak, 30–100 players per room means roughly 2,000–6,667 active rooms.
 ceil(200,000 / 10,000) = 20 instances
 ```
 
-Twenty instances is the active-capacity lower bound. A production fleet needs additional capacity for uneven placement, warm rooms, reconnects, rolling changes, and instance failure.
+That 20 instances is the active-capacity lower bound. A production fleet needs additional capacity for uneven placement, warm rooms, reconnects, rolling changes, and instance failure.
 
 For a 10,000-player instance with 50-player rooms, the CPU model is the next sizing step:
 
@@ -93,7 +93,7 @@ For a 10,000-player instance with 50-player rooms, the CPU model is the next siz
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
 ```
 
-What a tick costs comes from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room lands in the low single-digit milliseconds per tick — that figure is a reconstruction from the load-test shape, not a recorded number — and an average thirty-to-fifty-player room costs roughly half of it. Sizing used the average:
+What a tick costs comes from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room lands in the low single-digit milliseconds per tick — that figure is a reconstruction from the load-test shape, not a recorded number — and an average 30–50-player room costs roughly half of it. Sizing used the average:
 
 ```text
 average load:  154 rooms × ~1.7 ms × 20 Hz / 0.70 ≈ 7.5 cores
@@ -101,9 +101,9 @@ activity peak (a third of rooms full):            ≈ 9.7 cores
 all-rooms-full hypothetical:                      ≈ 20 cores  (never observed)
 ```
 
-Eight vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts. The all-full hypothetical was never a per-machine problem to solve with bigger cores — it was the fleet's horizontal-scaling trigger: when matchmaking could no longer spread full rooms across instances, the answer was more instances, not bigger ones, which is the same scaling decision the tens-of-millions design point had already committed to.
+8 vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts. The all-full hypothetical was never a per-machine problem to solve with bigger cores — it was the fleet's horizontal-scaling trigger: when matchmaking could no longer spread full rooms across instances, the answer was more instances, not bigger ones, which is the same scaling decision the tens-of-millions design point had already committed to.
 
-That eight cores serve over a hundred and fifty room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
+That 8 cores serve over 150 room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
 
 Memory is calculated from the recorded room profile:
 
@@ -111,7 +111,7 @@ Memory is calculated from the recorded room profile:
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The per-room profile was 1–4 MiB. A hundred and fifty-odd rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
+The per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
 
 The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
@@ -128,7 +128,7 @@ Two non-findings are worth recording. Broadcast fanout was never the problem —
 
 ## Results
 
-The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across twenty-plus instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
+The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
 The per-room population caps varied by room class, so no single cap figure is quoted; the instance shape itself is the one given in the capacity model. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
