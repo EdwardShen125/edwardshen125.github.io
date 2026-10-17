@@ -12,11 +12,11 @@ seo_image: architecture.png
 description: "A QQ-licensed casual game with a million daily users sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
-The capacity target was set before the server had a shape. The game was a QQ-licensed pet title in the casual category, and traffic would arrive the way Tencent ramps a national title: exposure slots opened gradually over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions, which meant the architecture had to scale horizontally by instance count without any redesign, and each instance had to be dense enough that the instance count stayed operationally sane.
+The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title, and its growth would come from Tencent opening entry points inside QQ step by step over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
 The design point was roughly 200,000 concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
 
-ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already drawn — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
+ECS alone was not the decision that let this server carry 200,000 players. The room was: a boundary the game's own interactions had already fixed — movement, visibility, and contested spots all resolved inside one room — run as a goroutine with private state, scheduled by Go's runtime across the machine's processors, serial and data-oriented inside.
 
 Inside one process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One server binary, two synchronization semantics, and a hard ceiling on how much computation any single room's update cycle could afford.
 
@@ -32,7 +32,7 @@ Per-instance density set the requirements:
 
 - Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but perceptible if the server hesitated.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
-- Broadcast costs that stay flat as a room fills. Every movement and interaction was broadcast to the players who could see it. Fanout had to be bounded by design, not by hope.
+- Broadcast costs that stay flat as a room fills. Every movement and interaction was broadcast to the players who could see it. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
 
 ## Two ways to organize ownership and execution
@@ -122,7 +122,7 @@ Because the game was planned for national-IP traffic from the start, load testin
 
 The symptom appeared at density: room ticks frequently overran their deadline, and clients showed it first as room-state updates arriving later than the interaction window could tolerate. That was the investigation signal, not proof that the network or broadcast path was innocent; the profile identified where the budget was actually going.
 
-[pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations. The hot loop paid for repeated map lookups, while inserts and growth added allocation and resizing costs. At room scale, that overhead consumed the tick deadline. The fix was to move component storage into pre-allocated fixed-capacity arrays indexed directly, and reuse the memory across room lifecycles. Ticks returned inside their deadline, and the allocation profile of the hot path quieted.
+[pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations. The hot loop paid for repeated map lookups, while inserts and growth added allocation and resizing costs. At room scale, that overhead consumed the tick deadline. The fix was to move component storage into pre-allocated fixed-capacity arrays indexed directly, and reuse the memory across room lifecycles. Ticks returned inside their deadline, and the hot path stopped showing allocation churn in profiles.
 
 Two non-findings are worth recording. Broadcast fanout was never the problem — area-of-interest filtering and the room population caps had already bounded it. And the failure never reached production: it was found by the load test, which is the load test doing its job.
 
@@ -136,9 +136,9 @@ The per-room population caps varied by room class, so no single cap figure is qu
 
 Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; memory reuse across room lifecycles mitigates but does not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
 
-Room isolation is also a closed border. State shared across rooms has no natural home inside any room's tick; it has to live on a tier of its own, with its own consistency story. The room model made that boundary explicit rather than accidental — but anything that quietly assumes cross-room state becomes an architectural change, not a feature.
+Room isolation also draws a hard boundary. State shared across rooms does not belong inside any room's tick; it has to live on a separate tier with its own consistency rules. The room model made that boundary explicit rather than accidental — but anything that quietly assumes cross-room state becomes an architectural change, not a feature.
 
-The persistence stance is a genre decision. Asynchronous snapshots with periodic flush worked because a casual title tolerates losing seconds of idle movement. A game where state loss meant money, inventory integrity, or competitive position could not buy density this cheaply — its write path would have to sit inside the tick's budget, and the whole arithmetic of this architecture changes.
+The persistence stance is a genre decision. Asynchronous snapshots with periodic flush worked because a casual title tolerates losing seconds of idle movement. A game where state loss meant money, inventory integrity, or competitive position could not make this trade — its write path would have to sit inside the tick's budget, and the capacity arithmetic of this architecture changes with it.
 
 Serial-within-room is both the safety model and the ceiling. One pathological entity should stall only its own room while the process and scheduler remain healthy — the logical failure domain is a roomful of players, not the instance. The same property means a single room's complexity cannot be parallelized away; a room that outgrows its tick deadline has no remedy inside this architecture except a smaller cap.
 
@@ -146,7 +146,7 @@ Serial-within-room is both the safety model and the ceiling. One pathological en
 
 The placement of the concurrency boundary I would keep: it matched a seam the domain already had, and every operational property we needed — room-level isolation, multicore scheduling, failure isolation, flat broadcast — fell out of that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
 
-The transferable rule this case left me: when a domain has a natural isolation seam — a room, a match, a document, a tenant — put the concurrency boundary on that seam, keep the inside serial and data-oriented, and let the seam absorb both the parallelism and the failure. The actor and ECS debates are usually about which model to adopt; in practice the durable designs I have built use each at the layer where its costs are zero.
+The transferable rule this case left me: when a domain has a natural isolation seam — a room, a match, a document, a tenant — put the concurrency boundary on that seam, keep the inside serial and data-oriented, and you get parallelism and failure isolation from the same decision. The actor and ECS debates are usually about which model to adopt; in practice the durable designs I have built use each at the layer where its costs are zero.
 
 ---
 
