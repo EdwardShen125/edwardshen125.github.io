@@ -14,7 +14,7 @@ description: "A QQ-licensed casual game with a million daily users sized for ten
 
 The capacity target was set before the server had a shape. The game was a QQ-licensed pet title in the casual category, and traffic would arrive the way Tencent ramps a national title: exposure slots opened gradually over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions, which meant the architecture had to scale horizontally by instance count without any redesign, and each instance had to be dense enough that the instance count stayed operationally sane.
 
-The design point was roughly 200,000 peak concurrent players, with 30–100 players per room, room ticks at roughly 10 Hz, and about 10,000 players per instance. The capacity model later shows how these figures translate into room count, instance count, and machine resources.
+The design point was roughly 200,000 peak concurrent players at activity peaks. The capacity model later shows how that figure, with the room and tick parameters, translates into room count, instance count, and machine resources.
 
 The design decision that made the server scale was not ECS by itself. It was choosing the room as the logical concurrency boundary: each room ran as a goroutine with private state, and Go's runtime scheduled those room goroutines across the machine's processors while each room stayed serial and data-oriented.
 
@@ -34,7 +34,6 @@ Per-instance density set the requirements:
 - A bounded update cycle per room. Each room ticked at roughly 10 Hz, so each tick had a 100-millisecond wall-clock deadline; the room's actual CPU consumption was only part of that interval. Whatever the room did before that deadline defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Every movement and interaction was broadcast to the players who could see it. Fanout had to be bounded by design, not by hope.
 
-The 10 Hz rate gives each tick a 100-millisecond wall-clock deadline; the room's actual CPU consumption is only part of that interval.
 
 ## Two ways to organize ownership and execution
 
@@ -55,6 +54,8 @@ The ECS side of the design was informed by [Overwatch Gameplay Architecture and 
 At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand — a traffic ramp arrives as a wave of room spin-ups, not as allocation work on the hot path — and recycled when the waterline falls.
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
+
+Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. That is the other half of the "two sync semantics" the capacity target imposed — the room tick exists only where players share a grid.
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it — the same field of view that defined PVP interaction defined its audience — and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
@@ -108,7 +109,7 @@ memory = process_baseline + rooms × room_memory + buffers + headroom
 
 The per-room profile was 1–4 MiB. Two hundred rooms therefore contributed roughly 200–800 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The 32 GiB machines were used where those non-room allocations or pre-allocated room state were larger.
 
-The model is small by design. A load test measured CPU time per room tick and process RSS with representative room sizes, then checked burst traffic, reconnects, snapshots, and a degraded dependency. The equations make the capacity decision reviewable.
+The inputs came from the load test described below; the equations exist to make the capacity decision reviewable.
 
 
 ## The load test that reshaped the data layout
