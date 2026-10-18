@@ -49,7 +49,7 @@ The ECS side of the design was informed by [Overwatch Gameplay Architecture and 
 
 {% asset_img architecture.png "One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room" %}
 
-At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand — a traffic ramp arrives as a wave of room spin-ups, not as allocation work on the hot path — and recycled when the waterline falls.
+At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand — a traffic ramp arrives as a wave of room spin-ups, not as allocation work on the hot path — and recycled when the waterline falls. Where a new room opens is not the instance's own call: a central scheduler sees every instance's load and places each new room on the least-loaded one, which is what keeps the fleet's full rooms spread instead of piled on one machine.
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
 
@@ -57,7 +57,7 @@ Outside rooms there was no simulation loop at all: the client held a plain proto
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it — the same field of view that defined PVP interaction defined its audience — and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
-Persistence sits outside the tick entirely. Rooms snapshot asynchronously and flush on a timer; the game state that matters survives a restart, while seconds of idle movement may be lost. This is a casual-title tolerance, and it keeps write-through work off the hot path.
+Persistence sits outside the tick entirely. Rooms snapshot asynchronously and flush on a timer to MongoDB; on restart, a room is rebuilt from its last snapshot, so the game state that matters survives while seconds of idle movement may be lost. This is a casual-title tolerance, and it keeps write-through work off the hot path.
 
 ## Capacity model
 
