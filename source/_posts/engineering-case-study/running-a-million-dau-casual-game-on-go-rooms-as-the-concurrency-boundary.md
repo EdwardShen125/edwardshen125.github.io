@@ -16,7 +16,7 @@ The capacity target was fixed before the server had a shape. The game was a QQ-l
 
 The game's backend had other services; this article covers the room service. There, one decision mattered more than the entity-component system itself, the data-oriented architecture inside the rooms. That decision was the room as the concurrency boundary. The game's interactions, movement and visibility and contested spots, all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
-Inside the room service's process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two synchronization semantics, one shared tick budget.
+Inside the room service's process, player state lived along two different paths. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay, served by plain request-response. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; this state was shared, and only this state needed a synchronized tick. One service binary, two state paths, one tick.
 
 I led the room service's architecture selection and the ECS implementation this article describes.
 
@@ -28,7 +28,7 @@ A design point in the tens of millions decomposes into two independent numbers: 
 
 Per-instance density set the requirements:
 
-- Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
+- Two state paths in one binary. Room-external idle state could lag — it was plain request-response. Room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
@@ -53,7 +53,7 @@ At the machine level, the instance manages rooms as pooled resources. Rooms are 
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
 
-Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. That is the other half of the "two sync semantics" the capacity target imposed — the room tick exists only where players share a grid.
+Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. No state was shared out there, so nothing needed synchronizing — the room tick exists only where players share a grid.
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
