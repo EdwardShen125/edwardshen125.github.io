@@ -14,7 +14,7 @@ description: "The room service of a QQ-licensed casual game with a million daily
 
 The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions — roughly 200,000 concurrent players at activity peaks. That number imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
-The game's backend had other services; this article covers the room service, where one decision mattered more than the entity-component system — the data-oriented architecture inside the rooms. That decision was the room itself as the concurrency boundary: the game's interactions — movement, visibility, contested spots — all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
+The game's backend had other services; this article covers the room service. There, one decision mattered more than the entity-component system itself, the data-oriented architecture inside the rooms. That decision was the room as the concurrency boundary. The game's interactions, movement and visibility and contested spots, all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
 Inside the room service's process, the game had two very different shapes of state to synchronize. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two synchronization semantics, one shared tick budget.
 
@@ -28,7 +28,7 @@ A design point in the tens of millions decomposes into two independent numbers: 
 
 Per-instance density set the requirements:
 
-- Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but perceptible if the server hesitated.
+- Two sync semantics in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
@@ -49,13 +49,13 @@ The ECS side of the design was informed by [Overwatch Gameplay Architecture and 
 
 {% asset_img architecture.png "One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room" %}
 
-At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand — a traffic ramp arrives as a wave of room spin-ups, not as allocation work on the hot path — and recycled when the waterline falls. Where a new room opens is not the instance's own call: a central scheduler sees every instance's load and places each new room on the least-loaded one, which is what keeps the fleet's full rooms spread instead of piled on one machine.
+At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand, so a traffic ramp arrives as a wave of room spin-ups rather than allocation work on the hot path, and recycled when the waterline falls. Where a new room opens is not the instance's own call: a central scheduler sees every instance's load and places each new room on the least-loaded one, which is what keeps the fleet's full rooms spread instead of piled on one machine.
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
 
 Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. That is the other half of the "two sync semantics" the capacity target imposed — the room tick exists only where players share a grid.
 
-Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it — the same field of view that defined PVP interaction defined its audience — and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
+Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
 Persistence sits outside the tick entirely. Rooms snapshot asynchronously and flush on a timer to MongoDB; on restart, a room is rebuilt from its last snapshot, so the game state that matters survives while seconds of idle movement may be lost. This is a casual-title tolerance, and it keeps write-through work off the hot path.
 
@@ -91,7 +91,7 @@ For a 10,000-player instance, sizing at the middle of the room range (50 players
 required_cores ≈ rooms × cpu_seconds_per_tick × tick_rate / utilization
 ```
 
-What a tick costs comes from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room lands in the low single-digit milliseconds per tick — that figure is a reconstruction from the load-test shape, not a recorded number — and an average 30–50-player room costs roughly half of it. Sizing used the average:
+What a tick costs comes from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room lands in the low single-digit milliseconds per tick, as a reconstruction from the load-test shape rather than a recorded number, and an average 30–50-player room costs roughly half of it. Sizing used the average:
 
 ```text
 average load:  154 rooms × ~1.7 ms × 20 Hz / 0.70 ≈ 7.5 cores
@@ -126,13 +126,13 @@ Two non-findings are worth recording. Broadcast fanout was never the problem —
 
 ## Results
 
-The density target held. A single instance carried ten-thousand-plus concurrent users — the figure my resume records from this period — and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
+The density target held. A single instance carried ten-thousand-plus concurrent users, the figure my resume records from this period, and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened exposure slots, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
 Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
 ## Trade-offs
 
-Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; recycling rooms back into the pool mitigates but does not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
+Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; recycling rooms back into the pool mitigates but does not remove it. A layout that grouped entities by component set, the archetype approach, would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
 
 Room isolation also draws a hard boundary. State shared across rooms does not belong inside any room's tick; it has to live on a separate tier with its own consistency rules. The room model made that boundary explicit rather than accidental — but anything that quietly assumes cross-room state becomes an architectural change, not a feature.
 
@@ -142,9 +142,9 @@ Serial-within-room is both the safety model and the ceiling. One pathological en
 
 ## What I would change today
 
-The placement of the concurrency boundary I would keep: it matched a seam the domain already had, and every operational property we needed — room-level isolation, multicore scheduling, failure isolation, flat broadcast — fell out of that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
+The placement of the concurrency boundary I would keep: it matched a seam the domain already had, and room-level isolation, multicore scheduling, failure isolation, and flat broadcast all fell out of that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
 
-The transferable rule this case left me: when a domain has a natural isolation seam — a room, a match, a document, a tenant — put the concurrency boundary on that seam, keep the inside serial and data-oriented, and you get parallelism and failure isolation from the same decision. The actor and ECS debates are usually about which model to adopt; in practice the durable designs I have built use each at the layer where its costs are zero.
+The transferable rule this case left me: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam, keep the inside serial and data-oriented, and you get parallelism and failure isolation from the same decision. The actor and ECS debates are usually about which model to adopt; in practice the durable designs I have built use each at the layer where its costs are zero.
 
 ---
 
