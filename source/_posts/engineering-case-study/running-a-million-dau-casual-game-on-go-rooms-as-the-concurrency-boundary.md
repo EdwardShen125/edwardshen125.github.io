@@ -27,15 +27,15 @@ I led the room service's architecture selection and the ECS implementation this 
 The fleet count was an operations problem; per-instance density was the architecture problem, and it set three requirements:
 
 - Two state paths with different latency budgets: room-external idle could lag, room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but a hesitating server was perceptible.
-- A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
+- A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline for everything the room did in it.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
 
 ## Two ways to organize ownership and execution
 
-The selection question was not "actor or ECS?" Those models answer different questions. An actor model defines who owns mutable state and how work reaches it. ECS defines how a simulation stores component data and runs systems over entities.
+The selection question was not "actor or ECS?" An actor model is about ownership — who holds mutable state and how work reaches it; ECS is about data layout — how a simulation stores components and iterates systems. The real question was where the ownership boundary sits, and what runs inside it.
 
-A player-level actor was one possible ownership boundary. Each player would own state in a goroutine and receive commands through a mailbox. That would isolate players, but it would cut across the game's interaction boundary: movement, visibility, contested collection spots, and PVP all require several players and room state to be evaluated together. A query such as "which players are within this area of interest?" would become cross-actor messaging and result assembly. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, rather than the player, was the unit in which state changed together.
+A player-level actor — one goroutine and mailbox per player — would isolate players, but it would cut across the game's interaction boundary: movement, visibility, contested collection spots, and PVP all require several players and room state to be evaluated together. A query such as "which players are within this area of interest?" would become cross-actor messaging and result assembly. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, rather than the player, was the unit in which state changed together.
 
 A single global tick was the other extreme: one loop would iterate every room and entity in the process. It would make ordering simple, but it would couple unrelated rooms to one scheduler and one latency budget. A slow or unusually busy room could delay every other room, and one serial loop could not use the machine's available processors effectively at the observed density.
 
@@ -49,7 +49,7 @@ The ECS side of the design was informed by [Overwatch Gameplay Architecture and 
 
 At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand, so a traffic ramp arrives as a wave of room spin-ups rather than allocation work on the hot path, and recycled when the waterline falls. Where a new room opens is not the instance's own call: a central scheduler sees every instance's load and places each new room on the least-loaded one, which is what keeps the fleet's full rooms spread instead of piled on one machine.
 
-Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one, which makes the tick period the input-latency floor and keeps per-tick work predictable.
+Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one.
 
 Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. No state was shared out there, so nothing needed synchronizing — the room tick exists only where players share a grid.
 
@@ -114,7 +114,7 @@ The fleet-level inputs came from the design and the load test below; the per-tic
 
 ## The load test that reshaped the data layout
 
-Because the game was planned for national-IP traffic from the start, load testing was treated as part of the design, not a release gate at the end. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density.
+Load testing was part of the design from the start. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density.
 
 The symptom appeared at density: room ticks frequently overran their deadline, and clients showed it first as room-state updates arriving later than the interaction window could tolerate. That localized the problem to the room's update cycle; the profile showed where inside it the budget went.
 
