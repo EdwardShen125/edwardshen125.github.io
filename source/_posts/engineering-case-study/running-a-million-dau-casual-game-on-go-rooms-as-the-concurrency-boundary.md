@@ -16,7 +16,7 @@ The capacity target was fixed before the server had a shape. The game was a QQ-l
 
 The game's backend had other services; this article covers the room service, where one decision mattered more than the entity-component system itself, the data-oriented architecture inside the rooms: the room as the concurrency boundary. Every interaction that needed shared state resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
-Inside the room service's process, player state lived along two different paths. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay, served by plain request-response. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; this state was shared, and only this state needed a synchronized tick. One service binary, two state paths, and a tick only where state was shared.
+Inside the room service's process, player state lived along two different paths. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay, served by plain request-response. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two state paths, and a tick only where state was shared.
 
 I led the room service's architecture selection and the ECS implementation this article describes.
 
