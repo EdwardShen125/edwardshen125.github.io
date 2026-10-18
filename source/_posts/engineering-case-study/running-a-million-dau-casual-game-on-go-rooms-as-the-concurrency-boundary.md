@@ -12,9 +12,9 @@ seo_image: architecture.png
 description: "The room service of a QQ-licensed casual game with a million daily users, sized for tens of millions: one Go binary running room goroutines under Go's multicore scheduler, with a serial tick-driven ECS (entity–component–system) inside each room. How the concurrency boundary was chosen, and the pprof finding that moved component data from maps to pre-allocated arrays."
 ---
 
-The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, and activity peaks would sit far above the daily waterline. We designed for a user base in the tens of millions; at activity peaks, that meant roughly 200,000 concurrent players. That concurrency figure imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
+The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title. Growth would arrive through entry points inside QQ that we opened step by step with Tencent's publishing team, over months, with activity peaks far above the daily waterline. We designed for a user base in the tens of millions; at activity peaks, that meant roughly 200,000 concurrent players. That concurrency figure imposed two requirements: scale out by adding instances, with no redesign at any fleet size; and keep each instance dense enough that the fleet never needed an impractical number of machines.
 
-The game's backend had other services; this article covers the room service. There, one decision mattered more than the entity-component system itself, the data-oriented architecture inside the rooms. That decision was the room as the concurrency boundary. The game's interactions, movement and visibility and contested spots, all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
+The game's backend had other services; this article covers the room service, where one decision mattered more than the entity-component system itself, the data-oriented architecture inside the rooms: the room as the concurrency boundary. The game's interactions — movement, visibility, contested spots — all resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
 Inside the room service's process, player state lived along two different paths. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay, served by plain request-response. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; this state was shared, and only this state needed a synchronized tick. One service binary, two state paths, and a tick only where state was shared.
 
@@ -28,7 +28,7 @@ A design point in the tens of millions decomposes into two independent numbers: 
 
 Per-instance density set the requirements:
 
-- Two state paths in one binary. Room-external idle state could lag — it was plain request-response. Room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
+- Two state paths in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
@@ -41,7 +41,7 @@ A player-level actor was one possible ownership boundary. Each player would own 
 
 A single global tick was the other extreme: one loop would iterate every room and entity in the process. It would make ordering simple, but it would couple unrelated rooms to one scheduler and one latency budget. A slow or unusually busy room could delay every other room, and one serial loop could not use the machine's available processors effectively at the observed density.
 
-The shipped design combined the two useful ideas at different layers. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop, there were no additional goroutines and no message passing: entities were component records, systems were iteration passes over them, and a tick walked the room's systems serially. Fixed-capacity component arrays made those traversals predictable.
+The shipped design combined the two useful ideas at different layers. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop there were no goroutines and no message passing: entities were component records, systems were iteration passes over them, and a tick walked the room's systems serially. Fixed-capacity component arrays made those traversals predictable.
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
 
@@ -111,7 +111,7 @@ memory = process_baseline + rooms × room_memory + buffers + headroom
 
 The reconstructed per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout — 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518) — which is also why the earlier instance count is a clean capacity figure rather than a mix of sizes.
 
-The fleet-level inputs (players, room sizes, instance density) came from the design and the load test below; the per-tick costs are the reconstructions already flagged. The equations exist to make the capacity decision reviewable.
+The fleet-level inputs came from the design and the load test below; the per-tick costs are reconstructions. The equations exist to make the capacity decision reviewable.
 
 
 ## The load test that reshaped the data layout
