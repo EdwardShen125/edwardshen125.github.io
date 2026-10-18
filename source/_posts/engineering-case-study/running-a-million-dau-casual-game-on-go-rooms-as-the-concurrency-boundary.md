@@ -24,11 +24,9 @@ I led the room service's architecture selection and the ECS implementation this 
 
 ## The capacity target and what it implied
 
-A design point in the tens of millions decomposes into two independent numbers: how many instances the fleet runs, and how many players each instance carries. The first is an operations problem; the second is an architecture problem, and it was the one that constrained every decision below.
+The fleet count was an operations problem; per-instance density was the architecture problem, and it set three requirements:
 
-Per-instance density set the requirements:
-
-- Two state paths in one binary. Room-external idle state could lag; room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement. There was no physics and no interpolation, but a hesitating server was perceptible.
+- Two state paths with different latency budgets: room-external idle could lag, room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline; the room's actual CPU consumption was only part of it. Whatever the room did inside a tick defined the player's worst-case interaction latency.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
