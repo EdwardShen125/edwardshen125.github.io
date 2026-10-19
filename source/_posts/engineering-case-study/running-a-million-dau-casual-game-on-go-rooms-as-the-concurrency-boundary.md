@@ -36,25 +36,54 @@ The selection question was not "actor or ECS?" An actor model is about ownership
 
 A player-level actor, one goroutine and mailbox per player, would isolate players, but it would cut across the game's interaction boundary. Take the contested collection spot as the concrete case: two players click the same cell within the same tick. Under player-level ownership, that single gameplay event becomes a cross-actor protocol of both mailboxes, result assembly, and a tie-break somewhere; the same shape repeats for visibility queries, movement collisions, and every PVP contact. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, not the player, was the unit in which state changed together.
 
-The same gameplay event under the two ownership models, abridged to shape:
+The same gameplay event under the two ownership models, as a minimal runnable core:
 
 ```go
-// player-level actor: one contested cell becomes a cross-actor protocol
-func (p *PlayerActor) onClick(cell Cell) {
-    p.mailbox <- ClaimCell{p.id, cell} // to the room actor…
-    // …which replies through p.mailbox, maybe after another player's claim
-    // raced there first: resolution arrives turns later, order is delivery order
+// player-level actor: two players each own a goroutine + mailbox;
+// the room is a third actor. One claim crosses four mailboxes.
+type claim struct {
+    player int
+    cell   int
+    reply  chan int // allocated per event in a real mailbox design
 }
 
-// room-level ECS: one contested cell is a branch inside a serial tick
-for _, c := range claims { // all inputs of this tick, one loop
-    if grid[c.cell].owner == 0 {
-        grid[c.cell].owner = c.player // decided here, in this iteration
+func player(id int, toRoom chan<- claim) chan claim {
+    mb := make(chan claim, 2)
+    go func() {
+        for c := range mb { // player's mailbox
+            toRoom <- c // hop 2: player -> room
+        }
+    }()
+    return mb
+}
+
+func room(in <-chan claim) {
+    for c := range in { // delivery order chosen by the scheduler
+        if grid[c.cell] == 0 {
+            grid[c.cell] = c.player // verdict in delivery order
+        }
+        c.reply <- grid[c.cell] // state leaves the room only as a reply
+    }
+}
+
+// room-level ECS: one tick, one serial pass; input order is game order.
+func ecsTick(claims []ecsClaim) {
+    for _, c := range claims {
+        if grid[c.cell] == 0 {
+            grid[c.cell] = c.player // verdict in input order; no message,
+        }                           // and any entity's state is readable here
     }
 }
 ```
 
-The actor version pays a mailbox round trip per contested event and inherits channel-delivery order as its game semantics; the ECS version decides both claims in one serial pass, and the tick order is the game order.
+Run the same two claims — two players contesting one cell — through both models, and the selection criteria stop being abstractions:
+
+```text
+actor, same input, three runs:  cell0 owner = 1 / 2 / 2  (4 mailbox hops each)
+ecs,   same input, three runs:  cell0 owner = 1 / 1 / 1  (0 messages)
+```
+
+Three differences, all visible. Determinism: the actor's verdict order is channel delivery order — the scheduler picks a winner run to run, so a fight over a collection cell is not reproducible; the ECS verdict follows tick input order, always. Cost: the actor pays four mailbox hops and a reply-channel allocation per contested event, on the hot path; the ECS pass allocates nothing. State visibility: the room's grid leaves the actor only as replies — an AOI query is another round trip — while inside the tick, every entity's state is directly readable. That is what "the room was the unit in which state changed together" costs and buys.
 
 A single global tick was the other extreme: one loop iterating every room and entity in the process. It would couple unrelated rooms to one scheduler and one latency budget, one slow room delaying every other, and one serial loop could not use the machine's processors at our density.
 
