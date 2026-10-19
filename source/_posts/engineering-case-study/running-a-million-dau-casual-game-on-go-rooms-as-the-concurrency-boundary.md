@@ -18,7 +18,7 @@ The game's backend had other services; this article covers the room service. Ins
 
 <!-- more -->
 
-Player state lived along two different paths, in two different services. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay — served by another service as plain request-response with heartbeat-driven idle progression. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; that was the room service's own state, and only that state lived under a synchronized tick. Two state paths, two services, and a tick only where state was shared.
+Player state lived along two different paths, in two different services. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay — served by another service as plain request-response with heartbeat-driven idle progression. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; that was the room service's own state, and only that state lived under a synchronized tick. The service boundary fell exactly on the semantic one — shared grid state on this side, plain request-response on the other — which is what let the room service be a pure tick simulation with no mixed execution model.
 
 ## The capacity target and what it implied
 
