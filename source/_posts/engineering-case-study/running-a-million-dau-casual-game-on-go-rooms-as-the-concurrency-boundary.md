@@ -42,7 +42,7 @@ The shipped design used each model at a different layer. The room became the own
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
 
-## The architecture
+## What runs inside a room
 
 {% asset_img architecture.png "One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room" %}
 
@@ -110,7 +110,7 @@ The reconstructed per-room profile was a few hundred KiB at fifteen players. The
 
 Pre-allocation bought that flat profile with memory: arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity. Recycling rooms back into the pool mitigated but did not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy at the price of indirection on every access; for this workload the tick budget was the scarcer resource, so I would make the same trade again. If I revisited anything in the interior, it would be this: sizing component storage to observed occupancy, or archetype grouping for the hottest components.
 
-## Results
+## What the density held
 
 The density target held. A single instance carried ten-thousand-plus concurrent users, the figure my resume records from this period, and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened entry points, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
