@@ -50,6 +50,8 @@ The shipped design used each model at a different layer. The room became the own
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
 
+The boundary had a price I would pay again. A closed border means state shared across rooms has no home inside any room's tick; it lives on a separate tier with its own consistency rules, and anything that quietly assumes cross-room state becomes an architectural change, not a feature. Room isolation made that boundary explicit rather than accidental — I keep the placement, because the game's interactions had already drawn it, with contested spots, visibility, and movement all resolving inside one room, and room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one decision.
+
 ## The architecture
 
 {% asset_img architecture.png "One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room" %}
@@ -62,7 +64,7 @@ Outside-room state was not this service's problem — no simulation loop, no sha
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
-Persistence sat outside the tick entirely. Rooms snapshotted asynchronously and flushed on a timer to MongoDB; on restart, a room was rebuilt from its last snapshot, so the game state that mattered survived while seconds of idle movement might be lost. This was a casual-title tolerance, and it kept write-through work off the hot path.
+Persistence sat outside the tick entirely. Rooms snapshotted asynchronously and flushed on a timer to MongoDB; on restart, a room was rebuilt from its last snapshot, so the game state that mattered survived while seconds of idle movement might be lost. This was a genre decision as much as an engineering one: a game where state loss meant money, inventory integrity, or competitive position could not buy density this way — its write path would have to sit inside the tick's budget, and the capacity arithmetic changes with it.
 
 ## The capacity model that sized the fleet
 
@@ -109,27 +111,21 @@ memory = process_baseline + rooms × room_memory + buffers + headroom
 
 The reconstructed per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout, 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518), which is also why the instance count above is a clean capacity figure rather than a mix of sizes.
 
+Pre-allocation bought that flat profile with memory: arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity. Recycling rooms back into the pool mitigated but did not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy at the price of indirection on every access; for this workload the tick budget was the scarcer resource, so I would make the same trade again. If I revisited anything in the interior, it would be this: sizing component storage to observed occupancy, or archetype grouping for the hottest components.
+
 ## Results
 
 The density target held. A single instance carried ten-thousand-plus concurrent users, the figure my resume records from this period, and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened entry points, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
 Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative beyond the load-test numbers already given: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
-## Trade-offs
-
-Pre-allocation buys a flat profile with memory. Arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity; recycling rooms back into the pool mitigates but does not remove it. A layout that grouped entities by component set, the archetype approach, would use memory closer to occupancy, at the price of indirection on every component access. For this workload I would make the same trade again: the tick budget was the scarcer resource.
-
-Room isolation also drew a hard boundary. State shared across rooms did not belong inside any room's tick; it had to live on a separate tier with its own consistency rules. The room model made that boundary explicit rather than accidental — but anything that quietly assumed cross-room state became an architectural change, not a feature.
-
-The persistence stance was a genre decision. Asynchronous snapshots with periodic flush worked because a casual title tolerates losing seconds of idle movement. A game where state loss meant money, inventory integrity, or competitive position could not make this trade — its write path would have to sit inside the tick's budget, and the capacity arithmetic of this architecture changes with it.
+## What the boundary costs, and what I would change
 
 Serial-within-room was both the safety model and the ceiling. One pathological entity should stall only its own room while the process and scheduler stayed healthy — the logical failure domain was a roomful of players, not the instance. The same property meant a single room's complexity could not be parallelized away; a room that outgrew its tick deadline had no remedy inside this architecture except a smaller cap.
 
-## What I would change today
+If I changed one thing with today's tools, it would be instrumentation, not architecture: the flush path got no metrics from day one, the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
 
-The placement of the concurrency boundary I would keep: the game's interactions had already drawn it, with contested spots, visibility, and movement all resolving inside one room, and room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
-
-The rule I carried out of this case: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam and keep the inside serial and data-oriented; the actor and ECS debates are about which model to adopt, but in practice the two compose, each doing what it is good at.
+The rule I carried out of this case: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam and keep the inside serial and data-oriented. And the aeshash finding left a second rule for the interior: a language runtime's container costs are part of the design surface — on a hot path, the question is not only which data structure, but what the runtime does on every access to it. Both rules came out of the same load test: the boundary decision was right from the start, and the layout mistake inside it took a profile to see.
 
 ---
 
