@@ -76,6 +76,8 @@ func ecsTick(claims []ecsClaim) {
 }
 ```
 
+The ECS side matches how real Go ECS libraries run: [Arche](https://github.com/mlange-42/arche)'s systems are `Update` methods a scheduler calls in [tick order](https://github.com/mlange-42/arche/blob/main/_examples/systems/main.go), each one a serial query over component columns — here, a slice standing in for the production archetype layout.
+
 Run the same two claims — two players contesting one cell — through both models, and the selection criteria stop being abstractions:
 
 ```text
