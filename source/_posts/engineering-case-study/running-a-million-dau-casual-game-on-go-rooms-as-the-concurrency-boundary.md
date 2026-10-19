@@ -36,6 +36,26 @@ The selection question was not "actor or ECS?" An actor model is about ownership
 
 A player-level actor, one goroutine and mailbox per player, would isolate players, but it would cut across the game's interaction boundary. Take the contested collection spot as the concrete case: two players click the same cell within the same tick. Under player-level ownership, that single gameplay event becomes a cross-actor protocol of both mailboxes, result assembly, and a tie-break somewhere; the same shape repeats for visibility queries, movement collisions, and every PVP contact. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, not the player, was the unit in which state changed together.
 
+The same gameplay event under the two ownership models, abridged to shape:
+
+```go
+// player-level actor: one contested cell becomes a cross-actor protocol
+func (p *PlayerActor) onClick(cell Cell) {
+    p.mailbox <- ClaimCell{p.id, cell} // to the room actor…
+    // …which replies through p.mailbox, maybe after another player's claim
+    // raced there first: resolution arrives turns later, order is delivery order
+}
+
+// room-level ECS: one contested cell is a branch inside a serial tick
+for _, c := range claims { // all inputs of this tick, one loop
+    if grid[c.cell].owner == 0 {
+        grid[c.cell].owner = c.player // decided here, in this iteration
+    }
+}
+```
+
+The actor version pays a mailbox round trip per contested event and inherits channel-delivery order as its game semantics; the ECS version decides both claims in one serial pass, and the tick order is the game order.
+
 A single global tick was the other extreme: one loop iterating every room and entity in the process. It would couple unrelated rooms to one scheduler and one latency budget, one slow room delaying every other, and one serial loop could not use the machine's processors at our density.
 
 The shipped design used each model at a different layer. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop there were no goroutines and no message passing: game state lived in components that systems iterated over, and a tick walked the systems serially. Component storage was the one part we got wrong before the load test corrected it — the arrays that made those traversals predictable came later, from the profile.
