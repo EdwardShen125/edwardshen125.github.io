@@ -36,7 +36,7 @@ The selection question was not "actor or ECS?" An actor model is about ownership
 
 A player-level actor, one goroutine and mailbox per player, would isolate players, but it would cut across the game's interaction boundary. Take the contested collection spot as the concrete case: two players click the same cell within the same tick. Under player-level ownership, that single gameplay event becomes a cross-actor protocol of both mailboxes, result assembly, and a tie-break somewhere; the same shape repeats for visibility queries, movement collisions, and every PVP contact. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, not the player, was the unit in which state changed together.
 
-The same gameplay event under the two ownership models, as a minimal runnable core:
+The same gameplay event under the two ownership models, as a minimal runnable core. The actor side mirrors how a real Go actor runtime works — [Proto.Actor](https://github.com/asynkronit/protoactor-go) runs each actor's [mailbox](https://github.com/asynkronit/protoactor-go/blob/master/actor/mailbox.go) on its own goroutine and wraps every request in a [sender envelope](https://github.com/asynkronit/protoactor-go/blob/master/actor/actor_context.go) so the reply can find its way back — with channels standing in for the production lock-free queues:
 
 ```go
 // player-level actor: two players each own a goroutine + mailbox;
