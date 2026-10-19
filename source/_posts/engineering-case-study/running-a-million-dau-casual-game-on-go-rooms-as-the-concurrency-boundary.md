@@ -20,7 +20,7 @@ The game's backend had other services; this article covers the room service. Ins
 
 That boundary was not an engineering invention — the game's own interactions had already drawn it: every interaction that needed shared state resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
-Player state split along a line every game backend knows: idle collection outside rooms handled by another service as plain request-response, and inside rooms a shared grid — movement, interaction, exploration, contested collection spots — where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
+Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid — movement, interaction, exploration, contested collection spots — where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
 
 ## The capacity target and what it implied
 
