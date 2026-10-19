@@ -18,7 +18,7 @@ The game's backend had other services; this article covers the room service. Ins
 
 <!-- more -->
 
-Inside the room service's process, player state lived along two different paths. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay, served by plain request-response. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time. One service binary, two state paths, and a tick only where state was shared.
+Player state lived along two different paths, in two different services. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay — served by another service as plain request-response with heartbeat-driven idle progression. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; that was the room service's own state, and only that state lived under a synchronized tick. Two state paths, two services, and a tick only where state was shared.
 
 ## The capacity target and what it implied
 
@@ -49,7 +49,7 @@ At the machine level, the instance manages rooms as pooled resources. Rooms are 
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one.
 
-Outside rooms there was no simulation loop at all: the client held a plain protobuf-over-WebSocket request-response connection, and idle progression was computed from heartbeats on demand. No state was shared out there, so nothing needed synchronizing — the room tick exists only where players share a grid.
+Outside rooms there was no simulation loop at all — and none of it ran in this service: the client held a plain protobuf-over-WebSocket request-response connection to another service, which computed idle progression from heartbeats on demand. No state was shared out there, so nothing needed synchronizing — the room tick exists only where players share a grid.
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
