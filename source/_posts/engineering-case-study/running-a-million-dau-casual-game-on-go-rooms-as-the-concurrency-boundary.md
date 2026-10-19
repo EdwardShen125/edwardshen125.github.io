@@ -45,7 +45,7 @@ The ECS side of the design was informed by [Overwatch Gameplay Architecture and 
 
 {% asset_img architecture.png "One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room" %}
 
-At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand, so a traffic ramp arrives as a wave of room spin-ups rather than allocation work on the hot path, and recycled when the waterline falls. Where a new room opens is not the instance's own call: a central scheduler sees every instance's load and places each new room on the least-loaded one, which is what keeps the fleet's full rooms spread instead of piled on one machine.
+At the machine level, the instance manages rooms as pooled resources. Rooms are assigned and initialized according to player load and player stratification; several room classes exist, and players are placed into the class matching their level and intent, so a new player lands among peers rather than among veterans. Rooms are pre-allocated ahead of demand, so a traffic ramp arrives as a wave of room spin-ups rather than allocation work on the hot path, and recycled when the waterline falls. A central scheduler sees every instance's load and places each new room on the least-loaded one; after placement, the room goroutine owns the room's simulation and tick execution locally.
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one.
 
@@ -92,12 +92,11 @@ What a tick costs comes from the tick's own shape: iterate every entity's compon
 ```text
 average load:  154 rooms × ~1.7 ms × 20 Hz / 0.70 ≈ 7.5 cores
 activity peak (a third of rooms full):            ≈ 9.7 cores
-all-rooms-full hypothetical:                      ≈ 20 cores  (never observed)
 ```
 
-8 vCPUs per instance held the average with headroom for networking, persistence, GC, and bursts. The all-full hypothetical was never a per-machine problem to solve with bigger cores — it was the fleet's horizontal-scaling trigger: when matchmaking could no longer spread full rooms across instances, the answer was more instances, not bigger ones, which is the same scaling decision the tens-of-millions design point had already committed to.
+The 8-vCPU shape covered the recorded average room load. It was not sized to absorb every peak on one instance: when room density approached the per-instance limit, the fleet scaled horizontally.
 
-That 8 cores serve over 150 room goroutines is not a contradiction: a room spends all but a few milliseconds of every 50-millisecond tick asleep in its timer, only a handful of rooms are mid-tick at any instant, and Go's scheduler holds the rest in timer queues. The goroutine-per-room model costs wakeups — on the order of three thousand per second at this scale — which profiling never surfaced as material.
+That 8 cores serve over 150 room goroutines because most rooms spend the unused part of each 50-millisecond tick waiting for their next timer event; only a handful are mid-tick at any instant.
 
 Memory follows the same reconstruction discipline as the CPU figure:
 
@@ -138,7 +137,7 @@ Serial-within-room is both the safety model and the ceiling. One pathological en
 
 ## What I would change today
 
-The placement of the concurrency boundary I would keep: it matched a seam the domain already had, and room-level isolation, multicore scheduling, failure isolation, and flat broadcast all fell out of that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
+The placement of the concurrency boundary I would keep: it matched a seam the domain already had, and room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one decision. If I redesigned the interior today, it would be the entity-cap pre-allocation I would revisit: sizing component storage to observed occupancy with hysteresis, or archetype grouping for the hottest components, to return some of the peak-provisioned memory. And I would instrument the flush path from day one — the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
 
 The transferable rule this case left me: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam, keep the inside serial and data-oriented, and you get parallelism and failure isolation from the same decision. The actor and ECS debates are usually about which model to adopt; in practice the durable designs I have built use each at the layer where its costs are zero.
 
