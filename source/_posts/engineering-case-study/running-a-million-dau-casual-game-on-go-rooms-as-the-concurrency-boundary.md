@@ -96,7 +96,7 @@ For a 10,000-player instance, 10,000 / 15 ≈ 667 rooms. What a tick cost came f
 average load:  667 rooms × ~0.35 ms × 20 Hz / 0.70 ≈ 6.7 cores
 ```
 
-The 8-vCPU shape covered the recorded average room load. It was not sized to absorb every peak on one instance: when room density approached the per-instance limit, the fleet scaled horizontally.
+The 8-vCPU shape covered the recorded average room load — modest hardware by game-server standards, and deliberately so: an MMORPG zone server wants one big box because a single-threaded world loop cannot spread, but room-parallel work wants many mid-size instances, so the fleet scales horizontally when room density approaches the per-instance limit.
 
 That 8 cores served over 600 room goroutines because each room spent the unused part of every 50-millisecond tick waiting for its next timer event; only a handful were mid-tick at any instant.
 
