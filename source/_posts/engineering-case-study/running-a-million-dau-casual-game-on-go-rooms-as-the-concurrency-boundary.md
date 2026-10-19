@@ -14,9 +14,11 @@ description: "The room service of a QQ-licensed casual game with a million daily
 
 The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title; growth would arrive as Tencent's publishing team and we opened entry points inside QQ step by step, so activity peaks sat far above the daily waterline. We designed for tens of millions of users — roughly 200,000 concurrent players at peaks — which imposed two requirements: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size.
 
-The game's backend had other services; this article covers the room service. Inside its rooms, game state lived in components that systems iterated over — an entity-component system. But one decision mattered more than that data layout: the room as the concurrency boundary. Every interaction that needed shared state resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside. I led that architecture selection and the ECS implementation.
+The game's backend had other services; this article covers the room service. Inside its rooms, game state lived in components that systems iterated over — an entity-component system. But one decision mattered more than that data layout: the room as the concurrency boundary. I led that architecture selection and the ECS implementation.
 
 <!-- more -->
+
+That boundary was not an engineering invention — the game's own interactions had already drawn it: every interaction that needed shared state resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
 Player state split along a line every game backend knows: idle collection outside rooms handled by another service as plain request-response, and inside rooms a shared grid — movement, interaction, exploration, contested collection spots — where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
 
