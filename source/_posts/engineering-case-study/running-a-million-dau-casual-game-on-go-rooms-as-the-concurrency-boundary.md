@@ -40,7 +40,7 @@ The same gameplay event under the two ownership models, as a minimal runnable co
 
 ```go
 // player-level actor: two players each own a goroutine + mailbox;
-// the room is a third actor. One claim crosses four mailboxes.
+// the room is a third actor. Each claim costs two mailbox hops.
 type claim struct {
     player int
     cell   int
@@ -81,11 +81,11 @@ The ECS side matches how real Go ECS libraries run: [Arche](https://github.com/m
 Run the same two claims — two players contesting one cell — through both models, and the selection criteria stop being abstractions:
 
 ```text
-actor, same input, three runs:  cell0 owner = 1 / 2 / 2  (4 mailbox hops each)
+actor, same input, three runs:  cell0 owner = 1 / 2 / 2  (2 hops per claim)
 ecs,   same input, three runs:  cell0 owner = 1 / 1 / 1  (0 messages)
 ```
 
-Three differences, all visible. Determinism: the actor's verdict order is channel delivery order — the scheduler picks a winner run to run, so a fight over a collection cell is not reproducible; the ECS verdict follows tick input order, always. Cost: the actor pays four mailbox hops and a reply-channel allocation per contested event, on the hot path; the ECS pass allocates nothing. State visibility: the room's grid leaves the actor only as replies — an AOI query is another round trip — while inside the tick, every entity's state is directly readable. That is what "the room was the unit in which state changed together" costs and buys.
+Three differences, all visible. Determinism: the actor's verdict order is channel delivery order — the scheduler picks a winner run to run, so a fight over a collection cell is not reproducible; the ECS verdict follows tick input order, always. Cost: the actor pays two mailbox hops per claim — player to room, room back with the verdict — plus a reply-channel allocation, on the hot path; the ECS pass allocates nothing. State visibility: the room's grid leaves the actor only as replies — an AOI query is another round trip — while inside the tick, every entity's state is directly readable. That is what "the room was the unit in which state changed together" costs and buys.
 
 A single global tick was the other extreme: one loop iterating every room and entity in the process. It would couple unrelated rooms to one scheduler and one latency budget, one slow room delaying every other, and one serial loop could not use the machine's processors at our density.
 
