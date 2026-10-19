@@ -50,7 +50,7 @@ The shipped design used each model at a different layer. The room became the own
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
 
-The boundary had a price I would pay again. A closed border means state shared across rooms has no home inside any room's tick; it lives on a separate tier with its own consistency rules, and anything that quietly assumes cross-room state becomes an architectural change, not a feature. Room isolation made that boundary explicit rather than accidental — I keep the placement, because the game's interactions had already drawn it, with contested spots, visibility, and movement all resolving inside one room, and room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one decision.
+The boundary had a price I would pay again. A closed border means state shared across rooms has no home inside any room's tick; it lives on a separate tier with its own consistency rules, and anything that quietly assumes cross-room state becomes an architectural change, not a feature. That is the price, and I would pay it again: room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one placement.
 
 ## The architecture
 
@@ -117,7 +117,7 @@ Pre-allocation bought that flat profile with memory: arrays sized to the room's 
 
 The density target held. A single instance carried ten-thousand-plus concurrent users, the figure my resume records from this period, and the fleet scaled by instance count as designed. At activity peaks, when Tencent opened entry points, concurrent players reached roughly 200,000 against a daily active population of about one million, spread across 20+ instances. The daily waterline ran at tens of thousands online. Against the tens-of-millions design point, the fleet never approached its architectural ceiling; scaling was a provisioning decision, not an engineering one.
 
-Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative beyond the load-test numbers already given: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
+Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
 ## What the boundary costs, and what I would change
 
@@ -125,7 +125,7 @@ Serial-within-room was both the safety model and the ceiling. One pathological e
 
 If I changed one thing with today's tools, it would be instrumentation, not architecture: the flush path got no metrics from day one, the snapshot loss window was a parameter we lived with comfortably but never measured, and "comfortable" is a weaker claim than a number.
 
-The rule I carried out of this case: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam and keep the inside serial and data-oriented. And the aeshash finding left a second rule for the interior: a language runtime's container costs are part of the design surface — on a hot path, the question is not only which data structure, but what the runtime does on every access to it. Both rules came out of the same load test: the boundary decision was right from the start, and the layout mistake inside it took a profile to see.
+The rule I carried out of this case: when a domain has a natural isolation seam, whether a room, a match, a document, or a tenant, put the concurrency boundary on that seam and keep the inside serial and data-oriented. The aeshash finding left a second rule for the interior: a language runtime's container costs are part of the design surface — on a hot path, the question is not only which data structure, but what the runtime does on every access to it. Both rules came out of the same load test: the boundary decision was right from the start, and the layout mistake inside it took a profile to see.
 
 ---
 
