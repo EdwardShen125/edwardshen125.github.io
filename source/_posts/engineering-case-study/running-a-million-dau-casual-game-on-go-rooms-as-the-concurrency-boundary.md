@@ -18,7 +18,7 @@ The game's backend had other services; this article covers the room service. Ins
 
 <!-- more -->
 
-Player state lived along two different paths, in two different services. Outside rooms, players idled and collected — slow-paced, tolerant of seconds of delay — served by another service as plain request-response with heartbeat-driven idle progression. Inside rooms, they moved freely on a grid, interacted, explored, and fought over collection spots, with clicks translated into pathing and movement one cell at a time; that was the room service's own state, and only that state lived under a synchronized tick. The service boundary fell exactly on the semantic one — shared grid state on this side, plain request-response on the other — which is what let the room service be a pure tick simulation with no mixed execution model.
+Player state split along a line every game backend knows: idle collection outside rooms handled by another service as plain request-response, and inside rooms a shared grid — movement, interaction, exploration, contested collection spots — where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
 
 ## The capacity target and what it implied
 
@@ -49,7 +49,7 @@ At the machine level, the instance manages rooms as pooled resources. Rooms are 
 
 Inside a room, the tick runs two nested serial iterations: the system pass over component types, and within each system, the pass over entities. Component data lives in fixed-capacity arrays, pre-allocated to the room's entity cap and indexed directly — a component lookup is an array subscript, not a hash. Player input arrives through the connection layer and is batched; a tick consumes the batch accumulated since the previous one.
 
-Outside rooms there was no simulation loop at all — and none of it ran in this service: the client held a plain protobuf-over-WebSocket request-response connection to another service, which computed idle progression from heartbeats on demand. No state was shared out there, so nothing needed synchronizing — the room tick exists only where players share a grid.
+Outside-room state was not this service's problem — no simulation loop, no shared state, nothing to synchronize; the room tick exists only where players share a grid.
 
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
