@@ -22,11 +22,7 @@ I had led the architecture selection and the ECS implementation, and the profile
 
 Load testing was part of the design from the start, because the traffic plan demanded it: Tencent's publishing team and we would open entry points step by step, and the server had to absorb each step without redesign. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density: 10,000 players per instance, about 154 rooms, ticks at 20 Hz.
 
-The stutter pointed at the room's update cycle before any profile did: room-state updates arrived late in bursts, which localized the jitter to that cycle rather than the network or the broadcast path. What the profile then showed, I did not expect: [pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations, 60–85% of it (figures are my confirmed magnitudes from the load-test shape, not instrument records). The visible frame was Go's hash function itself — aeshash, the AES-NI-based hash the runtime runs on every [map access](https://github.com/golang/go/blob/go1.13/src/runtime/map.go), where [hashing](https://github.com/golang/go/blob/go1.13/src/runtime/alg.go) dispatches to the [AESENC chains](https://github.com/golang/go/blob/go1.13/src/runtime/asm_amd64.s) — burning CPU on every component lookup. Component access went through entity-keyed maps: every system, every entity, every tick re-hashed the key just to find the component, roughly 15 million hash computations per second per instance, before the bucket walk and key compare. Inserts and growth added allocation on top, feeding a garbage cycle that ran about once a second. The tick's budget went to hashing data it already knew how to index.
-
-The fix was to finish what the architecture implied: component storage moved from maps into pre-allocated fixed-capacity arrays indexed directly, memory reused across room lifecycles. Ticks returned inside their deadline: p99 back under 50 ms, average room cost stable at ~1.7 ms, instance CPU settling near 70%. The hot path stopped showing allocation churn in profiles.
-
-Two non-findings are worth recording. Broadcast fanout was never the problem; area-of-interest filtering and the room population caps had already bounded it. And the failure never reached production; the load test caught it first.
+The stutter pointed at the room's update cycle before any profile did: room-state updates arrived late in bursts, which localized the jitter to that cycle rather than the network or the broadcast path. That is where the design review paused and the profiler started — but to read that profile, you first need the system it profiled.
 
 ## The system under test
 
@@ -65,6 +61,14 @@ Outside-room state was not this service's problem — no simulation loop, no sha
 Broadcast was bounded two ways. Every state change reached only the players whose area of interest contained it, the same field of view that defined PVP interaction, and each room had a population cap. Together, AOI and the room cap bounded the audience of each state change.
 
 Persistence sat outside the tick entirely. Rooms snapshotted asynchronously and flushed on a timer to MongoDB; on restart, a room was rebuilt from its last snapshot, so the game state that mattered survived while seconds of idle movement might be lost. This was a genre decision as much as an engineering one: a game where state loss meant money, inventory integrity, or competitive position could not buy density this way — its write path would have to sit inside the tick's budget, and the capacity arithmetic changes with it.
+
+## What the profile showed
+
+With the architecture in view, the profile's answer lands. [pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations, 60–85% of it (figures are my confirmed magnitudes from the load-test shape, not instrument records). The visible frame was Go's hash function itself — aeshash, the AES-NI-based hash the runtime runs on every [map access](https://github.com/golang/go/blob/go1.13/src/runtime/map.go), where [hashing](https://github.com/golang/go/blob/go1.13/src/runtime/alg.go) dispatches to the [AESENC chains](https://github.com/golang/go/blob/go1.13/src/runtime/asm_amd64.s) — burning CPU on every component lookup. Component access went through entity-keyed maps: every system, every entity, every tick re-hashed the key just to find the component, roughly 15 million hash computations per second per instance, before the bucket walk and key compare. Inserts and growth added allocation on top, feeding a garbage cycle that ran about once a second. The tick's budget went to hashing data it already knew how to index.
+
+The fix was to finish what the architecture implied: component storage moved from maps into pre-allocated fixed-capacity arrays indexed directly, memory reused across room lifecycles. Ticks returned inside their deadline: p99 back under 50 ms, average room cost stable at ~1.7 ms, instance CPU settling near 70%. The hot path stopped showing allocation churn in profiles.
+
+Two non-findings are worth recording. Broadcast fanout was never the problem; area-of-interest filtering and the room population caps had already bounded it. And the failure never reached production; the load test caught it first.
 
 ## The capacity model that sized the fleet
 
