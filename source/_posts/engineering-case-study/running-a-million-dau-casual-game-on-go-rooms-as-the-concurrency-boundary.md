@@ -14,11 +14,11 @@ description: "The room service of a QQ-licensed casual game with a million daily
 
 The capacity target was fixed before the server had a shape. The game was a QQ-licensed casual pet title; growth would arrive as Tencent's publishing team and we opened entry points inside QQ step by step, so activity peaks sat far above the daily waterline. We designed for tens of millions of users — roughly 200,000 concurrent players at peaks — which imposed two requirements: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size.
 
-The game's backend had other services; this article covers the room service. Inside its rooms, game state lived in components that systems iterated over — an entity-component system. But one decision mattered more than that data layout: the room as the concurrency boundary. I led that architecture selection and the ECS implementation.
+The game's backend had other services; this one is the room service. Inside its rooms, game state lived in components that systems iterated over — an entity-component system. But one decision mattered more than that data layout: the room as the concurrency boundary. I led that architecture selection and the ECS implementation.
 
 <!-- more -->
 
-That boundary was not an engineering invention — the game's own interactions had already drawn it: every interaction that needed shared state resolved inside one room, so each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
+The boundary was not an engineering invention; the game's interactions had already drawn it — every one that needed shared state resolved inside a room. So each room ran as a goroutine with private state, scheduled by Go's runtime across processors, serial and data-oriented inside.
 
 Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid — movement, interaction, exploration, contested collection spots — where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
 
@@ -26,14 +26,14 @@ Player state split in two: idle collection outside rooms, handled by another ser
 
 The fleet count was an operations problem; per-instance density was the architecture problem, and it set three requirements:
 
-- Two state paths with different latency budgets: room-external idle could lag, room-internal grid movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but a hesitating server was perceptible.
+- Responsive grid movement. Outside-room idle could lag — that was another service's problem — but room-internal movement had to feel responsive. A click on a target cell became server-side pathing and one-cell-per-tick movement — no physics, no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline for everything the room did in it.
 - Broadcast costs that stay flat as a room fills. Fanout had to be bounded by the room design itself, not left to monitoring to catch.
 
 
 ## Two ways to organize ownership and execution
 
-The selection question was not "actor or ECS?" An actor model is about ownership — who holds mutable state and how work reaches it; ECS is about data layout — how a simulation stores components and iterates systems. The real question was where the ownership boundary sits, and what runs inside it.
+The selection question was not "actor or ECS?" An actor model is about ownership — who holds mutable state and how work reaches it; ECS is about data layout — how a simulation stores components and iterates systems. So the question was where the ownership boundary sits, and what runs inside it.
 
 A player-level actor — one goroutine and mailbox per player — would isolate players, but it would cut across the game's interaction boundary: movement, visibility, contested collection spots, and PVP all require several players and room state to be evaluated together. A query such as "which players are within this area of interest?" would become cross-actor messaging and result assembly. The design would pay channel, mailbox, and message-allocation costs on the hot path while making the room's tick semantics harder to keep deterministic. We rejected player-level ownership because the room, rather than the player, was the unit in which state changed together.
 
