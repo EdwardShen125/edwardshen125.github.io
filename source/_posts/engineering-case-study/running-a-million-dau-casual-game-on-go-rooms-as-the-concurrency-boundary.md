@@ -20,11 +20,11 @@ I had led the architecture selection and the ECS implementation, and the profile
 
 ## What the load test was built to tell us
 
-Load testing was part of the design from the start, because the traffic plan demanded it: Tencent's publishing team and we would open entry points step by step, and the server had to absorb each step without redesign. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density: 10,000 players per instance, about 154 rooms, ticks at 20 Hz.
+Load testing was part of the design from the start, because the traffic plan demanded it: Tencent's publishing team and we would open entry points step by step, and the server had to absorb each step without redesign. The method: boot a fleet of slightly lower-spec instances running simulated clients — bots walking the real client protocol, clicking into rooms, moving, collecting — and drive the server fleet to its target density: 10,000 real players per instance, about 667 rooms at fifteen players each, ticks at 20 Hz.
 
 The stutter pointed at the room's update cycle before any profile did: room-state updates arrived late in bursts, which localized the jitter to that cycle rather than the network or the broadcast path. The profiler had not run yet; first, the system it would profile.
 
-The game's backend had other services; this one is the room service. Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid of movement, interaction, exploration, and contested collection spots, where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick — and it was built under a capacity target fixed before the server had a shape: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size. Density set three requirements on the room service:
+The game's backend had other services; this one is the room service. Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid — up to 200×200 cells — of movement, interaction, exploration, and contested collection spots, where clicks became server-side pathing, one cell per tick. A room held about fifteen real players, thirty-plus combat NPCs, and a varying number of bot players, with a product-set capacity cap of 30–100. Only that shared-grid state lived in this service, under a synchronized tick — and it was built under a capacity target fixed before the server had a shape: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size. Density set three requirements on the room service:
 
 - Responsive grid movement. A click on a target cell became server-side pathing and one-cell-per-tick movement; no physics, no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline for everything the room did in it.
@@ -58,9 +58,9 @@ Persistence sat outside the tick entirely. Rooms snapshotted asynchronously and 
 
 ## What the profile showed
 
-Then the profile ran. [pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations, 60–85% of it (figures are my confirmed magnitudes from the load-test shape, not instrument records). The visible frame was Go's hash function itself — aeshash, the AES-NI-based hash the runtime runs on every [map access](https://github.com/golang/go/blob/go1.13/src/runtime/map.go), where [hashing](https://github.com/golang/go/blob/go1.13/src/runtime/alg.go) dispatches to the [AESENC chains](https://github.com/golang/go/blob/go1.13/src/runtime/asm_amd64.s) — burning CPU on every component lookup. Component access went through entity-keyed maps: every system, every entity, every tick re-hashed the key just to find the component, roughly 15 million hash computations per second per instance, before the bucket walk and key compare. Inserts and growth added allocation on top, feeding a garbage cycle that ran about once a second. The entity ID was already an array index; the map re-derived it through a hash on every access.
+Then the profile ran. [pprof](https://go.dev/devtools/pprof) attributed the lost budget to map operations, 60–85% of it (figures are my confirmed magnitudes from the load-test shape, not instrument records). The visible frame was Go's hash function itself — aeshash, the AES-NI-based hash the runtime runs on every [map access](https://github.com/golang/go/blob/go1.13/src/runtime/map.go), where [hashing](https://github.com/golang/go/blob/go1.13/src/runtime/alg.go) dispatches to the [AESENC chains](https://github.com/golang/go/blob/go1.13/src/runtime/asm_amd64.s) — burning CPU on every component lookup. Component access went through entity-keyed maps: every system, every entity, every tick re-hashed the key just to find the component, roughly 13 million hash computations per second per instance, before the bucket walk and key compare. Inserts and growth added allocation on top, feeding a garbage cycle that ran about once a second. The entity ID was already an array index; the map re-derived it through a hash on every access.
 
-The fix was to finish what the architecture implied: component storage moved from maps into pre-allocated fixed-capacity arrays indexed directly, memory reused across room lifecycles. Ticks returned inside their deadline: p99 back under 50 ms, average room cost stable at ~1.7 ms, instance CPU settling near 70%. The hot path stopped showing allocation churn in profiles.
+The fix was to finish what the architecture implied: component storage moved from maps into pre-allocated fixed-capacity arrays indexed directly, memory reused across room lifecycles. Ticks returned inside their deadline: p99 back under 50 ms, average room cost stable under half a millisecond, instance CPU settling near 70%. The hot path stopped showing allocation churn in profiles.
 
 Two things the profile did not show. Broadcast fanout was never the problem; area-of-interest filtering and the room population caps had already bounded it. And the failure never reached production; the load test caught it first.
 
@@ -71,7 +71,7 @@ The capacity model used four figures: peak players, players per room, players pe
 | Input | Value | Meaning |
 | --- | ---: | --- |
 | Peak concurrency | about 200,000 | Fleet capacity target |
-| Players per room | 30–100 | Converts players into rooms |
+| Room occupancy | ~15 real players | Converts players into rooms |
 | Instance density | 10,000 players/instance | Converts players into instances |
 | Tick rate | 20 Hz | 50 ms wall-clock deadline |
 
@@ -82,7 +82,7 @@ active_rooms = ceil(peak_players / players_per_room)
 instances    = ceil(peak_players / players_per_instance)
 ```
 
-At the peak, 30–100 players per room meant roughly 2,000–6,667 active rooms. At 10,000 players per instance:
+At the peak, fifteen players per room meant roughly 13,300 active rooms fleet-wide. At 10,000 players per instance:
 
 ```text
 ceil(200,000 / 10,000) = 20 instances
@@ -90,16 +90,15 @@ ceil(200,000 / 10,000) = 20 instances
 
 That 20 instances was the active-capacity lower bound; a production fleet needed more for uneven placement, warm rooms, reconnects, rolling changes, and instance failure.
 
-For a 10,000-player instance, sizing at a 65-player room average, 10,000 / 65 ≈ 154 rooms. What a tick cost came from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A full room landed in the low single-digit milliseconds per tick, as a reconstruction from the load-test shape rather than a recorded number; the 65-player sizing average scaled that to ~1.7 ms — the same figure the map-to-array fix later held in production. Sizing used the average:
+For a 10,000-player instance, 10,000 / 15 ≈ 667 rooms. What a tick cost came from the tick's own shape: iterate every entity's components, advance pathing one cell, serialize the frame's state changes for in-sight viewers. A fifteen-player room carried roughly 60–80 entities — players, combat NPCs, bots, collection objects — and cost an estimated ~0.35 ms per tick (a reconstruction from the load-test shape, not a recorded number; small rooms run cheaper per entity because the whole component array sits in L2 and the AOI fanout is a handful of viewers). Sizing used that:
 
 ```text
-average load:  154 rooms × ~1.7 ms × 20 Hz / 0.70 ≈ 7.5 cores
-activity peak (a third of rooms full):            ≈ 9.7 cores
+average load:  667 rooms × ~0.35 ms × 20 Hz / 0.70 ≈ 6.7 cores
 ```
 
 The 8-vCPU shape covered the recorded average room load. It was not sized to absorb every peak on one instance: when room density approached the per-instance limit, the fleet scaled horizontally.
 
-That 8 cores served over 150 room goroutines because most rooms spent the unused part of each 50-millisecond tick waiting for their next timer event; only a handful were mid-tick at any instant.
+That 8 cores served over 600 room goroutines because each room spent the unused part of every 50-millisecond tick waiting for its next timer event; only a handful were mid-tick at any instant.
 
 Memory followed the same reconstruction discipline as the CPU figure:
 
@@ -107,7 +106,7 @@ Memory followed the same reconstruction discipline as the CPU figure:
 memory = process_baseline + rooms × room_memory + buffers + headroom
 ```
 
-The reconstructed per-room profile was 1–4 MiB. The ~154 rooms therefore contributed roughly 150–600 MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout, 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518), which is also why the instance count above is a clean capacity figure rather than a mix of sizes.
+The reconstructed per-room profile was a few hundred KiB at fifteen players. The ~667 rooms therefore contributed a few hundred MiB; the rest of the 16 GiB machine covered the Go process, player connections, queues, snapshots, caches, runtime metadata, and safety margin. The fleet ran one instance shape throughout, 8 vCPU / 16 GiB on [Tencent Cloud](https://cloud.tencent.com/document/product/213/11518), which is also why the instance count above is a clean capacity figure rather than a mix of sizes.
 
 Pre-allocation bought that flat profile with memory: arrays sized to the room's entity cap hold their slots whether the room is full or sparse, so a fleet provisioned for peak carries the cost of empty capacity. Recycling rooms back into the pool mitigated but did not remove it. A layout that grouped entities by component set — the archetype approach — would use memory closer to occupancy at the price of indirection on every access; for this workload the tick budget was the scarcer resource, so I would make the same trade again. If I revisited anything in the interior, it would be this: sizing component storage to observed occupancy, or archetype grouping for the hottest components.
 
