@@ -24,11 +24,7 @@ Load testing was part of the design from the start, because the traffic plan dem
 
 The stutter pointed at the room's update cycle before any profile did: room-state updates arrived late in bursts, which localized the jitter to that cycle rather than the network or the broadcast path. That is where the design review paused and the profiler started — but to read that profile, you first need the system it profiled.
 
-## The system under test
-
-The game's backend had other services; this one is the room service. Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid of movement, interaction, exploration, and contested collection spots, where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick.
-
-The capacity target, fixed before the server had a shape, imposed two requirements: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size. Per-instance density set three requirements on the room service:
+The game's backend had other services; this one is the room service. Player state split in two: idle collection outside rooms, handled by another service as plain request-response, and inside rooms a shared grid of movement, interaction, exploration, and contested collection spots, where clicks became server-side pathing, one cell per tick. Only that shared-grid state lived in this service, under a synchronized tick — and it was built under a capacity target fixed before the server had a shape: scale out by adding instances without redesign, and keep each instance dense enough that the fleet stayed a practical size. Density set three requirements:
 
 - Responsive grid movement. A click on a target cell became server-side pathing and one-cell-per-tick movement; no physics, no interpolation, but a hesitating server was perceptible.
 - A bounded update cycle per room. Each room ticked every 50 milliseconds — 20 Hz — and that interval was the wall-clock deadline for everything the room did in it.
@@ -45,8 +41,6 @@ A single global tick was the other extreme: one loop iterating every room and en
 The shipped design used each model at a different layer. The room became the ownership and scheduling boundary: one room goroutine owned its mutable state, and Go's runtime scheduled room goroutines across the available processors. Inside the room's simulation loop there were no goroutines and no message passing: game state lived in components that systems iterated over, and a tick walked the systems serially. Component storage was the one part we got wrong before the load test corrected it — the arrays that made those traversals predictable came later, from the profile.
 
 The ECS side of the design was informed by [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw), but only its architecture principle carried over: components held state, systems held behavior, and iteration favored contiguous storage. Its 60 Hz client-predicted netcode was outside the scope of this server-authoritative casual game.
-
-The boundary had a price I would pay again. A closed border means state shared across rooms has no home inside any room's tick; it lives on a separate tier with its own consistency rules, and anything that quietly assumes cross-room state becomes an architectural change, not a feature. That is the price, and I would pay it again: room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout all followed from that one placement.
 
 ## The architecture
 
@@ -124,6 +118,8 @@ The density target held. A single instance carried ten-thousand-plus concurrent 
 Per-room population caps varied by room class, so no single cap figure is quoted. The garbage-collector improvement is qualitative: allocation churn on the hot path measurably dropped in the profiles, but there is no pause-frequency before/after record to quote.
 
 ## What the boundary costs, and what I would change
+
+The boundary's own price was the closed border: state shared across rooms had no home inside any room's tick, so it lived on a separate tier with its own consistency rules, and anything that quietly assumed cross-room state became an architectural change rather than a feature. That price came bundled with room-level isolation, multicore scheduling, failure isolation, and bounded per-update fanout — four properties from one placement, which is why I would pay it again.
 
 Serial-within-room was both the safety model and the ceiling. One pathological entity should stall only its own room while the process and scheduler stayed healthy — the logical failure domain was a roomful of players, not the instance. The same property meant a single room's complexity could not be parallelized away; a room that outgrew its tick deadline had no remedy inside this architecture except a smaller cap.
 
