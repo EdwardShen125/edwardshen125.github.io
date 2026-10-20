@@ -11,10 +11,10 @@
   "scope": "one game server instance",
   "quality_profile": "standard",
   "text_policy": "strict",
-  "width": 1840,
-  "height": 1080,
-  "title": "One Go Instance, Room Goroutines Across Processors",
-  "subtitle": "Go schedules room goroutines across processors; inside each room a serial tick-driven ECS",
+  "width": 1500,
+  "height": 1030,
+  "title": "Rooms own state; systems run serially inside each room",
+  "subtitle": "Go schedules independent room goroutines across available processors",
   "legend_orientation": "horizontal",
   "legend_x": 40,
   "legend_y": 980,
@@ -36,149 +36,232 @@
       "label": "AOI broadcast"
     }
   ],
-  "footer": "one instance of the fleet — peak: 20+ instances × 10K+ players",
+  "footer": "one instance of the fleet \u2014 peak: 20+ instances \u00d7 10K+ players",
   "footer_x": 40,
   "footer_y": 1040,
   "nodes": [
     {
       "id": "clients",
-      "kind": "review_card",
-      "c4_type": "external_system",
-      "x": 60,
-      "y": 780,
-      "width": 280,
-      "height": 160,
+      "x": 40,
+      "y": 350,
+      "width": 220,
+      "height": 150,
       "label": "Game clients",
-      "description": "click-to-move; commands batched per tick",
-      "technology": "simulated-client fleet in load tests",
+      "description": "Player commands; Per-view state updates",
       "stroke": "#356a8a"
     },
     {
       "id": "conn",
-      "kind": "review_card",
-      "c4_type": "container",
-      "x": 380,
-      "y": 560,
-      "width": 320,
-      "height": 200,
+      "x": 330,
+      "y": 350,
+      "width": 240,
+      "height": 150,
       "label": "Connection layer",
-      "description": "accepts commands; batches them; input floor = tick period",
-      "technology": "Go, game protocol",
-      "stroke": "#245a7d"
+      "description": "Game protocol; Batch inputs per tick",
+      "stroke": "#356a8a"
     },
     {
-      "id": "roompool",
-      "kind": "review_card",
-      "c4_type": "container",
-      "x": 760,
-      "y": 40,
+      "id": "scheduler",
+      "x": 330,
+      "y": 130,
+      "width": 240,
+      "height": 130,
+      "label": "Fleet scheduler",
+      "description": "Track instance load; Place new rooms",
+      "stroke": "#64748b"
+    },
+    {
+      "id": "pool",
+      "x": 660,
+      "y": 130,
       "width": 360,
       "height": 130,
       "label": "Room pool",
-      "description": "pre-allocated by tier; matched to level and intent",
-      "technology": "in-process scheduler",
-      "stroke": "#245a7d"
-    },
-    {
-      "id": "aoi",
-      "kind": "review_card",
-      "c4_type": "container",
-      "x": 1380,
-      "y": 400,
-      "width": 340,
-      "height": 240,
-      "label": "AOI broadcast",
-      "description": "state changes reach only in-sight viewers; room caps bound fanout",
-      "technology": "in-process, per room",
-      "stroke": "#245a7d"
-    },
-    {
-      "id": "persist",
-      "kind": "review_card",
-      "c4_type": "container",
-      "x": 1380,
-      "y": 740,
-      "width": 340,
-      "height": 150,
-      "label": "Async snapshot",
-      "description": "snapshot outside the tick; timer flush",
-      "technology": "timer flush",
-      "stroke": "#a44a3f"
+      "description": "Pre-allocate and reuse rooms; Match player level and intent",
+      "stroke": "#64748b"
     },
     {
       "id": "rooms",
-      "kind": "review_card",
-      "c4_type": "container",
-      "x": 800,
-      "y": 320,
-      "width": 480,
-      "height": 400,
-      "label": "Room ticks — one per room, 20 Hz",
-      "description": "each room: system pass over component types, then entity pass over fixed-capacity arrays",
-      "technology": "serial ECS per room; Go-scheduled room goroutines",
+      "x": 660,
+      "y": 350,
+      "width": 360,
+      "height": 270,
+      "label": "Room goroutines",
+      "description": "One owner of mutable state per room; 50 ms interval / 20 Hz; Serial systems query matching entities; Entity-indexed component arrays; Room population caps",
       "stroke": "#8a6d3b"
+    },
+    {
+      "id": "aoi",
+      "x": 1130,
+      "y": 350,
+      "width": 300,
+      "height": 150,
+      "label": "AOI broadcast",
+      "description": "Filter changes by player visibility; Bound fanout within each room",
+      "stroke": "#356a8a"
+    },
+    {
+      "id": "snapshot",
+      "x": 1130,
+      "y": 700,
+      "width": 300,
+      "height": 130,
+      "label": "Async snapshots",
+      "description": "Periodic flush outside the tick; Recent updates may be lost",
+      "stroke": "#a44a3f"
+    },
+    {
+      "id": "mongo",
+      "x": 1130,
+      "y": 900,
+      "width": 300,
+      "height": 90,
+      "label": "MongoDB",
+      "description": "Restore last persisted snapshot",
+      "stroke": "#a44a3f"
     }
   ],
   "arrows": [
     {
-      "id": "a1",
-      "source": "clients",
-      "target": "conn",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "sync",
+      "id": "commands",
+      "points": [
+        [
+          260,
+          400
+        ],
+        [
+          330,
+          400
+        ]
+      ],
       "label": "cmds",
-      "protocol": "game protocol"
+      "label_x": 280,
+      "label_y": 382
     },
     {
-      "id": "a2",
-      "source": "conn",
-      "target": "rooms",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "sync",
-      "label": "batched input",
-      "protocol": "in-process"
+      "id": "input",
+      "points": [
+        [
+          570,
+          425
+        ],
+        [
+          660,
+          425
+        ]
+      ],
+      "label": "input batch",
+      "label_x": 582,
+      "label_y": 407
     },
     {
-      "id": "a4",
-      "source": "roompool",
-      "target": "rooms",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "control",
+      "id": "placement",
+      "points": [
+        [
+          570,
+          195
+        ],
+        [
+          660,
+          195
+        ]
+      ],
+      "label": "place",
+      "label_x": 595,
+      "label_y": 177
+    },
+    {
+      "id": "lifecycle",
+      "points": [
+        [
+          840,
+          260
+        ],
+        [
+          840,
+          350
+        ]
+      ],
       "label": "assign / recycle",
-      "protocol": "in-process"
+      "label_x": 860,
+      "label_y": 305
     },
     {
-      "id": "a6",
-      "source": "rooms",
-      "target": "aoi",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "read",
+      "id": "changes",
+      "points": [
+        [
+          1020,
+          425
+        ],
+        [
+          1130,
+          425
+        ]
+      ],
       "label": "changes",
-      "protocol": "in-process"
+      "label_x": 1040,
+      "label_y": 407
     },
     {
-      "id": "a8",
-      "source": "aoi",
-      "target": "clients",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "read",
+      "id": "updates",
+      "points": [
+        [
+          1280,
+          500
+        ],
+        [
+          1280,
+          660
+        ],
+        [
+          150,
+          660
+        ],
+        [
+          150,
+          500
+        ]
+      ],
       "label": "view updates",
-      "protocol": "game protocol"
+      "label_x": 350,
+      "label_y": 645
     },
     {
-      "id": "a9",
-      "source": "rooms",
-      "target": "persist",
-      "source_port": "bottom",
-      "target_port": "left",
-      "flow": "write",
+      "id": "snapshot",
+      "points": [
+        [
+          930,
+          620
+        ],
+        [
+          930,
+          765
+        ],
+        [
+          1130,
+          765
+        ]
+      ],
       "label": "snapshot",
-      "protocol": "async flush"
+      "label_x": 960,
+      "label_y": 747
+    },
+    {
+      "id": "flush",
+      "points": [
+        [
+          1280,
+          830
+        ],
+        [
+          1280,
+          900
+        ]
+      ],
+      "label": "flush",
+      "label_x": 1300,
+      "label_y": 870
     }
-  ]
+  ],
+  "renderer": "diagrams/tools/render-game-room-diagram.py"
 }

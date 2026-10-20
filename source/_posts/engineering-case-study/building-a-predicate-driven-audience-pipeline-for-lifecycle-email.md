@@ -179,4 +179,3 @@ The remaining design work was at the event boundary. Segment reuse and individua
 ---
 
 *Previous in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/)*.
-*Next in this series: [Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary](/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/)*.

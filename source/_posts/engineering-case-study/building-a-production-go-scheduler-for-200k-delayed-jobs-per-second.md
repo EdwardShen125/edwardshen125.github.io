@@ -226,4 +226,6 @@ I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-
 
 ---
 
+*Previous in this series: [Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary](/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/).*
+
 *Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/)*.
