@@ -243,4 +243,4 @@ Concurrency outside activity peaks was in the tens of thousands. A single instan
 
 *The talk [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw) gave me many of the ideas behind this design, especially separating component state from system behavior and organizing data for sequential access.*
 
-*Next in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/).*
+*Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/).*

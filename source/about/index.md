@@ -1,14 +1,12 @@
 ---
 title: About
 date: 2026-10-01 10:55:00
-description: About Edward Shen, a Go backend and distributed systems engineer who designs scheduling platforms, service foundations, real-time data systems, and lifecycle marketing pipelines.
+description: About Edward Shen, a backend and distributed systems engineer working on generative AI products, scheduling platforms, real-time data systems, and production infrastructure.
 ---
 
-I've spent ten years building backend systems, almost all of it in Go. I started with card and casual game backends, spent four and a half years on an SCRM product, and since early 2025 I've been leading backend architecture for an overseas game platform.
+I build backend systems in Go. Over ten years, I have worked on card and casual games, SCRM infrastructure, and overseas game platforms. I now work on backend engineering for a generative AI product.
 
-The through-line is systems that have to hold under real load. At the SCRM company I designed the [scheduling center](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/) — a distributed scheduler replacing legacy components at more than 200K operations per second — and later tracked down the platform's [hardest production failure](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/): a sporadic consumer OOM traced to a JSON decoder's recursive type graph, closed by a rollback bisection and a targeted codec migration. On the game platform, the same instinct turned into building: a contract-driven Go platform that let four engineers deliver eighteen services, a TiDB CDC and Flink data path with second-level freshness, and a predicate-driven marketing pipeline.
-
-What I keep coming back to is the point where design and debugging meet: the failure mode that only appears under real load, and the system shape that prevents it.
+I work on the decisions between a product requirement and the system that has to carry it: what the system should own, what can fail independently, and where complexity is worth paying for. You can see that in a [room-based game server](/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/), a [distributed scheduler](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/), and a [production OOM investigation](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/).
 
 <p class="motto">STAY HUNGRY, STAY FOOLISH.</p>
 <p class="motto-cite">— Steve Jobs</p>
