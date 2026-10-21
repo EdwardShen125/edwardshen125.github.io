@@ -37,6 +37,28 @@ The pre-refactor state, assembled from many features added over two years, looke
 - Many code paths wrote or acted on this state. The scan callback (WeCom notifies us a customer was added), the admin endpoints for going offline, the quota counters incremented from the callback path, scheduled jobs for work hours, staff resignation handlers, org-structure change events. Each one, when it decided the membership list should change, pushed its own update toward WeCom — inline, with its own retry, at its own moment.
 - A pre-existing queue covered one slice. Sequenced/quota codes had a Redis ZSET-based assignment queue with a two-level cursor (built by a teammate in 2021): state-change events went through Kafka to a consumer that recomputed the online list and rebuilt the ZSET, while scans consumed from it via Lua. But the rebuild was a delete-and-recreate of the whole key, and the events it consumed were asynchronous — between "staff hit quota" and "queue rebuilt without him", scans kept drawing from the old membership.
 
+{% mermaid %}
+flowchart LR
+    subgraph campaign_day["Campaign day - concurrent load"]
+        direction LR
+        A["Scan lands<br/>quota counter $inc"] --> B["Counter crosses<br/>ceiling"]
+        C["Admin marks staff<br/>offline"] --> D["Online flag<br/>written"]
+    end
+    B --> E["Each writer pushes its own<br/>update toward WeCom<br/>inline, own retry, own moment"]
+    D --> E
+    E --> F["Updates race:<br/>partial views, no order"]
+    F --> G["WeCom config still lists<br/>the exhausted staff"]
+    G --> H["Next scans keep<br/>connecting to him<br/>no rotation"]
+    style A fill:#fff7e6,stroke:#8a6d3b
+    style B fill:#fff7e6,stroke:#8a6d3b
+    style C fill:#fff7e6,stroke:#8a6d3b
+    style D fill:#fff7e6,stroke:#8a6d3b
+    style E fill:#fdecea,stroke:#a44a3f
+    style F fill:#fdecea,stroke:#a44a3f
+    style G fill:#fdecea,stroke:#a44a3f
+    style H fill:#fdecea,stroke:#a44a3f
+{% endmermaid %}
+
 No single one of these was "the bug". The defect was structural: **the same state had many concurrent writers with no agreed order**. A scan-callback incrementing the quota counter, an admin marking the staff offline, a scheduled rotation, a resignation event — each racing toward WeCom's config with a partial view. On a quiet day the races rarely lost. On campaign day, scan volume and status-change volume peaked in the same minutes, exactly when the sequencing gap between "state says stop" and "WeCom config says go" was most likely to be hit — and most expensive. The customer's campaign was the load profile this architecture could not survive.
 
 Both failure modes had been reaching support for months — offline-still-assigning and over-quota-still-assigning — as individually rare tickets. Each was reproducible only under concurrent load, so each got chased as a would-be logic bug and closed when no code defect surfaced. It took the account's churn to reclassify the pattern: not coding errors, a consistency defect.
@@ -54,6 +76,8 @@ Keep the multi-writer shape, add better retries. Each writer path gets idempoten
 What all three shared was treating the symptom at the point of divergence. The alternative was to remove the divergence's cause: make every membership-changing decision flow through one ordered place, so that by the time any update is applied, it reflects every state change that came before it.
 
 ## One queue for every membership-changing event
+
+{% asset_img architecture.png "One queue serializes every membership-changing event: sources feed a tenant-keyed Kafka topic; a serial consumer recomputes members, pushes WeCom's contact-way config first, then writes back to MongoDB. The scan path never passes through our platform." %}
 
 The refactor put a single Kafka queue between "state changed" and "WeCom config changed". Every event that can alter a code's membership — a customer added (quota counters move), a staff member going offline or coming back, work schedule transitions, resignations, org-structure changes, the code's own configuration being edited — is published to one topic, keyed by tenant ID. A consumer group processes these events: for each affected code, it recomputes the eligible member list from current state, pushes the update to WeCom (remove the exhausted staff, add the returning one), and only then writes the result back to our own store. Order of operations matters here: WeCom is the source of routing truth, so it gets the correct list first; our store records what was pushed, not what was intended.
 

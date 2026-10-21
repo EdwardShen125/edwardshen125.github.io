@@ -1,0 +1,472 @@
+{
+  "canvas": {
+    "height": 1090.0,
+    "width": 1500.0
+  },
+  "composition": {
+    "limits": {
+      "max_bends_per_edge": 12,
+      "max_bridged_crossings": 8,
+      "max_route_stretch": 5.0,
+      "max_total_bends": 100,
+      "min_container_gutter": 0.0,
+      "min_label_clearance": 2.0,
+      "min_node_gap": 0.0,
+      "min_segment_length": 0.0,
+      "profile": "standard"
+    },
+    "metrics": {
+      "bridged_crossings": 0,
+      "max_route_stretch": 2.093,
+      "minimum_container_gutter": null,
+      "minimum_node_gap": 60.0,
+      "shortest_segment": 9.0,
+      "total_bends": 25
+    },
+    "ok": true,
+    "profile": "standard",
+    "score": 66,
+    "violations": []
+  },
+  "edges": [
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "scan",
+      "length": 140.0,
+      "route": [
+        [
+          155.0,
+          460.0
+        ],
+        [
+          155.0,
+          600.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "wx_users",
+      "source_port": [
+        155.0,
+        460.0
+      ],
+      "target": "wecom",
+      "target_port": [
+        155.0,
+        600.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 4,
+      "bridges": [],
+      "crossings": [],
+      "id": "notify",
+      "length": 240.0,
+      "route": [
+        [
+          270.0,
+          690.0
+        ],
+        [
+          340.0,
+          690.0
+        ],
+        [
+          340.0,
+          750.0
+        ],
+        [
+          359.8,
+          750.0
+        ],
+        [
+          359.8,
+          700.0
+        ],
+        [
+          400.0,
+          700.0
+        ]
+      ],
+      "route_stretch": 1.714,
+      "source": "wecom",
+      "source_port": [
+        270.0,
+        690.0
+      ],
+      "target": "callback",
+      "target_port": [
+        400.0,
+        700.0
+      ],
+      "waypoints": [
+        [
+          340.0,
+          750.0
+        ]
+      ]
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "admin_events",
+      "length": 225.0,
+      "route": [
+        [
+          455.0,
+          460.0
+        ],
+        [
+          455.0,
+          540.0
+        ],
+        [
+          500.0,
+          540.0
+        ],
+        [
+          520.0,
+          540.0
+        ],
+        [
+          520.0,
+          620.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "admins",
+      "source_port": [
+        455.0,
+        460.0
+      ],
+      "target": "callback",
+      "target_port": [
+        520.0,
+        620.0
+      ],
+      "waypoints": [
+        [
+          500.0,
+          540.0
+        ]
+      ]
+    },
+    {
+      "bends": 10,
+      "bridges": [],
+      "crossings": [],
+      "id": "landing_scan",
+      "length": 1396.2,
+      "route": [
+        [
+          660.0,
+          395.0
+        ],
+        [
+          639.6,
+          395.0
+        ],
+        [
+          639.6,
+          306.0
+        ],
+        [
+          785.0,
+          306.0
+        ],
+        [
+          785.0,
+          296.0
+        ],
+        [
+          294.0,
+          296.0
+        ],
+        [
+          294.0,
+          306.0
+        ],
+        [
+          294.0,
+          560.0
+        ],
+        [
+          160.0,
+          560.0
+        ],
+        [
+          160.0,
+          596.0
+        ],
+        [
+          280.2,
+          596.0
+        ],
+        [
+          280.2,
+          672.0
+        ],
+        [
+          270.0,
+          672.0
+        ]
+      ],
+      "route_stretch": 2.093,
+      "source": "landing",
+      "source_port": [
+        660.0,
+        395.0
+      ],
+      "target": "wecom",
+      "target_port": [
+        270.0,
+        672.0
+      ],
+      "waypoints": [
+        [
+          785.0,
+          306.0
+        ],
+        [
+          294.0,
+          306.0
+        ],
+        [
+          294.0,
+          560.0
+        ],
+        [
+          160.0,
+          560.0
+        ]
+      ]
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "produce",
+      "length": 130.0,
+      "route": [
+        [
+          640.0,
+          700.0
+        ],
+        [
+          770.0,
+          700.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "callback",
+      "source_port": [
+        640.0,
+        700.0
+      ],
+      "target": "kafka",
+      "target_port": [
+        770.0,
+        700.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 2,
+      "bridges": [],
+      "crossings": [],
+      "id": "consume",
+      "length": 139.0,
+      "route": [
+        [
+          1000.0,
+          700.0
+        ],
+        [
+          1020.4,
+          700.0
+        ],
+        [
+          1020.4,
+          691.0
+        ],
+        [
+          1130.0,
+          691.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "kafka",
+      "source_port": [
+        1000.0,
+        700.0
+      ],
+      "target": "consumer",
+      "target_port": [
+        1130.0,
+        691.0
+      ],
+      "waypoints": []
+    },
+    {
+      "bends": 7,
+      "bridges": [],
+      "crossings": [],
+      "id": "push_wecom",
+      "length": 1553.8,
+      "route": [
+        [
+          1130.0,
+          709.0
+        ],
+        [
+          1109.6,
+          709.0
+        ],
+        [
+          1109.6,
+          860.0
+        ],
+        [
+          1180.0,
+          860.0
+        ],
+        [
+          1180.0,
+          870.0
+        ],
+        [
+          155.0,
+          870.0
+        ],
+        [
+          155.0,
+          860.0
+        ],
+        [
+          270.0,
+          860.0
+        ],
+        [
+          270.0,
+          708.0
+        ]
+      ],
+      "route_stretch": 1.805,
+      "source": "consumer",
+      "source_port": [
+        1130.0,
+        709.0
+      ],
+      "target": "wecom",
+      "target_port": [
+        270.0,
+        708.0
+      ],
+      "waypoints": [
+        [
+          1180.0,
+          860.0
+        ],
+        [
+          155.0,
+          860.0
+        ]
+      ]
+    },
+    {
+      "bends": 0,
+      "bridges": [],
+      "crossings": [],
+      "id": "writeback",
+      "length": 100.0,
+      "route": [
+        [
+          1260.0,
+          780.0
+        ],
+        [
+          1260.0,
+          880.0
+        ]
+      ],
+      "route_stretch": 1.0,
+      "source": "consumer",
+      "source_port": [
+        1260.0,
+        780.0
+      ],
+      "target": "mongo",
+      "target_port": [
+        1260.0,
+        880.0
+      ],
+      "waypoints": []
+    }
+  ],
+  "input_schema": "v1",
+  "issues": [],
+  "mode": "architecture",
+  "ok": true,
+  "palette": {
+    "below_target": [],
+    "minimum_target": 4.5,
+    "ratios": {
+      "section_sub_fill": 4.93,
+      "text_muted": 4.92,
+      "text_primary": 12.1,
+      "text_secondary": 5.3
+    },
+    "scope": "default opaque canvas text tokens; not a full rendered accessibility audit",
+    "unsupported_tokens": []
+  },
+  "placements": {
+    "legend": {
+      "actual": [
+        40.0,
+        1010.0
+      ],
+      "bounds": [
+        30.0,
+        996.0,
+        712.72,
+        1042.0
+      ],
+      "moved": false,
+      "requested": [
+        40.0,
+        1010.0
+      ]
+    }
+  },
+  "schema_version": 1,
+  "semantics": {
+    "details": {
+      "elements": 8,
+      "level": "container",
+      "rough_seed": 42
+    },
+    "ok": true,
+    "profile": "c4-review",
+    "style": 9,
+    "visual_theme": "C4 Review Canvas"
+  },
+  "style": {
+    "id": 9,
+    "name": "C4 Review Canvas"
+  },
+  "summary": {
+    "bridged_crossings": 0,
+    "edges": 8,
+    "nodes": 8
+  },
+  "text_metrics": "heuristic-v1",
+  "typography": {
+    "complete_text": true,
+    "hint": null,
+    "metrics": "heuristic widths; inspect the actual rendered font",
+    "truncated": []
+  }
+}
