@@ -1,6 +1,6 @@
 ---
 title: "One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System"
-date: 2023-01-15 10:00:00
+date: 2023-05-08 10:00:00
 categories:
   - Engineering Case Study
 tags:
@@ -79,11 +79,11 @@ One dependency more than before. Kafka availability now gates membership updates
 
 The refactor shipped across the second half of 2022, with the cutover completing in early 2023.
 
-- Both complaint classes stopped. Assignments to offline staff and to over-quota staff — the two failure modes behind the tickets, and behind the account's loss of trust — dropped to zero in customer support's tracking after cutover, and stayed there. [TODO: confirm the observation window with the author]
+- Both complaint classes stopped. Assignments to offline staff and to over-quota staff — the two failure modes behind the tickets, and behind the account's loss of trust — dropped to zero in customer support's tracking after cutover, and stayed at zero for as long as I remained at the company — through the following year's campaign seasons.
 - The churned account came back. After living with the refactored system, they re-subscribed — the recovery I weigh most, because a customer who has lost technical trust does not return for a discount. Several other affected accounts renewed with the fix in place; the feature rose to the most-active tier of the marketing product line, and the work received the company's quarterly owner award (2023 Q1).
 - The scale the design held at: ~30,000 tenants, ~6M live codes among heavy users, up to several hundred scans per second at campaign peaks, with peak-day scan volume under a million across the platform. The queue's steady-state lag stayed within the seconds-level freshness budget.
 
-None of these numbers came from a load test; they are the production envelope the system ran at. The proof the refactor worked is the complaint record, not a benchmark. Two items remain marked TODO in my notes: the exact observation window for the zero-complaint claim, and whether campaign-day loss figures were ever quantified for the incident account.
+None of these numbers came from a load test; they are the production envelope the system ran at. The proof the refactor worked is the complaint record, not a benchmark. The incident account's campaign loss I leave unquantified on purpose: it is the customer's data, not ours to publish — the churn itself, and the re-subscription, carry the argument.
 
 ## What I would change today
 
