@@ -131,8 +131,20 @@
       "width": 260,
       "height": 100,
       "label": "MongoDB per tenant",
-      "description": "Staff state; quota ceilings; what was pushed",
+      "description": "Staff flags · quota ceilings; records what was pushed",
       "technology": "MongoDB",
+      "c4_type": "container",
+      "stroke": "#a44a7f"
+    },
+    {
+      "id": "redis",
+      "x": 880,
+      "y": 900,
+      "width": 280,
+      "height": 110,
+      "label": "Redis per tenant",
+      "description": "Per-staff counts · assignment set; ZSET + two-level cursor; scans read it via Lua",
+      "technology": "Redis",
       "c4_type": "container",
       "stroke": "#a44a7f"
     }
@@ -283,6 +295,18 @@
       "x1": 1250,
       "y1": 780,
       "x2": 1250,
+      "y2": 880,
+      "route_points": []
+    },
+    {
+      "id": "rebuild_set",
+      "source": "consumer",
+      "target": "redis",
+      "label": "",
+      "protocol": "redis write",
+      "x1": 1140,
+      "y1": 780,
+      "x2": 1140,
       "y2": 880,
       "route_points": []
     }
