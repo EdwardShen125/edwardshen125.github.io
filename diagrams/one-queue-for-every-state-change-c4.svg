@@ -3,7 +3,7 @@
 <rect width="100%" height="100%" fill="#fbfcfe"/>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#203047}.title{font-size:28px;font-weight:700}.sub{font-size:17px;fill:#526278}.node{font-size:21px;font-weight:700}.body{font-size:16px;fill:#44536b}.edge{font-size:15px;fill:#475569}.tech{font-size:12.5px;font-weight:700;fill:#8a6f43}.leg{font-size:14px;fill:#526278}</style>
 <text x="40" y="45" class="title">One queue serializes every membership-changing event</text>
-<text x="40" y="78" class="sub">Assignment lives in WeCom's contact-way config; ordered updates keep our state and theirs in agreement</text>
+<text x="40" y="78" class="sub">Assignment lives in WeCom's contact-way config; serialized updates keep our state and theirs in agreement</text>
 
 <!-- WeCom boundary (their perimeter) -->
 <rect x="30" y="120" width="260" height="700" rx="18" fill="#f0f4f8" stroke="#9aa9b8" stroke-dasharray="8 5"/>
@@ -57,8 +57,8 @@
 <text x="1078" y="634" class="node">Serial consumer</text>
 <text x="1078" y="666" class="body">Recompute member list</text>
 <text x="1078" y="692" class="body">Per-tenant token bucket</text>
-<text x="1078" y="718" class="body">Fast / slow channel split</text>
-<text x="1078" y="744" class="body">Retry queue on failure</text></g>
+<text x="1078" y="718" class="body">Fast / slow lanes (sticky)</text>
+<text x="1078" y="744" class="body">Ack + requeue to fast</text></g>
 
 <g id="mongo"><rect x="1180" y="900" width="260" height="110" rx="12" fill="white" stroke="#a44a7f" stroke-width="2"/>
 <text x="1198" y="934" class="node">MongoDB per tenant</text>
@@ -75,7 +75,7 @@
 <path d="M 610 700 L 710 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="620" y="682" class="edge">tenant-keyed</text>
 <path d="M 960 700 L 1060 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
-<text x="968" y="682" class="edge">consume in order</text>
+<text x="966" y="682" class="edge">serial per key</text>
 <path d="M 1190 790 L 1190 900" fill="none" stroke="#a44a7f" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="1208" y="855" class="edge">write-back</text>
 <!-- push to WeCom: the routing-truth write, out of our boundary into theirs -->
@@ -87,5 +87,5 @@
 <line x1="230" y1="1010" x2="260" y2="1010" stroke="#8a6d3b" stroke-width="2.5"/><text x="266" y="1015" class="leg">state-change events</text>
 <line x1="460" y1="1010" x2="490" y2="1010" stroke="#64748b" stroke-width="2.5"/><text x="496" y="1015" class="leg">WeCom API write</text>
 <line x1="660" y1="1010" x2="690" y2="1010" stroke="#a44a7f" stroke-width="2.5"/><text x="696" y="1015" class="leg">store write-back</text>
-<text x="40" y="1045" class="leg">30,000 tenants keyed by ID: per-tenant order, cross-tenant parallel</text>
+<text x="40" y="1045" class="leg">30,000 tenants keyed by ID: per-tenant serialization, cross-tenant parallel</text>
 </svg>
