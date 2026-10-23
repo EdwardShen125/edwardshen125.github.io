@@ -18,7 +18,7 @@ The escalation arrived as a refund threat. A customer had run a campaign, and th
 
 A live QR code is printed once and keeps working while the people behind it change. The customer scans in [WeChat](https://www.wechat.com/), [WeCom](https://www.wecom.com/) routes to whoever the code currently lists, and we maintain that list. At 30,000 tenants with 10 to 20 staff on a code, most codes sat idle until a campaign woke them for days or weeks. Campaign day is when scans, quota exhaustion and staff status changes all peak in the same minutes.
 
-I owned this system. Tickets came in two shapes and said the same thing: staff shown offline still receiving scans, staff over quota still receiving scans. Our view of who should get customers had stopped matching who actually did.
+I owned this system — took it over as it stood. Tickets came in two shapes and said the same thing: staff shown offline still receiving scans, staff over quota still receiving scans. Our view of who should get customers had stopped matching who actually did.
 
 <!-- more -->
 
@@ -32,7 +32,7 @@ Codes came in two families. Native codes handed member selection to WeCom's rand
 
 ## Two years of features, six writers
 
-Feature work had put this state together piece by piece:
+Before I took over, feature work had put this state together piece by piece:
 
 - **State split across two stores.** Online/offline flags (an admin endpoint, work-schedule timers) and the per-staff-per-code ceiling records, including the "already removed today" marker, were in MongoDB. The counts that decided who was full were in [Redis](https://redis.io/). Four switches per code — offline check, add limit, daily limit, round limit — plus a company-wide daily total decided how those numbers were applied.
 - **Many paths wrote it.** The scan callback, the admin offline endpoint, the quota counters, work-hours jobs, resignation handlers, org-change events. Each pushed its own update toward WeCom when it decided the list should change: inline, with its own retry, at its own moment.
@@ -80,7 +80,7 @@ All three fixed the symptom where it surfaced. The alternative was to remove the
 
 {% asset_img architecture.png "One queue serializes every membership-changing event: sources feed a tenant-keyed Kafka topic; a serial consumer recomputes members, pushes WeCom's contact-way config first, then writes back to MongoDB and rebuilds the Redis assignment set. The scan path never passes through our platform." %}
 
-The refactor put one Kafka queue between "state changed" and "WeCom config changed". Every event that can alter a code's membership goes to one topic, keyed by tenant ID: an addition, a status flip, a schedule transition, a resignation, an org change, a config edit. A consumer group works through them. For each affected code it recomputes the eligible members from current state, using the same four switches each old writer had checked on its own. It pushes that update to WeCom, and only then writes the result back to our store. The order matters. WeCom is where routing happens, so it gets the correct list first, and our store records what was pushed rather than what was intended.
+I put one Kafka queue between "state changed" and "WeCom config changed". Every event that can alter a code's membership goes to one topic, keyed by tenant ID: an addition, a status flip, a schedule transition, a resignation, an org change, a config edit. A consumer group works through them. For each affected code it recomputes the eligible members from current state, using the same four switches each old writer had checked on its own. It pushes that update to WeCom, and only then writes the result back to our store. The order matters. WeCom is where routing happens, so it gets the correct list first, and our store records what was pushed rather than what was intended.
 
 The state has to move before the event does. The counter that decides who is full lives in Redis, per staff member and code. The consumer handling WeCom's customer-added callback increments it while it handles the addition, before it publishes the refresh. By the time the refresh runs, the count is current, and the event never has to carry a number anyone has to trust. Every other trigger follows the same rule. The admin endpoint, the work-hours timer, the resignation and org-change handlers write the flag or the counter where the business event happens, then emit the refresh. The queue carries a reason to recompute, not the state to apply.
 
