@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="A Go service reached its 8 GB Pod memory limit when a recursive event type entered jsoniter&#39;s lazy encoder compilation path during publish. Build bisection isolated the type and publish path; moving o">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Debugging a Sporadic Go OOM in a Recursive JSON Encode Path">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="A Go service reached its 8 GB Pod memory limit when a recursive event type entered jsoniter&#39;s lazy encoder compilation path during publish. Build bisection isolated the type and publish path; moving o">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/debugging-recursive-json-encode-oom.png">
+<meta property="article:published_time" content="2024-10-01T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T08:09:54.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="json">
+<meta property="article:tag" content="oom">
+<meta property="article:tag" content="production-debugging">
+<meta property="article:tag" content="event-driven">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/debugging-recursive-json-encode-oom.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/","url":"https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/","headline":"Debugging a Sporadic Go OOM in a Recursive JSON Encode Path","description":"A Go service reached its 8 GB Pod memory limit when a recursive event type entered jsoniter's lazy encoder compilation path during publish. Build bisection isolated the type and publish path; moving only that path to sonic stopped the incident.","datePublished":"2024-10-01T02:00:00.000Z","dateModified":"2026-10-21T08:09:54.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, json, oom, production-debugging, event-driven","image":["https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/debugging-recursive-json-encode-oom.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Debugging a Sporadic Go OOM in a Recursive JSON Encode Path","item":"https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/"}]}]}</script>
+  <title>Debugging a Sporadic Go OOM in a Recursive JSON Encode Path | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Debugging a Sporadic Go OOM in a Recursive JSON Encode Path
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2024-10-01 10:00:00" itemprop="dateCreated datePublished" datetime="2024-10-01T10:00:00+08:00">2024-10-01</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.7k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>10 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>The alert came from Grafana. A Go service on the SOP event chain
+reached its 8 GB Pod memory limit and restarted; process memory went
+from flat to the limit in under a second, with no correlation to traffic
+or time of day.</p>
+<p>The service ran across twelve pods, supporting SOP workflows for more
+than 30,000 enterprise customers. It consumed close to ten million
+events per day and supported daily outreach to hundreds of thousands of
+end users. The alerts kept coming for over a week: on most days a burst
+— one pod lost, then another within minutes as if the failure moved
+between them — and three or four on the worst days, until each burst
+exhausted itself and went quiet. Nothing in the standard instruments
+captured why.</p>
+<span id="more"></span>
+<img data-src="/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/debugging-recursive-json-encode-oom.png" class="" title="Incident build: SOP event chain, assignment engine to publish path, jsoniter codec compiler, embedded-cycle recursion and the 8 GB alert">
+<p>Events moved through this service in both directions: it consumed
+upstream events through the SDK's envelope decoder, and published its
+own events back through the same SDK's <code>json</code> package. Each
+event type had its own code on the wire and its own handler.</p>
+<p>This was the second memory incident on that path in a short window,
+and the two looked nothing alike. The first was a slow climb: memory
+rose with business peaks and eventually reached the limit. I had already
+fixed that one: on March 7 I moved the JSON package behind three
+internal SDK paths — the event SDK's shared <code>json</code>, a cache,
+and an executor SDK — from <code>encoding/json</code> to <a
+target="_blank" rel="noopener" href="https://github.com/json-iterator/go">jsoniter</a>. At our consume
+rate, stdlib's unmarshal allocated heavily per event; jsoniter reused
+its read buffers, memory fell back and stayed down. Because it was one
+package-level swap, decode and publish both went through jsoniter from
+then on.</p>
+<p>Days later, a feature iteration landed in this service. It consumed
+<span class="exturl" data-url="aHR0cHM6Ly9kZXZlbG9wZXIud29yay53ZWl4aW4ucXEuY29tL2RvY3VtZW50Lw==">WeCom<i class="fa fa-external-link-alt"></i></span>'s
+owner-change event — an employee departs, WeCom hands their customers
+over — and this service's assignment engine distributed those customers
+among the remaining staff by rule, publishing an assignment event for
+each split. Departures are rare — a handful per tenant per month — so
+these events were a small fraction of the millions of daily events. The
+feature had shipped once before with a flat event type, verified end to
+end by the automated suite on a test tenant.</p>
+<p>The second iteration added chain support: a departing employee's
+customers could exceed one receiver's capacity, so the assignment engine
+re-dispatched the remainder to the next receiver, and that dispatch was
+itself an assignment event. Each re-dispatch carried the assignment it
+continued, so the engine could audit how one departure was split and
+deduplicate overlapping splits. Every step of that chain was the same
+event type, so the field carrying the previous assignment pointed at the
+type itself — an anonymous embedded pointer, the event layer's standing
+convention. Every event in the chain was published through the SDK's
+<code>json</code> package, the one I had just switched to jsoniter. The
+alerts that followed were this article's subject: a growth curve points
+at accumulation, a spike at a single allocation path gone wrong, and the
+instruments that watched the first had nothing to say about the
+second.</p>
+<p>The migration left jsoniter behind every JSON touchpoint in the
+service: envelope decode, cache, an executor SDK, and the publish path.
+The first three were dependency pins, swappable one at a time. The
+publish path was event-layer business code and shipped only inside the
+event SDK's builds. That distinction decided how the suspicion could be
+tested, and later how the failure was isolated.</p>
+<h2 id="what-the-failing-instrumentation-could-not-see">What the failing
+instrumentation could not see</h2>
+<p>Four standard instruments were considered:</p>
+<ul>
+<li><strong>Logs</strong>: the triggering events were ordinary, and the
+process died before the consumer could record its state.</li>
+<li><strong>Scheduled pprof</strong> sampled too infrequently to catch a
+sub-second spike.</li>
+<li><strong>Threshold-triggered pprof</strong> threw false positives
+from normal allocation and could still miss a jump between polls.</li>
+<li><strong>Core dumps</strong>: the memory-limit kill sent
+<code>SIGKILL</code> before a core could be written.</li>
+</ul>
+<p>All four needed the process to survive long enough to leave evidence;
+this one did not. After a week it had no time signature — what it most
+plausibly indexed was the set of recent changes on the JSON path, which
+only the build could step through one at a time.</p>
+<h2 id="the-codec-suspicion">The codec suspicion</h2>
+<p>The JSON change I knew about was my own March 7 migration, so
+jsoniter was the first suspect. On March 11 I swapped it for <a
+target="_blank" rel="noopener" href="https://github.com/bytedance/sonic">sonic</a> on the cache path —
+a dependency swap. The publish path, business code inside the SDK
+builds, was beyond that kind of swap and stayed on jsoniter. The OOM
+recurred within a day; I rolled sonic back the next morning.</p>
+<p>That experiment ruled out the cache path, not jsoniter as a whole.
+Jsoniter still ran on the envelope, the executor SDK, and the publish
+path. No dependency swap could reach those remaining paths; stepping the
+SDK builds could. I stopped swapping libraries and started bisecting
+builds, treating the recent JSON changes as a single bundled delta.</p>
+<h2 id="the-bisection">The bisection</h2>
+<p>On March 12 I rolled back to the last known stable build and bisected
+the incident delta — one staged deploy and observation window per step,
+eight days across eight rollbacks. The rollback gave a baseline, not an
+answer — pods still died daily, so a quiet window proved nothing. The
+builds stepped the internal event SDK between versions that carried the
+new concrete event type and versions that did not; jsoniter itself never
+moved. The SDK version was the deployable handle for the bundled change:
+subscription-layer code and its dependency pins shipped together, so
+stepping it moved the new event type in and out of the process.</p>
+<p>The bisection isolated the build delta that introduced the concrete
+event type. Tracing it through the service: the engine built each chain
+event and published it through the SDK's <code>json</code> package,
+where jsoniter lazily compiled an encoder for the type. The reduced
+<code>TransferEvent</code> case reproduced the resulting unbounded
+traversal locally.</p>
+<h2 id="the-mechanism-reconstructed">The mechanism, reconstructed</h2>
+<p>The production type graph is reconstructed as containing the
+anonymous embedded-pointer cycle; the business shape below is likewise a
+reconstruction of the iteration's semantics, not a transcript of its
+fields.</p>
+<p>jsoniter <a
+target="_blank" rel="noopener" href="https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L62-L72">compiles
+a codec on first use</a> — encoder and decoder share the same type walk
+— before the first byte is read or written. Named recursive fields are
+bounded by jsoniter's <a
+target="_blank" rel="noopener" href="https://github.com/json-iterator/go/blob/v1.1.12/reflect.go#L135-L145">placeholder
+codec</a>. An anonymous embedded pointer takes a different path: <a
+target="_blank" rel="noopener" href="https://github.com/json-iterator/go/blob/v1.1.12/reflect_extension.go#L348-L373"><code>describeStruct</code>
+recursively expands the embedded struct</a> without a visited-type
+guard. The <a
+target="_blank" rel="noopener" href="https://github.com/json-iterator/go/blob/v1.1.12/iter.go#L331-L338">decode
+depth limit</a> is downstream and cannot protect a process that dies
+while compiling the codec.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// jsoniter v1.1.12, reflect_extension.go:348-373, abridged</span></span><br><span class="line"><span class="keyword">if</span> field.Anonymous() &amp;&amp; (tag == <span class="string">&quot;&quot;</span> || tagParts[<span class="number">0</span>] == <span class="string">&quot;&quot;</span>) &#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    structDescriptor := describeStruct(ctx, ptrType.Elem())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> TransferEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">    *TransferEvent <span class="comment">// the assignment this event continues</span></span><br><span class="line">    CompanyID <span class="type">string</span> <span class="string">`json:&quot;companyId&quot;`</span></span><br><span class="line">    From      <span class="type">string</span> <span class="string">`json:&quot;from&quot;`</span></span><br><span class="line">    To        <span class="type">string</span> <span class="string">`json:&quot;to&quot;`</span></span><br><span class="line">    Reason    <span class="type">string</span> <span class="string">`json:&quot;reason&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// jsoniter.Marshal(TransferEvent&#123;...&#125;)</span></span><br><span class="line"><span class="comment">// → fatal error: stack overflow, before the first byte is written</span></span><br></pre></td></tr></table></figure>
+<h2 id="why-production-became-an-oom">Why production became an OOM</h2>
+<p>The incident ran on Go 1.18, and the reduced case reproduces there
+with jsoniter <code>v1.1.12</code> — the version the service had pinned.
+The same case reproduced in every release from <code>v1.1.5</code>
+through <code>v1.1.12</code>, while the standard library and a named
+recursive pointer field remained safe.</p>
+<p>Production ran multiple goroutines inside an 8 GB Pod, and jsoniter
+compiled codecs lazily — concurrent first-use misses could place several
+goroutines in the same recursive path, so process memory grew in
+parallel and the Pod limit could arrive before any single goroutine hit
+its own stack limit. The harness below demonstrates that arithmetic.
+Most Pods never received a rare assignment event at all. Because the
+spike ended too quickly for a useful profile, the exact RSS contribution
+from goroutine stacks, heap objects, and runtime allocations remains
+unknown.</p>
+<p>The publish call never returned: the assignment event the engine was
+emitting never reached the broker, and the owner-change message the
+service had consumed to trigger it was never acknowledged either. When
+the Pod was OOM-killed, its consumer connection closed with that message
+unacknowledged, and the shared subscription redelivered it to another
+Pod, where the same chain repeated the failure. This was
+consumer-disconnect redelivery, not an application-issued nack — the OOM
+never advanced any retry counter. The burst ended only when the message
+exhausted its redelivery budget and landed in the dead-letter topic:
+each departing employee's event burned through a handful of pods, then
+went quiet. We only found that out during the retrospective — nobody had
+looked at the dead-letter topic during the week of debugging, though it
+held the failing messages, their retry trails, and the event code that
+would have pointed at the trigger from day one.</p>
+<p>The harness below reproduces that loop locally as a single copy-paste
+program, scaled down 16× (64 MB stack walls instead of Go's ~1 GB
+default) and with the pod limit simulated by an RSS threshold. Each
+child process is one "pod": eight goroutines hit the same first-use
+compile, and the parent replays the unacknowledged message every time
+the child dies:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Command oom-harness reproduces the incident&#x27;s cross-pod cycle in miniature.</span></span><br><span class="line"><span class="comment">// Each child process is one &quot;pod&quot;: N goroutines hit the same first-use</span></span><br><span class="line"><span class="comment">// jsoniter compile of a self-embedding type. The parent is the &quot;cluster&quot;:</span></span><br><span class="line"><span class="comment">// on every death it replays the unacknowledged message, as the shared</span></span><br><span class="line"><span class="comment">// subscription did after each OOM-killed pod disconnected.</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">//	go run .          # runs three redelivery rounds, prints per-pod peak RSS</span></span><br><span class="line"><span class="comment">//</span></span><br><span class="line"><span class="comment">// Safety: the child caps each goroutine&#x27;s stack at 64 MB (16x below the</span></span><br><span class="line"><span class="comment">// runtime default), the parent fixes three rounds, and each pod dies in</span></span><br><span class="line"><span class="comment">// ~100ms — the whole run stays under a second and under 800 MB.</span></span><br><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;os&quot;</span></span><br><span class="line">	<span class="string">&quot;os/exec&quot;</span></span><br><span class="line">	<span class="string">&quot;runtime/debug&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;time&quot;</span></span><br><span class="line"></span><br><span class="line">	jsoniter <span class="string">&quot;github.com/json-iterator/go&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Event is the incident&#x27;s type graph, reduced: an anonymous embedded</span></span><br><span class="line"><span class="comment">// self-pointer. Compiling a codec for it recurses without a visited set.</span></span><br><span class="line"><span class="keyword">type</span> Event <span class="keyword">struct</span> &#123;</span><br><span class="line">	*Event</span><br><span class="line">	ID <span class="type">string</span> <span class="string">`json:&quot;id&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	workers    = <span class="number">8</span>   <span class="comment">// concurrent first-use compiles per pod</span></span><br><span class="line">	stackMB    = <span class="number">64</span>  <span class="comment">// per-goroutine stack ceiling (production: ~1 GB)</span></span><br><span class="line">	podLimitMB = <span class="number">300</span> <span class="comment">// simulated pod memory limit (production: 8 GB)</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// child is one &quot;pod&quot;: workers goroutines, one poison publish each.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">child</span><span class="params">()</span></span> &#123;</span><br><span class="line">	debug.SetMaxStack(stackMB &lt;&lt; <span class="number">20</span>)</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; workers; i++ &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			_, _ = jsoniter.Marshal(Event&#123;ID: <span class="string">&quot;assign-1&quot;</span>&#125;) <span class="comment">// the publish that never returns</span></span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait() <span class="comment">// unreachable: the process dies inside the first-use compile</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// peakRSS reads the finished child&#x27;s peak resident set from Rusage.</span></span><br><span class="line"><span class="comment">// Linux reports ru_maxrss in KB, macOS in bytes.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">peakRSS</span><span class="params">(cmd *exec.Cmd)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">	<span class="keyword">if</span> cmd.ProcessState == <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	ru, ok := cmd.ProcessState.SysUsage().(*syscall.Rusage)</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	kb := ru.Maxrss</span><br><span class="line">	<span class="keyword">if</span> kb &gt; <span class="number">1</span>&lt;&lt;<span class="number">20</span> &#123; <span class="comment">// bytes -&gt; KB</span></span><br><span class="line">		kb /= <span class="number">1024</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="type">int</span>(kb) / <span class="number">1024</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(os.Args) &gt; <span class="number">1</span> &#123; <span class="comment">// child mode: invoked by the parent below</span></span><br><span class="line">		child()</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> redelivery := <span class="number">1</span>; redelivery &lt;= <span class="number">3</span>; redelivery++ &#123;</span><br><span class="line">		cmd := exec.Command(os.Args[<span class="number">0</span>], <span class="string">&quot;pod&quot;</span>)</span><br><span class="line">		start := time.Now()</span><br><span class="line">		_ = cmd.Run()</span><br><span class="line">		peak := peakRSS(cmd)</span><br><span class="line">		fmt.Printf(<span class="string">&quot;redelivery %d: pod died in %v, peak RSS %d MB&quot;</span>, redelivery,</span><br><span class="line">			time.Since(start).Round(time.Millisecond), peak)</span><br><span class="line">		<span class="keyword">if</span> peak &gt;= podLimitMB &#123;</span><br><span class="line">			fmt.Printf(<span class="string">&quot; — over the %d MB pod limit: an OOMKill before any single %d MB stack wall\n&quot;</span>,</span><br><span class="line">				podLimitMB, stackMB)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			fmt.Println()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">redelivery 1: pod died in 100ms, peak RSS 773 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall</span><br><span class="line">redelivery 2: pod died in 85ms, peak RSS 760 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall</span><br><span class="line">redelivery 3: pod died in 86ms, peak RSS 773 MB — over the 300 MB pod limit: an OOMKill before any single 64 MB stack wall</span><br></pre></td></tr></table></figure>
+<p>The peak scales with concurrency — eight goroutines × one stack each
+— which is the arithmetic behind the production OOM: process memory grew
+in parallel while the stack limit only ever guarded one goroutine at a
+time. On this laptop the child still dies to the stack wall — no cgroup
+exists to kill it first. Inside a real container limit, the memory wall
+arrives first, the process dies without a word, and the parent's
+redelivery loop replays the cross-pod cycle the incident showed.</p>
+<p>Two controls in the harness's style isolate the trigger — same call,
+same shape, one property changed each time:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Named recursive field: jsoniter&#x27;s placeholder codec terminates compilation.</span></span><br><span class="line"><span class="keyword">type</span> NamedEvent <span class="keyword">struct</span> &#123;</span><br><span class="line">	Previous *NamedEvent <span class="string">`json:&quot;previous,omitempty&quot;`</span></span><br><span class="line">	ID       <span class="type">string</span>      <span class="string">`json:&quot;id&quot;`</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">_, _ = jsoniter.Marshal(NamedEvent&#123;ID: <span class="string">&quot;assign-1&quot;</span>&#125;) <span class="comment">// completes</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// Same anonymous shape with the standard library: field resolution terminates.</span></span><br><span class="line">_, _ = json.Marshal(Event&#123;ID: <span class="string">&quot;assign-1&quot;</span>&#125;) <span class="comment">// completes</span></span><br></pre></td></tr></table></figure>
+<p>The standard library uses a <a
+target="_blank" rel="noopener" href="https://github.com/golang/go/blob/go1.18/src/encoding/json/encode.go#L1235-L1239">visited
+map when resolving fields</a> — the very function jsoniter's branch
+lacks. The same domain shape had been serialized under
+<code>encoding/json</code> since the feature first shipped; only
+jsoniter's compilation entered the failing traversal.</p>
+<p>Sonic avoids the failing traversal at the field-resolution step. In
+<code>v1.14.0</code>, its resolver <a
+target="_blank" rel="noopener" href="https://github.com/bytedance/sonic/blob/v1.14.0/internal/resolver/stubs_latest.go#L49-L51">delegates
+to <code>encoding/json.typeFields</code></a>; in <code>v1.14.1</code>
+and <code>v1.15.4</code>, it performs that traversal locally <a
+target="_blank" rel="noopener" href="https://github.com/bytedance/sonic/blob/v1.14.1/internal/resolver/fields.go#L49-L75">with
+a visited-type map</a>. Both approaches stop revisiting the anonymously
+embedded type. Separately, sonic's JIT and optimized codec compilers <a
+target="_blank" rel="noopener" href="https://github.com/bytedance/sonic/blob/v1.14.0/internal/decoder/jitdec/compiler.go#L595-L609">track
+types already being compiled</a> and handle recursive fields without
+repeatedly expanding their work. For this embedded-cycle case, the
+field-resolution guard is the relevant protection. These are
+retrospective checks (Go <code>1.24.9</code>, macOS, JIT and optimized
+paths both ways); they verify the reduced case, not the production sonic
+version or runtime.</p>
+<h2 id="why-the-automated-suite-stayed-green">Why the automated suite
+stayed green</h2>
+<p>The suite that had verified the first release stayed green for a
+mechanical reason. It exercised the real chain on a test tenant —
+simulate a departure, let the engine publish, consume — but by the time
+this iteration ran, that tenant's engine had been switched off for a
+parallel feature's testing, and nothing flagged the gap — a green run
+looked exactly like an empty one. With the engine off, no assignment
+event was ever built; nothing published; and jsoniter compiles a codec
+only on first use — zero publishes meant zero compilations. The green
+was real but empty: no test ever reached this change. Unit tests could
+not either — they call the engine with struct literals and never
+serialize an event.</p>
+<h2 id="the-fix">The fix</h2>
+<p>With the cause isolated, the fix followed directly: the publisher
+took its own sonic reference instead of the SDK's shared
+<code>json</code>, so the envelope and every other consumer of that
+variable kept jsoniter. I validated the move first against the reduced
+reproduction, which sonic encodes without entering the failing
+traversal. The jsoniter migration kept the win it had already delivered:
+the envelope and cache paths stayed on it, and the slow-climb incident
+did not come back. Fixing the type instead (adding a field name or tag
+to break the anonymous embedding) would also have closed this failure,
+as the named-field control demonstrates; the migration was chosen
+because it left the shared event contract untouched while covering every
+event type at once.</p>
+<p>The production OOM stopped after the migration and never recurred
+through the months that followed, while the service kept running until I
+left the company. These results make the publish-path encoder the
+strongest operational explanation for the OOM. They do not identify the
+exact production RSS split between goroutine stacks, heap, and runtime
+allocations; the spike ended before a useful profile could be captured.
+The type graph itself remained unchanged; the source comparison in the
+previous section explains why sonic handles the embedded cycle.</p>
+<h2 id="lessons-from-the-investigation">Lessons from the
+investigation</h2>
+<ul>
+<li>The shape of the failure decided the tool. A sub-second spike with
+no time signature ruled out accumulation, pointed at a single allocation
+path, and made every runtime instrument useless — the process died
+before leaving evidence. I lost days to codec swaps and quiet windows
+before accepting that; build bisection was the expensive but only
+decisive step — eight rollbacks to one delta. For a fast-fatal failure,
+read the shape first and step builds early.</li>
+<li>I swapped one package-level <code>json</code> variable to fix slow
+memory growth and silently moved the publish path to jsoniter with it.
+Now, before any dependency swap, I list every caller of what I'm
+touching.</li>
+<li>The dead-letter topic held the failing messages and their retry
+trails for the whole week we chased the OOM; we found it in the
+retrospective. Now a consumer incident starts with DLQ depth and retry
+counters, before any profiling.</li>
+</ul>
+<hr />
+<p><em>Previous in this series: <a
+href="/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/">Running
+a Million-DAU Casual Game on Go: Rooms as the Concurrency
+Boundary</a></em>.</p>
+<p><em>Next in this series: <a
+href="/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/">Building
+a Production Go Scheduler for 200K+ Delayed Jobs per
+Second</a></em>.</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/json/" rel="tag"># json</a>
+              <a href="/tags/oom/" rel="tag"># oom</a>
+              <a href="/tags/production-debugging/" rel="tag"># production-debugging</a>
+              <a href="/tags/event-driven/" rel="tag"># event-driven</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/" rel="prev" title="One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System">
+      <i class="fa fa-chevron-left"></i> One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/" rel="next" title="Building a Production Go Scheduler for 200K+ Delayed Jobs per Second">
+      Building a Production Go Scheduler for 200K+ Delayed Jobs per Second <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#what-the-failing-instrumentation-could-not-see"><span class="nav-number">1.</span> <span class="nav-text">What the failing
+instrumentation could not see</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-codec-suspicion"><span class="nav-number">2.</span> <span class="nav-text">The codec suspicion</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-bisection"><span class="nav-number">3.</span> <span class="nav-text">The bisection</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-mechanism-reconstructed"><span class="nav-number">4.</span> <span class="nav-text">The mechanism, reconstructed</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#why-production-became-an-oom"><span class="nav-number">5.</span> <span class="nav-text">Why production became an OOM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#why-the-automated-suite-stayed-green"><span class="nav-number">6.</span> <span class="nav-text">Why the automated suite
+stayed green</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-fix"><span class="nav-number">7.</span> <span class="nav-text">The fix</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lessons-from-the-investigation"><span class="nav-number">8.</span> <span class="nav-text">Lessons from the
+investigation</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">18k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">1:04</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

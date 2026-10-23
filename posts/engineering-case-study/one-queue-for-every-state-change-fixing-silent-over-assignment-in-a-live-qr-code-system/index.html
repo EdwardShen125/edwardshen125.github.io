@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="A live QR code system kept sending customers to offline or over-quota salespeople. One per-tenant Kafka queue serialized every update to WeCom&#39;s routing config.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="A live QR code system kept sending customers to offline or over-quota salespeople. One per-tenant Kafka queue serialized every update to WeCom&#39;s routing config.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/architecture.png">
+<meta property="article:published_time" content="2023-05-08T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T02:17:06.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="kafka">
+<meta property="article:tag" content="distributed-systems">
+<meta property="article:tag" content="event-driven">
+<meta property="article:tag" content="wecom">
+<meta property="article:tag" content="data-consistency">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/architecture.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/","url":"https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/","headline":"One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System","description":"A live QR code system kept sending customers to offline or over-quota salespeople. One per-tenant Kafka queue serialized every update to WeCom's routing config.","datePublished":"2023-05-08T02:00:00.000Z","dateModified":"2026-10-23T02:17:06.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, kafka, distributed-systems, event-driven, wecom, data-consistency","image":["https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/architecture.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System","item":"https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/"}]}]}</script>
+  <title>One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2023-05-08 10:00:00" itemprop="dateCreated datePublished" datetime="2023-05-08T10:00:00+08:00">2023-05-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>3.2k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>12 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>The escalation arrived as a refund threat. A customer had run a
+campaign, and thousands of people scanned its QR codes that day
+expecting to reach the sales team. One salesperson on the code had
+already hit his daily quota — the system showed him offline for
+assignment — and every new scan still connected to him. The rotation to
+the next salesperson never fired. The campaign closed far below target,
+the customer demanded a refund, then churned: a six-figure annual
+contract. The same mis-assignment had been producing quieter tickets for
+months. Nothing in the logic was wrong. The list was.</p>
+<p>A live QR code is printed once and keeps working while the people
+behind it change. The customer scans in <a
+target="_blank" rel="noopener" href="https://www.wechat.com/">WeChat</a>, <a
+target="_blank" rel="noopener" href="https://www.wecom.com/">WeCom</a> routes to whoever the code
+currently lists, and we maintain that list. At 30,000 tenants with 10 to
+20 staff on a code, most codes sat idle until a campaign woke them for
+days or weeks. Campaign day is when scans, quota exhaustion and staff
+status changes all peak in the same minutes.</p>
+<p>I owned this system — took it over as it stood. Tickets came in two
+shapes and said the same thing: staff shown offline still receiving
+scans, staff over quota still receiving scans. Our view of who should
+get customers had stopped matching who actually did.</p>
+<span id="more"></span>
+<h2 id="the-routing-was-never-ours">The routing was never ours</h2>
+<p>WeCom owns the part that connects people. Tencent's enterprise
+messenger matches each scan to a <a
+target="_blank" rel="noopener" href="https://developer.work.weixin.qq.com/document/path/92228">contact-way
+configuration</a> on its side and opens the chat with whoever that
+config lists. Our platform never sees the scan. So assignment, for us,
+meant one thing: maintaining that config. Deciding which staff IDs
+belong in it, and pushing every change through WeCom's API — add a
+person, remove a person.</p>
+<p>Two stores had to agree. Our staff state lived in <a
+target="_blank" rel="noopener" href="https://www.mongodb.com/">MongoDB</a>: who is online, who is on
+duty, who is under quota, per tenant. WeCom's config decided where
+customers actually went. When they drifted apart, nothing raised an
+error. The drift just ran in production, and scans landed on someone we
+had marked offline an hour earlier. Repairing it was not free either.
+The fix was a rate-limited API call that occasionally fails, so the last
+mile carried failure modes of its own.</p>
+<p>Codes came in two families. Native codes handed member selection to
+WeCom's random assignment, and our only job was who appeared in the
+config. Sequenced and quota codes ran on our own landing page, so we
+decided the order and the per-person volume as well. That is where the
+offline and quota checks bit hardest: a rotation that never happens is a
+list that never got updated.</p>
+<h2 id="two-years-of-features-six-writers">Two years of features, six
+writers</h2>
+<p>Before I took over, feature work had put this state together piece by
+piece:</p>
+<ul>
+<li><strong>State split across two stores.</strong> Online/offline flags
+(an admin endpoint, work-schedule timers) and the per-staff-per-code
+ceiling records, including the "already removed today" marker, were in
+MongoDB. The counts that decided who was full were in <a
+target="_blank" rel="noopener" href="https://redis.io/">Redis</a>. Four switches per code — offline
+check, add limit, daily limit, round limit — plus a company-wide daily
+total decided how those numbers were applied.</li>
+<li><strong>Many paths wrote it.</strong> The scan callback, the admin
+offline endpoint, the quota counters, work-hours jobs, resignation
+handlers, org-change events. Each pushed its own update toward WeCom
+when it decided the list should change: inline, with its own retry, at
+its own moment.</li>
+<li><strong>One slice already had a queue.</strong> Sequenced and quota
+codes used a <a
+target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/data-types/sorted-sets/">Redis
+ZSET</a> with a two-level cursor, built by a teammate in 2021.
+State-change events went through <a
+target="_blank" rel="noopener" href="https://kafka.apache.org/">Kafka</a> to a consumer that recomputed
+the online list and rebuilt the set; scans read the set through <a
+target="_blank" rel="noopener" href="https://redis.io/docs/latest/develop/interact/programmability/eval-intro/">Lua</a>.
+But the rebuild deleted and recreated the whole key, and it ran
+asynchronously. Between "staff hit quota" and "set rebuilt without him",
+scans kept drawing the old membership.</li>
+</ul>
+<pre class="mermaid" style="text-align: center;">
+            
+            flowchart LR
+    subgraph campaign_day["Campaign day - concurrent load"]
+        direction LR
+        A["Scan lands<br/>quota counter $inc"] --> B["Counter crosses<br/>ceiling"]
+        C["Admin marks staff<br/>offline"] --> D["Online flag<br/>written"]
+    end
+    B --> E["Each writer pushes its own<br/>update toward WeCom<br/>inline, own retry, own moment"]
+    D --> E
+    E --> F["Updates race:<br/>partial views, last writer wins"]
+    F --> G["WeCom config still lists<br/>the exhausted staff"]
+    G --> H["Next scans keep<br/>connecting to him<br/>no rotation"]
+    style A fill:#fff7e6,stroke:#8a6d3b
+    style B fill:#fff7e6,stroke:#8a6d3b
+    style C fill:#fff7e6,stroke:#8a6d3b
+    style D fill:#fff7e6,stroke:#8a6d3b
+    style E fill:#fdecea,stroke:#a44a3f
+    style F fill:#fdecea,stroke:#a44a3f
+    style G fill:#fdecea,stroke:#a44a3f
+    style H fill:#fdecea,stroke:#a44a3f
+          </pre>
+<p>Taken one at a time, each of those paths was doing something
+sensible. The bug was not in any of them. <strong>The same state had
+many concurrent writers, and each writer pushed a list computed from a
+partial view.</strong></p>
+<p>Quiet days hid it: the races usually won. Campaign day removed the
+margin, because scan volume and status changes peaked in the same
+minutes, exactly when the gap between "state says stop" and "WeCom
+config says go" was widest.</p>
+<p>Both failure modes had been reaching support for months, as rare
+tickets. Each was reproducible only under load, so each got chased as a
+possible logic bug and closed when no code defect turned up. It took the
+churn to name the pattern for what it was: a consistency defect, not
+coding errors.</p>
+<h2 id="three-fixes-that-should-have-worked">Three fixes that should
+have worked</h2>
+<p><strong>Check at scan time.</strong> Intercept the scan, read staff
+state, pick someone else if the designated person is offline or full.
+For native codes this is impossible: nothing on our side sees the scan.
+For sequenced and quota codes it was possible, but it put a per-scan
+database dependency on our hottest path and it rebuilt the race it was
+meant to remove, since the check and WeCom's routing are still two
+systems.</p>
+<p><strong>Sweep and repair.</strong> A job that walks every code,
+compares our state against WeCom's config, and fixes the drift. As a
+safety net, fine. As the primary mechanism, no: 6M codes against WeCom's
+rate limits is days per sweep, and a staff member marked offline on
+campaign morning keeps receiving customers through all of it. A sweep
+catches chronic drift. It cannot meet the freshness this failure
+demanded.</p>
+<p><strong>Better retries on every writer.</strong> Idempotent calls and
+exponential backoff on each path. That is the status quo with more
+machinery. Retries make an individual write more reliable; they do not
+give two writers a shared view. Both can compute from different
+snapshots and overwrite each other, and the winner's list is missing the
+loser's change. No write was being lost. Each write carried a list that
+was already stale.</p>
+<p>All three fixed the symptom where it surfaced. The alternative was to
+remove the multiple writers: one serialized place where every
+membership-changing decision is made against current state.</p>
+<h2 id="one-writer-recomputing">One writer, recomputing</h2>
+<img data-src="/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/architecture.png" class="" title="One queue serializes every membership-changing event: sources feed a tenant-keyed Kafka topic; a serial consumer recomputes members, pushes WeCom" alt="s contact-way config first, then writes back to MongoDB and rebuilds the Redis assignment set. The scan path never passes through our platform.">
+<p>I put one Kafka queue between "state changed" and "WeCom config
+changed". Every event that can alter a code's membership goes to one
+topic, keyed by tenant ID: an addition, a status flip, a schedule
+transition, a resignation, an org change, a config edit. A consumer
+group works through them. For each affected code it recomputes the
+eligible members from current state, using the same four switches each
+old writer had checked on its own. It pushes that update to WeCom, and
+only then writes the result back to our store. The order matters. WeCom
+is where routing happens, so it gets the correct list first, and our
+store records what was pushed rather than what was intended.</p>
+<p>The state has to move before the event does. The counter that decides
+who is full lives in Redis, per staff member and code. The consumer
+handling WeCom's customer-added callback increments it while it handles
+the addition, before it publishes the refresh. By the time the refresh
+runs, the count is current, and the event never has to carry a number
+anyone has to trust. Every other trigger follows the same rule. The
+admin endpoint, the work-hours timer, the resignation and org-change
+handlers write the flag or the counter where the business event happens,
+then emit the refresh. The queue carries a reason to recompute, not the
+state to apply.</p>
+<p>Sequenced and quota codes still rotate on Redis, through the same
+ZSET and two-level cursor. What changed is who writes the set. The
+refresh consumer recomputes the eligible members from the counts and
+flags as they stand, pushes the WeCom list, then updates the assignment
+set on the same serial path. The set a scan draws from and the list
+WeCom routes by now come out of one computation, in one order.</p>
+<p>Serialization comes from the key. Events are keyed by tenant, and the
+consumer routes each key to a fixed goroutine, so one tenant's events
+apply one at a time while tenants proceed in parallel. The shared
+eventbus client we extended supplies that per-key mode, along with the
+retry path below.</p>
+<p>The quota loop closes on the same queue, and it is where the load
+comes from. A scan callback increments a staff member's counter past the
+ceiling. The handler marks the ceiling document with an idempotent
+"already removed today" flag, notifies the admin, looks up every code
+that staff member sits on, and emits one membership event per code.
+Dozens of codes, sometimes more than a hundred. One removal becomes that
+many WeCom pushes, and campaign day concentrates both the removals and
+the codes.</p>
+<p>Migration ran as double-write through the second half of 2022 and cut
+over in early 2023. The new event chain went live while the old
+synchronous paths kept running; weeks of both writing proved the output
+matched. A config switch then retired the old paths. Tenant traffic did
+not notice.</p>
+<h2 id="what-the-constraints-forced">What the constraints forced</h2>
+<p>Rate pressure and business freshness are two problems, and the design
+keeps them apart.</p>
+<p>The lane a code runs in is a business decision. The tenant's tier,
+how fresh that code's membership has to be, and an operator's switch
+decide whether its updates go out as they arrive or on a slower cadence.
+I kept that decision as a mark per code in Redis, next to the counts,
+rather than as state inside the consumer. After a rebalance the tenant's
+key lands on another instance, and that instance has to make the same
+routing call. So every event starts on the fast topic, where the
+consumer reads the mark first. A code already on slow is republished to
+the slow topic without a call.</p>
+<p>Only the lane holding the code writes the mark. The fast consumer
+sets it, at the head of the tenant's serial stream, when policy says
+slow, then republishes. The slow consumer clears it when policy sends
+the code back to fast and its own work is done. A code changes lanes
+only from the lane that holds it, which per-event routing would not give
+you. The next event could run fast while an older one was still queued
+for slow, and the code would have two owners.</p>
+<p>The vendor's rate limit is handled optimistically, on the call path.
+Before calling WeCom, the handler makes two checks. The first is dedupe:
+compare the list just recomputed with the last list pushed for that
+code, and if they match there is nothing to send. That does not shrink
+the fan-out; ten codes with ten different lists are ten real pushes. It
+removes the no-ops, like a retry, a scan that changes no membership, an
+edit that resolves to what is already there.</p>
+<p>The second check is the tenant's pre-limiter: a <a
+target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Token_bucket">token bucket</a> in
+Redis, spent through a Lua script so every instance counts against one
+window. With a token, push. Without one, the handler does not wait and
+does not touch the code's lane. It parks the event in a Redis delayed
+queue with a due time and acknowledges. A poller returns due events to
+the fast topic under the same tenant key, where they re-enter the serial
+stream and pass the same checks. No second writer, and no message held
+open while the window refills.</p>
+<p>Slow is a topic of its own, not a branch inside a handler. Routing an
+event to slow means republishing it there, and a slow consumer waiting
+between pushes parks only that tenant's stream on the slow topic, while
+the fast topic keeps moving. The cadence comes from the business
+decision, not the limiter: the consumer waits its interval before each
+push, and the dedupe check runs there unchanged. Both lanes draw on the
+same tenant window, so a code on slow still competes with fast work for
+the <a
+target="_blank" rel="noopener" href="https://developer.work.weixin.qq.com/document/path/90312">vendor's
+limit</a>. What it gets is fewer attempts, not a budget of its own.</p>
+<p>Clearing the mark needs two conditions, and the second one was the
+fiddly part. Policy has to say fast again, and the slow lane must have
+nothing outstanding for that code. Kafka offsets are per partition, so
+there is no per-code backlog to read; the consumer keeps a pending
+counter in Redis instead, incremented when an event is routed to slow
+and decremented after the slow push completes. It clears the mark in a
+Lua script only when the counter is zero and policy says fast. A message
+lost to retention leaves the counter high and keeps the code slow longer
+than needed, which errs toward the safe side. Clearing with a slow push
+still in flight would put two writers back on one code.</p>
+<p>Failures do not hold the tenant's stream. A failed call is
+acknowledged and republished to the fast lane under the same tenant key
+with its retry count incremented, instead of being left unacknowledged
+while the consumer backs off. The retry re-enters that tenant's serial
+stream behind whatever arrived meanwhile. Holding the offset is the
+obvious choice and the wrong one. The key is the tenant, so one code's
+failing call stalls every other code that tenant owns, and under
+per-tenant rate limiting the ones stalled are the ones whose budget just
+freed up. Ack and requeue keeps the blast radius at one code. WeCom's
+errors are specific enough to act on, too: a code deleted on their side
+returns a distinct error, which the consumer treats as a cleanup trigger
+instead of a retry-forever case.</p>
+<p>Requeueing gives up publish order. Dropping gives up the message once
+its timestamp is a day old. Neither matters, because every handler
+recomputes at processing time. A late trigger reaches the same current
+truth as a new one, and a dropped event loses nothing, since the next
+event on that code recomputes from current state. What the design needs
+is one writer per code, not arrival order, and the per-key serial mode
+plus the mark provide it. The residual is a code no later event touches,
+where staff went offline during a multi-hour backlog and nothing
+followed, so the stale list stays. Campaign codes are never idle that
+long, which is why the rule held in practice. That is an assumption
+about traffic, not a guarantee about state.</p>
+<h2 id="what-it-cost-and-what-it-bought">What it cost, and what it
+bought</h2>
+<p>Agreement between our state and WeCom's config, at three prices.</p>
+<p><strong>Freshness became bounded.</strong> Seconds on the fast lane,
+the slow lane's cadence, or the delay queue's due time, never the
+instant of an inline write. After cutover: p95 from event to WeCom's
+config under five seconds, and six consecutive months without one ticket
+for either failure mode, against at least three a month before.</p>
+<p><strong>WeCom's API became the ceiling, in plain sight.</strong>
+Under the multi-writer design nobody owned the rate limit; throttling
+showed up as scattered errors after the fact. One consumer made the
+ceiling visible and manageable, with per-tenant rate limiting, the delay
+queue, and robot alerts on throttle responses, and turned a recurring
+incident source into a scheduling parameter. The system held it: around
+30,000 tenants, around 6M live codes among heavy users, several hundred
+scans per second in short campaign spikes, peak-day volume under a
+million.</p>
+<p><strong>One dependency more than before.</strong> Kafka availability
+now gates membership updates. The failure mode is benign in the
+interesting direction: if the queue stalls, updates are delayed rather
+than misapplied, and scans run against the last consistent list. The
+real cost is operational. A second system to monitor, plus <a
+target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Poison_message">poison messages</a>
+and lag, a class of bug MongoDB-only code never had.</p>
+<p>The churned account came back. After running on the refactored system
+for a while, they re-subscribed. A customer who has lost technical trust
+does not return for a discount.</p>
+<p>These are production numbers, not a load test, and the complaint
+record is the proof. I leave the incident account's campaign loss
+unquantified on purpose: it is the customer's data, not ours to publish.
+The churn and the re-subscription carry that part of the argument.</p>
+<h2 id="what-i-would-keep-and-what-i-left-open">What I would keep, and
+what I left open</h2>
+<p>I would keep the central decision: one serialized queue, keyed by
+tenant, applying to WeCom first and our store second. The alternatives I
+looked at, per-code sharding, a <a
+target="_blank" rel="noopener" href="https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type">state
+CRDT</a>, read-side filtering, either bring the multiple writers back or
+assume a write path we do not control.</p>
+<p>The production surprise was how much of the work was not the queue.
+Serialization was the easy part. Living with WeCom's rate limits,
+meaning the limiter, the delay queue and the cleanup-on-error semantics,
+was the long tail. Scoped again, I would budget the dependency's shape
+and not just our own components, and size the rate window and the drain
+rate from the fan-out arithmetic, how many live codes a member sits on,
+rather than the event rate, which understates calls by that factor. I
+would also coalesce per code: the push replaces the whole list, so
+several events for one code in a window can end as one call.</p>
+<p>Reconciliation is the part I never closed. The rejected sweep was
+right about the need and wrong about the shape. The queue guarantees a
+fresh read, not a correct outcome; a bug in the recompute gets applied
+just as consistently. But 6M codes at API rate limits is days of work to
+protect a handful of suspects. The backstop should be a dirty set,
+holding codes whose events were dropped, whose push failed permanently,
+or whose recompute errored, swept at low frequency. We had no such layer
+and relied on customer complaints instead, which on a system this size
+was weaker evidence than it deserved.</p>
+<p>One boundary still stands. The assignment lives in someone else's
+config, and no architecture inside our perimeter makes that partner
+synchronous with us. What the design can do is keep the delay across
+that boundary bounded and visible.</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/kafka/" rel="tag"># kafka</a>
+              <a href="/tags/distributed-systems/" rel="tag"># distributed-systems</a>
+              <a href="/tags/event-driven/" rel="tag"># event-driven</a>
+              <a href="/tags/wecom/" rel="tag"># wecom</a>
+              <a href="/tags/data-consistency/" rel="tag"># data-consistency</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/" rel="prev" title="Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary">
+      <i class="fa fa-chevron-left"></i> Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/" rel="next" title="Debugging a Sporadic Go OOM in a Recursive JSON Encode Path">
+      Debugging a Sporadic Go OOM in a Recursive JSON Encode Path <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#the-routing-was-never-ours"><span class="nav-number">1.</span> <span class="nav-text">The routing was never ours</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#two-years-of-features-six-writers"><span class="nav-number">2.</span> <span class="nav-text">Two years of features, six
+writers</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#three-fixes-that-should-have-worked"><span class="nav-number">3.</span> <span class="nav-text">Three fixes that should
+have worked</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#one-writer-recomputing"><span class="nav-number">4.</span> <span class="nav-text">One writer, recomputing</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-the-constraints-forced"><span class="nav-number">5.</span> <span class="nav-text">What the constraints forced</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-it-cost-and-what-it-bought"><span class="nav-number">6.</span> <span class="nav-text">What it cost, and what it
+bought</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-i-would-keep-and-what-i-left-open"><span class="nav-number">7.</span> <span class="nav-text">What I would keep, and
+what I left open</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">18k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">1:04</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

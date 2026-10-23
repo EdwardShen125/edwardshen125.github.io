@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://edwardshen125.github.io/</loc></url>
+  <url><loc>https://edwardshen125.github.io/about/</loc></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/</loc><lastmod>2026-10-20T14:36:50.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/</loc><lastmod>2026-10-15T17:10:07.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/</loc><lastmod>2026-10-16T13:46:35.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/</loc><lastmod>2026-10-21T08:09:54.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/</loc><lastmod>2026-10-21T08:09:54.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/</loc><lastmod>2026-10-23T02:17:06.000Z</lastmod></url>
+  <url><loc>https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/</loc><lastmod>2026-10-21T08:09:54.000Z</lastmod></url>
+</urlset>

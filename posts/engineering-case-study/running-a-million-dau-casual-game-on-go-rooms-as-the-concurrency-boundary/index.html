@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Go room-server architecture for a casual game with over one million DAU: serial ECS ticks, room-level concurrency, and map-to-array optimization.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="Go room-server architecture for a casual game with over one million DAU: serial ECS ticks, room-level concurrency, and map-to-array optimization.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/architecture.png">
+<meta property="article:published_time" content="2020-01-25T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-21T08:09:54.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="game-server">
+<meta property="article:tag" content="ecs">
+<meta property="article:tag" content="concurrency">
+<meta property="article:tag" content="performance">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/architecture.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/","url":"https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/","headline":"Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary","description":"Go room-server architecture for a casual game with over one million DAU: serial ECS ticks, room-level concurrency, and map-to-array optimization.","datePublished":"2020-01-25T02:00:00.000Z","dateModified":"2026-10-21T08:09:54.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, game-server, ecs, concurrency, performance","image":["https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/architecture.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary","item":"https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/"}]}]}</script>
+  <title>Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-01-25 10:00:00" itemprop="dateCreated datePublished" datetime="2020-01-25T10:00:00+08:00">2020-01-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.2k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>8 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>During load testing, room ticks began overrunning their 50 ms budget
+as simulated clients reached target density. Normal ticks took 10–20 ms;
+spikes took 100–300 ms, leaving clients two to six ticks behind. We had
+built the room service for a QQ-licensed casual pet game. It was
+designed for tens of millions of users; actual peak concurrency reached
+roughly 200,000 players.</p>
+<p>I led the architecture selection and ECS implementation. Profiling
+showed how much CPU time component lookups consumed.</p>
+<span id="more"></span>
+<h2 id="designing-for-10000-players-per-instance">Designing for 10,000
+players per instance</h2>
+<p>Tencent's publishing team planned to roll out access in stages. The
+service needed to absorb each traffic increase by adding instances. Load
+tests used a fleet of slightly lower-spec instances running bots through
+the real client protocol: entering rooms, moving, and collecting. The
+target was 10,000 real players per server instance: about 667 rooms with
+fifteen players each, updated at 20 Hz.</p>
+<p>Late room-state updates led us to investigate the room's serial
+update cycle.</p>
+<p>Outside rooms, another service handled idle collection through
+request-response calls. Inside rooms, players shared a grid of up to
+200×200 cells for movement, exploration, combat, and collection.
+Clicking a destination triggered server-side pathfinding. Player
+movement step size was defined separately from the simulation tick. A
+room held about fifteen real players, 30+ combat NPCs, and a varying
+number of bot players, with a room capacity of 30–100, depending on room
+class. The room service updated shared state on each tick, with three
+constraints:</p>
+<ul>
+<li>Responsive movement. Delayed server updates were visible to
+players.</li>
+<li>A bounded update cycle per room. Each room updated every 50 ms (20
+Hz), and all work for that tick had to finish within the interval.</li>
+<li>Bounded broadcast fanout. Room population and visibility limits had
+to cap the audience for each update.</li>
+</ul>
+<h2 id="choosing-the-room-boundary-and-its-execution-model">Choosing the
+room boundary and its execution model</h2>
+<p>I made two choices: which state each execution unit would own, and
+how it would run the simulation. <a
+target="_blank" rel="noopener" href="https://doc.akka.io/docs/akka/2.5/guide/actors-intro.html">Actor-style
+ownership</a> determined who held mutable state and how work reached it.
+<a
+target="_blank" rel="noopener" href="https://www.richardlord.net/blog/ecs/what-is-an-entity-framework.html">ECS</a>
+determined how components were stored and systems iterated over
+them.</p>
+<h3 id="keeping-shared-state-within-one-room">Keeping shared state
+within one room</h3>
+<p>Giving each player its own actor would separate ownership of player
+state, but interactions involving multiple players and shared room state
+would require coordination between actors. For example, if two players
+claimed the same collection cell within one tick, an actor
+implementation could resolve the conflict by giving a room actor
+authority over the cell and routing both claims to it. The cost is
+forwarding requests, returning results, and defining when the player
+actors apply those results. Visibility queries, movement collisions, and
+PvP interactions raise the same ownership question. I kept the
+interacting state under one room owner, so these operations could
+complete within one simulation pass.</p>
+<p>An actor-based design can also batch inputs and resolve them in a
+stable order; <a
+target="_blank" rel="noopener" href="https://github.com/asynkronit/protoactor-go">Proto.Actor</a>
+provides a Go implementation of actor messaging. When player state is
+split across actors, the design must also define tick boundaries and
+coordinate the state used in each tick.</p>
+<p>A single global simulation loop would couple unrelated rooms: a slow
+room would delay the others, and the serial loop could not use multiple
+processors.</p>
+<h3 id="choosing-ecs-for-the-room-interior">Choosing ECS for the room
+interior</h3>
+<p>The closest alternative was a room-level actor: one goroutine and
+mailbox per room, with entities stored as objects and events handled by
+methods. It provided the same ownership boundary as the shipped design.
+In the candidate design, handlers processed messages in arrival order
+and dispatched each event separately. My tick-based design batched the
+frame's inputs and let systems query components directly for operations
+such as finding the players within an area of interest (AOI).</p>
+<p>I chose ECS to support frequent gameplay changes inside existing
+rooms. Components held buff effects and expiration times; systems
+applied the effects in tick order. Items could reuse the same components
+and systems. Adding mechanics this way reduced branching in player
+objects and message handlers.</p>
+<p>I could order buff application, movement, damage calculation, and
+expiration explicitly, with no concurrent writes inside the room. Fixed
+inputs and simulation time made interactions between mechanics easier to
+reproduce in tests.</p>
+<p>The speed-item example below uses an array-based ECS.
+<code>EntityID</code> indexes the component arrays, and masks record
+which components are present on each entity. <code>Room.Tick</code> runs
+item application, buff expiration, and movement serially. Adding or
+removing a component changes membership while retaining its
+pre-allocated slot.</p>
+<p>Each tick simulates the 50 ms interval beginning at
+<code>nowMS</code>. Buffs are active on
+<code>[appliedAt, expiresAt)</code>, so a buff expiring at 100 ms does
+not affect movement over <code>[100, 150)</code>. Durations align with
+ticks, and each player can have one speed buff. Positions use
+thousandths of a cell; distance depends on speed and elapsed time.</p>
+<p>Save as <code>main.go</code> and run <code>go run main.go</code>:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> EntityID <span class="type">int</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> ComponentMask <span class="type">uint8</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	HasPosition ComponentMask = <span class="number">1</span> &lt;&lt; <span class="literal">iota</span></span><br><span class="line">	HasMoveSpeed</span><br><span class="line">	HasSpeedBuff</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Components contain data only.</span></span><br><span class="line"><span class="keyword">type</span> Position <span class="keyword">struct</span>&#123; MilliCells <span class="type">int</span> &#125;</span><br><span class="line"><span class="keyword">type</span> MoveSpeed <span class="keyword">struct</span>&#123; MilliCellsPerSecond <span class="type">int</span> &#125;</span><br><span class="line"><span class="keyword">type</span> SpeedBuff <span class="keyword">struct</span>&#123; Multiplier, ExpiresAtMS <span class="type">int</span> &#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Room owns component arrays; masks record component membership.</span></span><br><span class="line"><span class="comment">// Entity IDs are fixed array indices in this reduced example.</span></span><br><span class="line"><span class="keyword">type</span> Room <span class="keyword">struct</span> &#123;</span><br><span class="line">	Masks      []ComponentMask</span><br><span class="line">	Positions  []Position</span><br><span class="line">	MoveSpeeds []MoveSpeed</span><br><span class="line">	SpeedBuffs []SpeedBuff</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Room)</span></span> Has(id EntityID, required ComponentMask) <span class="type">bool</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> r.Masks[id]&amp;required == required</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Query visits only entities with all required components.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Room)</span></span> Query(required ComponentMask, visit <span class="function"><span class="keyword">func</span><span class="params">(EntityID)</span></span>) &#123;</span><br><span class="line">	<span class="keyword">for</span> id := <span class="keyword">range</span> r.Masks &#123;</span><br><span class="line">		<span class="keyword">if</span> r.Has(EntityID(id), required) &#123;</span><br><span class="line">			visit(EntityID(id))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> UseSpeedItem <span class="keyword">struct</span> &#123;</span><br><span class="line">	Target                 EntityID</span><br><span class="line">	Multiplier, DurationMS <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">SpeedItemSystem</span><span class="params">(r *Room, nowMS <span class="type">int</span>, commands []UseSpeedItem)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> _, cmd := <span class="keyword">range</span> commands &#123;</span><br><span class="line">		<span class="keyword">if</span> !r.Has(cmd.Target, HasMoveSpeed) &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		r.SpeedBuffs[cmd.Target] = SpeedBuff&#123;cmd.Multiplier, nowMS + cmd.DurationMS&#125;</span><br><span class="line">		r.Masks[cmd.Target] |= HasSpeedBuff <span class="comment">// add component</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">BuffExpirySystem</span><span class="params">(r *Room, nowMS <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">	r.Query(HasSpeedBuff, <span class="function"><span class="keyword">func</span><span class="params">(id EntityID)</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> nowMS &gt;= r.SpeedBuffs[id].ExpiresAtMS &#123;</span><br><span class="line">			r.Masks[id] &amp;^= HasSpeedBuff <span class="comment">// remove component</span></span><br><span class="line">			r.SpeedBuffs[id] = SpeedBuff&#123;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MovementSystem</span><span class="params">(r *Room, dtMS <span class="type">int</span>)</span></span> &#123;</span><br><span class="line">	r.Query(HasPosition|HasMoveSpeed, <span class="function"><span class="keyword">func</span><span class="params">(id EntityID)</span></span> &#123;</span><br><span class="line">		speed := r.MoveSpeeds[id].MilliCellsPerSecond</span><br><span class="line">		<span class="keyword">if</span> r.Has(id, HasSpeedBuff) &#123;</span><br><span class="line">			speed *= r.SpeedBuffs[id].Multiplier</span><br><span class="line">		&#125;</span><br><span class="line">		r.Positions[id].MilliCells += speed * dtMS / <span class="number">1000</span></span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *Room)</span></span> Tick(nowMS, dtMS <span class="type">int</span>, commands []UseSpeedItem) &#123;</span><br><span class="line">	SpeedItemSystem(r, nowMS, commands)</span><br><span class="line">	BuffExpirySystem(r, nowMS)</span><br><span class="line">	MovementSystem(r, dtMS)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">const</span> player, control, stationary EntityID = <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span></span><br><span class="line">	r := Room&#123;</span><br><span class="line">		Masks:      []ComponentMask&#123;HasPosition | HasMoveSpeed, HasPosition | HasMoveSpeed, HasPosition&#125;,</span><br><span class="line">		Positions:  <span class="built_in">make</span>([]Position, <span class="number">3</span>),</span><br><span class="line">		MoveSpeeds: []MoveSpeed&#123;&#123;<span class="number">1000</span>&#125;, &#123;<span class="number">1000</span>&#125;, &#123;&#125;&#125;,</span><br><span class="line">		SpeedBuffs: <span class="built_in">make</span>([]SpeedBuff, <span class="number">3</span>),</span><br><span class="line">	&#125;</span><br><span class="line">	want := []<span class="type">int</span>&#123;<span class="number">100</span>, <span class="number">200</span>, <span class="number">250</span>, <span class="number">300</span>&#125;</span><br><span class="line">	<span class="keyword">for</span> step, nowMS := <span class="keyword">range</span> []<span class="type">int</span>&#123;<span class="number">0</span>, <span class="number">50</span>, <span class="number">100</span>, <span class="number">150</span>&#125; &#123;</span><br><span class="line">		<span class="keyword">var</span> commands []UseSpeedItem</span><br><span class="line">		<span class="keyword">if</span> step == <span class="number">0</span> &#123;</span><br><span class="line">			commands = []UseSpeedItem&#123;&#123;Target: player, Multiplier: <span class="number">2</span>, DurationMS: <span class="number">100</span>&#125;&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		r.Tick(nowMS, <span class="number">50</span>, commands)</span><br><span class="line">		<span class="keyword">if</span> r.Positions[player].MilliCells != want[step] ||</span><br><span class="line">			r.Positions[control].MilliCells != (step+<span class="number">1</span>)*<span class="number">50</span> ||</span><br><span class="line">			r.Positions[stationary].MilliCells != <span class="number">0</span> ||</span><br><span class="line">			r.Has(player, HasSpeedBuff) != (nowMS &lt; <span class="number">100</span>) &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">&quot;unexpected state at %d ms: %+v&quot;</span>, nowMS, r))</span><br><span class="line">		&#125;</span><br><span class="line">		fmt.Printf(<span class="string">&quot;[%d,%d) ms: positions=%d,%d,%d buff=%t\n&quot;</span>,</span><br><span class="line">			nowMS, nowMS+<span class="number">50</span>, r.Positions[player].MilliCells,</span><br><span class="line">			r.Positions[control].MilliCells, r.Positions[stationary].MilliCells,</span><br><span class="line">			r.Has(player, HasSpeedBuff))</span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Println(<span class="string">&quot;PASS: component add/remove, expiry boundary, and movement query&quot;</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Output (positions in thousandths of a cell):</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">[0,50) ms: positions=100,50,0 buff=true</span><br><span class="line">[50,100) ms: positions=200,100,0 buff=true</span><br><span class="line">[100,150) ms: positions=250,150,0 buff=false</span><br><span class="line">[150,200) ms: positions=300,200,0 buff=false</span><br><span class="line">PASS: component add/remove, expiry boundary, and movement query</span><br></pre></td></tr></table></figure>
+<p>The position-only entity stays still, and the control player keeps
+its base speed. The buffed player returns to base speed at the
+expiration boundary.</p>
+<p>A room-level actor could implement the same gameplay and tests,
+including ECS internally. In the candidate's event-handler design,
+interactions between effects would require ordering rules across
+handlers. I chose component composition and an explicit system sequence
+to keep those rules together as gameplay grew.</p>
+<p>In the shipped service, one goroutine owned each room's mutable
+state, and <span class="exturl" data-url="aHR0cHM6Ly9nb2xhbmcub3JnL3BrZy9ydW50aW1lLyNHT01BWFBST0NT">Go's
+runtime scheduled room goroutines across the available processors<i class="fa fa-external-link-alt"></i></span>.
+Systems ran serially within that goroutine, accessing components for the
+relevant entities on every tick.</p>
+<p>Cross-room state lived on a separate tier with its own consistency
+rules, so features spanning rooms required additional coordination.</p>
+<p>A slow entity could delay its room's tick while unrelated rooms
+continued, provided the process and scheduler stayed healthy. Extra
+cores could run other rooms, but could not shorten that room's serial
+tick. A room that exceeded its deadline needed less work per tick,
+further optimization, or a lower population cap.</p>
+<h2 id="room-scheduling-serial-ticks-and-state-management">Room
+scheduling, serial ticks, and state management</h2>
+<img data-src="/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/architecture.png" class="" title="One Go instance, room goroutines scheduled across cores, serial tick-driven ECS inside each room">
+<p>Each instance pooled rooms, pre-allocating them to keep allocation
+off the hot path and recycling them as demand fell. Players joined room
+classes matching their level and intent, keeping new players among
+peers. A central scheduler tracked instance load and placed each new
+room on the least-loaded instance.</p>
+<p>I initially stored components in entity-keyed maps to support
+changing entity counts without reserving full-capacity arrays for every
+room. Rooms with fewer entities could allocate storage as needed, though
+maps carried their own bucket and key overhead. Each system looked up
+components while iterating its entities. Player input arrived through
+the connection layer; each tick consumed the inputs accumulated since
+the previous update.</p>
+<p>State changes were sent only to players whose area of interest
+included the affected location. PvP interaction used the same visibility
+boundary. AOI filtering and room population caps bounded broadcast
+fanout.</p>
+<p>Persistence ran outside the tick. Room snapshots were taken
+asynchronously and flushed periodically to <a
+target="_blank" rel="noopener" href="https://docs.mongodb.com/manual/">MongoDB</a>. A restart restored
+each room from its last persisted snapshot, potentially losing
+subsequent updates. That was acceptable for this casual game. Snapshot
+flush lag and the recovery loss window were not measured; I would add
+metrics for both.</p>
+<h2 id="map-lookups-exhausted-the-tick-budget">Map lookups exhausted the
+tick budget</h2>
+<p><span class="exturl" data-url="aHR0cHM6Ly9ibG9nLmdvbGFuZy5vcmcvcHJvZmlsaW5nLWdvLXByb2dyYW1z">pprof<i class="fa fa-external-link-alt"></i></span>
+showed map operations consuming 60–85% of the profiled CPU time. These
+figures reflect the load-test results I confirmed at the time; they are
+not quoted from retained profiles. The hot frame was
+<code>aeshash</code>, Go's AES-NI-based hash implementation. The Go 1.13
+runtime routed <a
+target="_blank" rel="noopener" href="https://github.com/golang/go/blob/go1.13/src/runtime/map.go">map
+lookups</a> through its <a
+target="_blank" rel="noopener" href="https://github.com/golang/go/blob/go1.13/src/runtime/alg.go">hashing
+functions</a> to <a
+target="_blank" rel="noopener" href="https://github.com/golang/go/blob/go1.13/src/runtime/asm_amd64.s">AESENC-based
+code</a>.</p>
+<p>Across all systems and rooms, component lookups required roughly 13
+million hash computations per second per instance, before bucket
+traversal and key comparison. Map insertions and growth added
+allocations. GC ran about once a second during the test. Entity IDs
+could directly index component arrays; the maps added a hash lookup to
+each access.</p>
+<p>I kept the room boundary and serial system order, and replaced
+component maps with pre-allocated fixed-capacity arrays indexed by
+entity ID. Storage was reused across room lifecycles. Sequential
+component traversal also favored cache locality, though cache misses
+were not measured separately.</p>
+<p>Pre-allocated arrays reserved space up to each room's entity cap even
+when occupancy was low. Room reuse saved allocation work but retained
+that storage. Growing arrays with occupancy or grouping entities by
+component set could reduce unused slots, but would add
+storage-management work. I accepted the reserved space to keep lookups
+direct and reuse storage.</p>
+<p>After the change, p99 tick elapsed time, measured with
+<code>time.Since</code>, fell below 50 ms, and instance CPU utilization
+settled near 70%. Profiles showed less hot-path allocation churn, but I
+do not have before-and-after measurements of GC pause frequency.</p>
+<p>Broadcast fanout was not the bottleneck in this test. The tick
+overruns were resolved before production.</p>
+<h2 id="production-results-and-capacity">Production results and
+capacity</h2>
+<p>At 10,000 players per instance and fifteen players per room, each
+instance ran about 667 rooms at 20 Hz. A typical room contained roughly
+60–80 entities: players, combat NPCs, bots, and collection objects. At
+that density, the 8-vCPU instance averaged 70% CPU utilization during
+the same load-test window. Dividing its CPU consumption by the number of
+room ticks gives about 0.42 ms per room tick:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CPU consumption = 8 vCPU × 70% = 5.6 CPU-seconds per second</span><br><span class="line">room tick rate  = 667 rooms × 20 ticks/second = 13,340 room ticks/second</span><br><span class="line">CPU per room tick = 5.6 / 13,340 seconds ≈ 0.42 ms</span><br></pre></td></tr></table></figure>
+<p>This average includes connection handling, serialization, GC, and
+other instance work.</p>
+<p>Room goroutines waited between updates, allowing hundreds of rooms to
+share the 8 vCPUs. We added instances as room density approached the
+per-instance limit.</p>
+<p>The memory model was:</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">memory = process_baseline + rooms × room_memory + buffers + headroom</span><br></pre></td></tr></table></figure>
+<p>Estimated per-room memory was a few hundred KiB at fifteen players.
+At ~667 rooms per instance, that amounted to a few hundred MiB. The 16
+GiB instances also provided capacity for the Go process, player
+connections, queues, snapshots, caches, runtime metadata, and headroom.
+The fleet used the same instance configuration throughout: 8 vCPU / 16
+GiB on <a
+target="_blank" rel="noopener" href="https://cloud.tencent.com/document/product/213/11518">Tencent
+Cloud</a>.</p>
+<p>Concurrency outside activity peaks was in the tens of thousands. A
+single instance carried over 10,000 concurrent players. At activity
+peaks, the fleet served roughly 200,000 concurrent players across 20+
+instances, with over one million DAU.</p>
+<hr />
+<p><em>The talk <a
+target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=W3aieHjyNvw">Overwatch Gameplay
+Architecture and Netcode</a> gave me many of the ideas behind this
+design, especially separating component state from system behavior and
+organizing data for sequential access.</em></p>
+<p><em>Next in this series: <a
+href="/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/">Debugging
+a Sporadic Go OOM in a Recursive JSON Encode Path</a>.</em></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/game-server/" rel="tag"># game-server</a>
+              <a href="/tags/ecs/" rel="tag"># ecs</a>
+              <a href="/tags/concurrency/" rel="tag"># concurrency</a>
+              <a href="/tags/performance/" rel="tag"># performance</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item"></div>
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/" rel="next" title="One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System">
+      One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#designing-for-10000-players-per-instance"><span class="nav-number">1.</span> <span class="nav-text">Designing for 10,000
+players per instance</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#choosing-the-room-boundary-and-its-execution-model"><span class="nav-number">2.</span> <span class="nav-text">Choosing the
+room boundary and its execution model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#keeping-shared-state-within-one-room"><span class="nav-number">2.1.</span> <span class="nav-text">Keeping shared state
+within one room</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#choosing-ecs-for-the-room-interior"><span class="nav-number">2.2.</span> <span class="nav-text">Choosing ECS for the room
+interior</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#room-scheduling-serial-ticks-and-state-management"><span class="nav-number">3.</span> <span class="nav-text">Room
+scheduling, serial ticks, and state management</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#map-lookups-exhausted-the-tick-budget"><span class="nav-number">4.</span> <span class="nav-text">Map lookups exhausted the
+tick budget</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#production-results-and-capacity"><span class="nav-number">5.</span> <span class="nav-text">Production results and
+capacity</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">18k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">1:04</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
