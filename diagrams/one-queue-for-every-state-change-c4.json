@@ -1,315 +1,315 @@
 {
-  "schema_version": 1,
-  "mode": "architecture",
-  "template_type": "architecture",
-  "style": 9,
-  "semantic_profile": "c4-review",
-  "diagram_type": "c4",
-  "c4_level": "container",
-  "review_state": "PRODUCTION VALIDATED",
-  "rough_seed": 42,
-  "scope": "one WeCom SCRM tenant's live QR codes",
-  "quality_profile": "standard",
-  "text_policy": "strict",
-  "width": 1500,
-  "height": 1090,
-  "title": "One queue serializes every membership-changing event",
-  "subtitle": "Assignment lives in WeCom's contact-way config; serialized updates keep our state and theirs in agreement",
-  "legend_orientation": "horizontal",
-  "legend_x": 40,
-  "legend_y": 1010,
-  "legend": [
-    {
-      "flow": "event",
-      "label": "state-change events"
-    },
-    {
-      "flow": "write",
-      "label": "WeCom API write"
-    },
-    {
-      "flow": "read",
-      "label": "scan routing"
-    },
-    {
-      "flow": "sync",
-      "label": "store write-back"
-    }
-  ],
-  "footer": "30,000 tenants keyed by ID: per-tenant serialization, cross-tenant parallel",
-  "footer_x": 40,
-  "footer_y": 1065,
-  "nodes": [
-    {
-      "id": "wx_users",
-      "x": 40,
-      "y": 330,
-      "width": 230,
-      "height": 130,
-      "label": "WeChat users",
-      "description": "Scan QR codes during campaigns; Wait to be connected",
-      "technology": "WeChat",
-      "c4_type": "external_system",
-      "stroke": "#356a8a"
-    },
-    {
-      "id": "wecom",
-      "x": 40,
-      "y": 600,
-      "width": 230,
-      "height": 180,
-      "label": "WeCom",
-      "description": "Contact-way config routes each scan; Owns connection mechanics; Rate-limited update API",
-      "technology": "WeCom open API",
-      "c4_type": "external_system",
-      "stroke": "#64748b"
-    },
-    {
-      "id": "admins",
-      "x": 330,
-      "y": 330,
-      "width": 250,
-      "height": 130,
-      "label": "Tenant admins",
-      "description": "Edit code members and quotas; Go offline or come back",
-      "technology": "Admin console",
-      "c4_type": "person",
-      "stroke": "#356a8a"
-    },
-    {
-      "id": "landing",
-      "x": 660,
-      "y": 330,
-      "width": 250,
-      "height": 130,
-      "label": "Landing page",
-      "description": "Sequenced and quota codes; Decide order and per-person volume",
-      "technology": "Go landing service",
-      "c4_type": "container",
-      "stroke": "#356a8a"
-    },
-    {
-      "id": "callback",
-      "x": 400,
-      "y": 620,
-      "width": 240,
-      "height": 160,
-      "label": "Event sources",
-      "description": "Scan callback moves quota counters; Offline toggle; Work schedule timers; Resignation, org changes",
-      "technology": "Go / gin callbacks",
-      "c4_type": "container",
-      "stroke": "#8a6d3b"
-    },
-    {
-      "id": "kafka",
-      "x": 770,
-      "y": 620,
-      "width": 230,
-      "height": 160,
-      "label": "Kafka topic",
-      "description": "One queue for every event; Keyed by tenant ID; Same key, one consumer goroutine",
-      "technology": "Kafka",
-      "c4_type": "container",
-      "stroke": "#8a6d3b"
-    },
-    {
-      "id": "consumer",
-      "x": 1130,
-      "y": 620,
-      "width": 260,
-      "height": 160,
-      "label": "Serial consumer",
-      "description": "Recompute eligible members; Per-tenant token bucket; Fast / slow lanes, sticky per code; Ack + requeue to fast; 24h message TTL",
-      "technology": "Go consumer group",
-      "c4_type": "container",
-      "stroke": "#8a6d3b"
-    },
-    {
-      "id": "mongo",
-      "x": 1130,
-      "y": 880,
-      "width": 260,
-      "height": 100,
-      "label": "MongoDB per tenant",
-      "description": "Staff flags · quota ceilings; records what was pushed",
-      "technology": "MongoDB",
-      "c4_type": "container",
-      "stroke": "#a44a7f"
-    },
-    {
-      "id": "redis",
-      "x": 880,
-      "y": 900,
-      "width": 280,
-      "height": 110,
-      "label": "Redis per tenant",
-      "description": "Per-staff counts · assignment set; ZSET + two-level cursor; scans read it via Lua",
-      "technology": "Redis",
-      "c4_type": "container",
-      "stroke": "#a44a7f"
-    }
-  ],
-  "arrows": [
-    {
-      "id": "scan",
-      "source": "wx_users",
-      "target": "wecom",
-      "label": "scan",
-      "label_x": 75,
-      "label_y": 525,
-      "protocol": "WeChat scan",
-      "x1": 155,
-      "y1": 460,
-      "x2": 155,
-      "y2": 600,
-      "route_points": []
-    },
-    {
-      "id": "notify",
-      "source": "wecom",
-      "target": "callback",
-      "label": "customer added",
-      "label_x": 290,
-      "label_y": 755,
-      "protocol": "callback",
-      "x1": 270,
-      "y1": 750,
-      "x2": 400,
-      "y2": 750,
-      "route_points": [
-        [
-          340,
-          750
-        ]
-      ]
-    },
-    {
-      "id": "admin_events",
-      "source": "admins",
-      "target": "callback",
-      "label": "membership events",
-      "label_x": 480,
-      "label_y": 530,
-      "protocol": "domain events",
-      "x1": 455,
-      "y1": 460,
-      "x2": 500,
-      "y2": 620,
-      "route_points": [
-        [
-          500,
-          540
-        ]
-      ]
-    },
-    {
-      "id": "landing_scan",
-      "source": "landing",
-      "target": "wecom",
-      "label": "delegate connect",
-      "label_x": 450,
-      "label_y": 218,
-      "protocol": "HTTPS redirect",
-      "x1": 785,
-      "y1": 330,
-      "x2": 160,
-      "y2": 600,
-      "route_points": [
-        [
-          785,
-          306
-        ],
-        [
-          294,
-          306
-        ],
-        [
-          294,
-          560
-        ],
-        [
-          160,
-          560
-        ]
-      ]
-    },
-    {
-      "id": "produce",
-      "source": "callback",
-      "target": "kafka",
-      "label": "tenant-keyed",
-      "label_x": 652,
-      "label_y": 676,
-      "protocol": "kafka produce",
-      "x1": 640,
-      "y1": 700,
-      "x2": 770,
-      "y2": 700,
-      "route_points": []
-    },
-    {
-      "id": "consume",
-      "source": "kafka",
-      "target": "consumer",
-      "label": "serial per key",
-      "label_x": 1012,
-      "label_y": 664,
-      "protocol": "kafka consume",
-      "x1": 1000,
-      "y1": 700,
-      "x2": 1130,
-      "y2": 700,
-      "route_points": []
-    },
-    {
-      "id": "push_wecom",
-      "source": "consumer",
-      "target": "wecom",
-      "label": "update contact-way",
-      "label_x": 890,
-      "label_y": 845,
-      "protocol": "HTTPS API",
-      "x1": 1180,
-      "y1": 780,
-      "x2": 155,
-      "y2": 780,
-      "route_points": [
-        [
-          1180,
-          860
-        ],
-        [
-          155,
-          860
-        ]
-      ]
-    },
-    {
-      "id": "writeback",
-      "source": "consumer",
-      "target": "mongo",
-      "label": "write-back",
-      "label_x": 1268,
-      "label_y": 830,
-      "protocol": "mongo write",
-      "x1": 1250,
-      "y1": 780,
-      "x2": 1250,
-      "y2": 880,
-      "route_points": []
-    },
-    {
-      "id": "rebuild_set",
-      "source": "consumer",
-      "target": "redis",
-      "label": "",
-      "protocol": "redis write",
-      "x1": 1140,
-      "y1": 780,
-      "x2": 1140,
-      "y2": 880,
-      "route_points": []
-    }
-  ],
-  "renderer": {}
+ "schema_version": 1,
+ "mode": "architecture",
+ "template_type": "architecture",
+ "style": 9,
+ "semantic_profile": "c4-review",
+ "diagram_type": "c4",
+ "c4_level": "container",
+ "review_state": "PRODUCTION VALIDATED",
+ "rough_seed": 42,
+ "scope": "one WeCom SCRM tenant's live QR codes",
+ "quality_profile": "standard",
+ "text_policy": "strict",
+ "width": 1500,
+ "height": 1090,
+ "title": "One queue serializes every membership-changing event",
+ "subtitle": "Assignment lives in WeCom's contact-way config; serialized updates keep our state and theirs in agreement",
+ "legend_orientation": "horizontal",
+ "legend_x": 40,
+ "legend_y": 1010,
+ "legend": [
+  {
+   "flow": "event",
+   "label": "state-change events"
+  },
+  {
+   "flow": "write",
+   "label": "WeCom API write"
+  },
+  {
+   "flow": "read",
+   "label": "scan routing"
+  },
+  {
+   "flow": "sync",
+   "label": "store write-back"
+  }
+ ],
+ "footer": "30,000 tenants, 6M codes: per-code ordering, cross-code parallel, tenant-level rate window",
+ "footer_x": 40,
+ "footer_y": 1065,
+ "nodes": [
+  {
+   "id": "wx_users",
+   "x": 40,
+   "y": 330,
+   "width": 230,
+   "height": 130,
+   "label": "WeChat users",
+   "description": "Scan QR codes during campaigns; Wait to be connected",
+   "technology": "WeChat",
+   "c4_type": "external_system",
+   "stroke": "#356a8a"
+  },
+  {
+   "id": "wecom",
+   "x": 40,
+   "y": 600,
+   "width": 230,
+   "height": 180,
+   "label": "WeCom",
+   "description": "Contact-way config routes each scan; Owns connection mechanics; Rate-limited update API",
+   "technology": "WeCom open API",
+   "c4_type": "external_system",
+   "stroke": "#64748b"
+  },
+  {
+   "id": "admins",
+   "x": 330,
+   "y": 330,
+   "width": 250,
+   "height": 130,
+   "label": "Tenant admins",
+   "description": "Edit code members and quotas; Go offline or come back",
+   "technology": "Admin console",
+   "c4_type": "person",
+   "stroke": "#356a8a"
+  },
+  {
+   "id": "landing",
+   "x": 660,
+   "y": 330,
+   "width": 250,
+   "height": 130,
+   "label": "Landing page",
+   "description": "Sequenced and quota codes; Decide order and per-person volume",
+   "technology": "Go landing service",
+   "c4_type": "container",
+   "stroke": "#356a8a"
+  },
+  {
+   "id": "callback",
+   "x": 400,
+   "y": 620,
+   "width": 240,
+   "height": 160,
+   "label": "Event sources",
+   "description": "Scan callback moves quota counters; Offline toggle; Work schedule timers; Resignation, org changes",
+   "technology": "Go / gin callbacks",
+   "c4_type": "container",
+   "stroke": "#8a6d3b"
+  },
+  {
+   "id": "kafka",
+   "x": 770,
+   "y": 620,
+   "width": 230,
+   "height": 160,
+   "label": "Kafka topic",
+   "description": "One queue for every event; Keyed by QR code ID; Same key, one consumer goroutine",
+   "technology": "Kafka",
+   "c4_type": "container",
+   "stroke": "#8a6d3b"
+  },
+  {
+   "id": "consumer",
+   "x": 1130,
+   "y": 620,
+   "width": 260,
+   "height": 160,
+   "label": "Serial consumer",
+   "description": "Recompute eligible members; Per-tenant token bucket; Fast / slow lanes, sticky per code; Ack + requeue to fast; 24h message TTL",
+   "technology": "Go consumer group",
+   "c4_type": "container",
+   "stroke": "#8a6d3b"
+  },
+  {
+   "id": "mongo",
+   "x": 1130,
+   "y": 880,
+   "width": 260,
+   "height": 100,
+   "label": "MongoDB per tenant",
+   "description": "Staff flags · quota ceilings; records what was pushed",
+   "technology": "MongoDB",
+   "c4_type": "container",
+   "stroke": "#a44a7f"
+  },
+  {
+   "id": "redis",
+   "x": 880,
+   "y": 900,
+   "width": 280,
+   "height": 110,
+   "label": "Redis per tenant",
+   "description": "Per-staff counts · assignment set; ZSET + two-level cursor; scans read it via Lua",
+   "technology": "Redis",
+   "c4_type": "container",
+   "stroke": "#a44a7f"
+  }
+ ],
+ "arrows": [
+  {
+   "id": "scan",
+   "source": "wx_users",
+   "target": "wecom",
+   "label": "scan",
+   "label_x": 75,
+   "label_y": 525,
+   "protocol": "WeChat scan",
+   "x1": 155,
+   "y1": 460,
+   "x2": 155,
+   "y2": 600,
+   "route_points": []
+  },
+  {
+   "id": "notify",
+   "source": "wecom",
+   "target": "callback",
+   "label": "customer added",
+   "label_x": 290,
+   "label_y": 755,
+   "protocol": "callback",
+   "x1": 270,
+   "y1": 750,
+   "x2": 400,
+   "y2": 750,
+   "route_points": [
+    [
+     340,
+     750
+    ]
+   ]
+  },
+  {
+   "id": "admin_events",
+   "source": "admins",
+   "target": "callback",
+   "label": "membership events",
+   "label_x": 480,
+   "label_y": 530,
+   "protocol": "domain events",
+   "x1": 455,
+   "y1": 460,
+   "x2": 500,
+   "y2": 620,
+   "route_points": [
+    [
+     500,
+     540
+    ]
+   ]
+  },
+  {
+   "id": "landing_scan",
+   "source": "landing",
+   "target": "wecom",
+   "label": "delegate connect",
+   "label_x": 450,
+   "label_y": 218,
+   "protocol": "HTTPS redirect",
+   "x1": 785,
+   "y1": 330,
+   "x2": 160,
+   "y2": 600,
+   "route_points": [
+    [
+     785,
+     306
+    ],
+    [
+     294,
+     306
+    ],
+    [
+     294,
+     560
+    ],
+    [
+     160,
+     560
+    ]
+   ]
+  },
+  {
+   "id": "produce",
+   "source": "callback",
+   "target": "kafka",
+   "label": "tenant-keyed",
+   "label_x": 652,
+   "label_y": 676,
+   "protocol": "kafka produce",
+   "x1": 640,
+   "y1": 700,
+   "x2": 770,
+   "y2": 700,
+   "route_points": []
+  },
+  {
+   "id": "consume",
+   "source": "kafka",
+   "target": "consumer",
+   "label": "serial per key",
+   "label_x": 1012,
+   "label_y": 664,
+   "protocol": "kafka consume",
+   "x1": 1000,
+   "y1": 700,
+   "x2": 1130,
+   "y2": 700,
+   "route_points": []
+  },
+  {
+   "id": "push_wecom",
+   "source": "consumer",
+   "target": "wecom",
+   "label": "update contact-way",
+   "label_x": 890,
+   "label_y": 845,
+   "protocol": "HTTPS API",
+   "x1": 1180,
+   "y1": 780,
+   "x2": 155,
+   "y2": 780,
+   "route_points": [
+    [
+     1180,
+     860
+    ],
+    [
+     155,
+     860
+    ]
+   ]
+  },
+  {
+   "id": "writeback",
+   "source": "consumer",
+   "target": "mongo",
+   "label": "write-back",
+   "label_x": 1268,
+   "label_y": 830,
+   "protocol": "mongo write",
+   "x1": 1250,
+   "y1": 780,
+   "x2": 1250,
+   "y2": 880,
+   "route_points": []
+  },
+  {
+   "id": "rebuild_set",
+   "source": "consumer",
+   "target": "redis",
+   "label": "",
+   "protocol": "redis write",
+   "x1": 1140,
+   "y1": 780,
+   "x2": 1140,
+   "y2": 880,
+   "route_points": []
+  }
+ ],
+ "renderer": {}
 }

@@ -49,7 +49,7 @@
 <g id="kafka"><rect x="710" y="600" width="250" height="190" rx="12" fill="white" stroke="#8a6d3b" stroke-width="2"/>
 <text x="728" y="634" class="node">Kafka topic</text>
 <text x="728" y="666" class="body">One queue, every event</text>
-<text x="728" y="692" class="body">Keyed by tenant ID</text>
+<text x="728" y="692" class="body">Keyed by QR code ID</text>
 <text x="728" y="718" class="body">Same key → one goroutine</text>
 <text x="728" y="744" class="body">24 h message TTL</text></g>
 
@@ -81,7 +81,7 @@
 <path d="M 835 330 L 835 300 L 300 300 L 300 690 L 270 690" fill="none" stroke="#356a8a" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="330" y="288" class="edge">delegate connect · landing page yields to a per-person code</text>
 <path d="M 610 700 L 710 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
-<text x="620" y="682" class="edge">tenant-keyed</text>
+<text x="620" y="682" class="edge">code-keyed</text>
 <path d="M 960 700 L 1060 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="966" y="682" class="edge">serial per key</text>
 <path d="M 1190 790 L 1190 900" fill="none" stroke="#a44a7f" stroke-width="2.5" marker-end="url(#arrow)"/>
@@ -97,5 +97,5 @@
 <line x1="230" y1="1010" x2="260" y2="1010" stroke="#8a6d3b" stroke-width="2.5"/><text x="266" y="1015" class="leg">state-change events</text>
 <line x1="460" y1="1010" x2="490" y2="1010" stroke="#64748b" stroke-width="2.5"/><text x="496" y="1015" class="leg">WeCom API write</text>
 <line x1="660" y1="1010" x2="690" y2="1010" stroke="#a44a7f" stroke-width="2.5"/><text x="696" y="1015" class="leg">store write-back</text>
-<text x="40" y="1045" class="leg">30,000 tenants keyed by ID: per-tenant serialization, cross-tenant parallel</text>
+<text x="40" y="1045" class="leg">30,000 tenants, 6M codes: per-code ordering, cross-code parallel, tenant-level rate window</text>
 </svg>
