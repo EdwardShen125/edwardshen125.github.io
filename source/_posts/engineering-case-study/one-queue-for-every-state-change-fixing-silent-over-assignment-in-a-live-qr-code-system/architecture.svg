@@ -58,7 +58,7 @@
 <text x="1078" y="666" class="body">Recompute member list</text>
 <text x="1078" y="692" class="body">Per-tenant token bucket</text>
 <text x="1078" y="718" class="body">Fast / slow lanes</text>
-<text x="1078" y="744" class="body">Not-done → eventbus redelivers</text></g>
+<text x="1078" y="744" class="body">Not-done → the queue redelivers</text></g>
 
 <g id="mongo"><rect x="1180" y="900" width="260" height="110" rx="12" fill="white" stroke="#a44a7f" stroke-width="2"/>
 <text x="1198" y="934" class="node">MongoDB per tenant</text>
@@ -69,15 +69,17 @@
 <text x="898" y="926" class="node">Redis per tenant</text>
 <text x="898" y="956" class="body">Assignment set · token bucket</text>
  <text x="898" y="978" class="body">ZSET + two-level cursor</text>
- <text x="898" y="1000" class="body">Scans read it via Lua</text></g>
+ <text x="898" y="1000" class="body">Landing page draws via Lua</text></g>
 
+<path d="M 960 430 L 990 430 L 990 900" fill="none" stroke="#a44a7f" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrow)"/>
+<text x="1002" y="690" class="edge" transform="rotate(90 1002 690)">draw next staff</text>
 <!-- edges -->
-<path d="M 270 690 L 360 690" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
-<text x="278" y="672" class="edge">customer added</text>
+<path d="M 270 745 L 360 745" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="275" y="733" class="edge">customer added</text>
 <path d="M 455 450 L 490 600" fill="none" stroke="#356a8a" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="500" y="530" class="edge">membership events</text>
-<path d="M 835 330 L 835 260 L 340 260 L 340 540" fill="none" stroke="#356a8a" stroke-width="2.5" marker-end="url(#arrow)"/>
-<text x="480" y="248" class="edge">delegate connect · landing page yields to a per-person code</text>
+<path d="M 835 330 L 835 300 L 300 300 L 300 690 L 270 690" fill="none" stroke="#356a8a" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text x="330" y="288" class="edge">delegate connect · landing page yields to a per-person code</text>
 <path d="M 610 700 L 710 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
 <text x="620" y="682" class="edge">tenant-keyed</text>
 <path d="M 960 700 L 1060 700" fill="none" stroke="#8a6d3b" stroke-width="2.5" marker-end="url(#arrow)"/>
