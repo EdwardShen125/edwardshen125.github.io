@@ -135,3 +135,8 @@ The production surprise was how much of the work was not the queue. Serializatio
 Reconciliation is the part I never closed. The rejected sweep was right about the need and wrong about the shape. The queue guarantees a fresh read, not a correct outcome; a bug in the recompute gets applied just as consistently. But 6M codes at API rate limits is days of work to protect a handful of suspects. The backstop should be a dirty set, holding codes whose events were dropped, whose push failed permanently, or whose recompute errored, swept at low frequency. We had no such layer and relied on customer complaints instead, which on a system this size was weaker evidence than it deserved.
 
 One boundary still stands. The assignment lives in someone else's config, and no architecture inside our perimeter makes that partner synchronous with us. What the design can do is keep the delay across that boundary bounded and visible.
+
+---
+
+*Previous in this series: [Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary](/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/).*
+*Next in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/).*
