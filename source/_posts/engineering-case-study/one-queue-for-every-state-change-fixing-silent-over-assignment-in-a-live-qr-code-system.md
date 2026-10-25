@@ -68,13 +68,15 @@ Both failure modes had been reaching support for months, as rare tickets. Each w
 
 ## Three fixes that should have worked
 
-Check at scan time. Intercept the scan, read staff state, pick someone else if the designated person is offline or full. For native codes this is impossible: nothing on our side sees the scan. For sequenced and quota codes it was possible, but it put a per-scan database dependency on our hottest path and it rebuilt the race it was meant to remove, since the check and WeCom's routing are still two systems.
+Once the defect was named — state and routing config drifting apart — three fixes suggested themselves. Each one fails on a structural fact, not on implementation effort.
 
-Sweep and repair. A job that walks every code, compares our state against WeCom's config, and fixes the drift. As a safety net, fine. As the primary mechanism, no: 6M QR codes against WeCom's rate limits is days per sweep, and a staff member marked offline on campaign morning keeps receiving customers through all of it. A sweep catches chronic drift. It cannot meet the freshness this failure demanded.
+**Check at scan time.** Intercept the scan, read staff state, route around anyone offline or over quota. For native QR codes this is impossible in principle: the scan goes from WeChat to WeCom and never touches our platform, so there is nothing to intercept. Sequenced and quota codes do pass through our landing page, so the check was possible there — but it failed twice over. It put a database read on every scan of the hottest path we had, and it read the same state that the concurrent writers were updating, so the check itself could see a stale view and pass the very person it was meant to skip.
 
-Better retries on every writer. Idempotent calls and exponential backoff on each path. That is the status quo with more machinery. Retries make an individual write more reliable; they do not give two writers a shared view. Both can compute from different snapshots and overwrite each other, and the winner's list is missing the loser's change. No write was being lost. Each write carried a list that was already stale.
+**Sweep and repair.** A periodic job that walks every QR code, compares our state against WeCom's config, and pushes a repair where they disagree. As a safety net this is the right shape, and it stayed on the list for later. As the primary fix it fails on arithmetic: 6M QR codes against WeCom's rate limits is days per sweep, so a staff member marked offline on campaign morning keeps receiving customers until the sweep reaches his codes. This failure appears in minutes and has to be corrected in seconds. A sweep that takes days can only fix the slow kind of drift.
 
-All three fixed the symptom where it surfaced. The alternative was to remove the multiple writers: one serialized place where every membership-changing decision is made against current state.
+**Better retries on every writer.** Make every write path idempotent, add exponential backoff, let each writer retry until it lands. This is the status quo with more machinery. A retry makes one write more likely to succeed; it says nothing about two writers computing from different snapshots. Writer A reads the state, writer B reads the state, both push a list — and whichever lands second overwrites the other's change with a list computed before it. Nothing failed and nothing was lost. Both writes succeeded, each carrying a list that was already stale. The defect was order, and retries do not order anything.
+
+All three treated the symptom where it surfaced: at the scan, in the drift, on the failing call. The alternative was to remove the multiple writers — one serialized place where every membership-changing decision is made against current state.
 
 ## One writer, recomputing
 
