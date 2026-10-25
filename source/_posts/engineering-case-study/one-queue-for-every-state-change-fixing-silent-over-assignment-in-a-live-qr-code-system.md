@@ -14,7 +14,7 @@ description: A live QR code system kept sending customers to offline or over-quo
 seo_image: architecture.png
 ---
 
-The escalation arrived as a refund threat. A customer had run a campaign, and thousands of people scanned its QR codes that day expecting to reach the sales team. One salesperson on the code had already hit his daily quota — the system showed him offline for assignment — and every new scan still connected to him. The rotation to the next salesperson never fired. The campaign closed far below target, the customer demanded a refund, then churned: a six-figure annual contract. The same mis-assignment had been producing quieter tickets for months. The logic was correct; the member list it computed from was not. Campaign day is when scans, quota exhaustion and staff status changes all peak in the same minutes.
+The escalation arrived as a refund threat. A customer had run a campaign, and thousands of people scanned its QR codes that day expecting to reach the sales team. One salesperson on the code had already hit his daily quota — the system showed him offline for assignment — and every new scan still connected to him. The rotation to the next salesperson never fired. The campaign closed far below target, the customer demanded a refund, then churned: a six-figure annual contract. The same mis-assignment had been producing quieter support tickets for months. The logic was correct; the member list it computed from was not. Campaign day is when scans, quota exhaustion and staff status changes all peak in the same minutes.
 
 <!-- more -->
 
