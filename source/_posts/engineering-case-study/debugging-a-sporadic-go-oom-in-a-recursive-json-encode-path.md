@@ -9,7 +9,7 @@ tags:
   - oom
   - production-debugging
   - event-driven
-description: A Go service reached its 8 GB Pod memory limit when a recursive event type entered jsoniter's lazy encoder compilation path during publish. Build bisection isolated the type and publish path; moving only that path to sonic stopped the incident.
+description: A Go service hit its 8 GB Pod limit when a recursive event type entered jsoniter's lazy encoder compilation path. Bisection isolated it; moving only that publish path to sonic stopped the incident.
 seo_image: debugging-recursive-json-encode-oom.png
 ---
 
