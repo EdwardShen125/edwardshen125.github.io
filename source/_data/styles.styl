@@ -142,3 +142,38 @@
     display: block;
   }
 }
+
+// Follow-me: compact inline row sized by its content, not a full-width
+// banner — reads right with one channel, flows horizontally with several.
+.followme {
+  border-left: 0;
+  background: none;
+  padding: 0;
+  margin: 1.5em 0 0.5em;
+
+  p {
+    margin: 0 0 0.35em;
+    font-size: 0.875em;
+    opacity: 0.6;
+  }
+
+  .social-list {
+    .social-item {
+      margin: 0 0.75em;
+    }
+
+    .social-link {
+      .icon {
+        font-size: 1em;
+        width: auto;
+        height: auto;
+      }
+
+      .label {
+        display: inline;
+        margin-left: 0.35em;
+        font-size: 0.875em;
+      }
+    }
+  }
+}
