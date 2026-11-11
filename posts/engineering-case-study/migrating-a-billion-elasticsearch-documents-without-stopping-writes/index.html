@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="Migrating ~1B documents to a new Elasticsearch index without downtime — the mode switch, the resumable reindex runner, and the write-path decisions.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Migrating a Billion Elasticsearch Documents Without Stopping Writes">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="Migrating ~1B documents to a new Elasticsearch index without downtime — the mode switch, the resumable reindex runner, and the write-path decisions.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/scatter-vs-routing.png">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/migration-modes.png">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/bulk-vs-tail.png">
+<meta property="article:published_time" content="2026-11-08T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-11T13:06:51.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="data-platform">
+<meta property="article:tag" content="distributed-systems">
+<meta property="article:tag" content="cdc">
+<meta property="article:tag" content="elasticsearch">
+<meta property="article:tag" content="migration">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/scatter-vs-routing.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/","url":"https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/","headline":"Migrating a Billion Elasticsearch Documents Without Stopping Writes","description":"Migrating ~1B documents to a new Elasticsearch index without downtime — the mode switch, the resumable reindex runner, and the write-path decisions.","datePublished":"2026-11-08T02:00:00.000Z","dateModified":"2026-11-11T13:06:51.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, data-platform, distributed-systems, cdc, elasticsearch, migration"},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Migrating a Billion Elasticsearch Documents Without Stopping Writes","item":"https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/"}]}]}</script>
+  <title>Migrating a Billion Elasticsearch Documents Without Stopping Writes | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Edward Shen" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Migrating a Billion Elasticsearch Documents Without Stopping Writes
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2026-11-08 10:00:00" itemprop="dateCreated datePublished" datetime="2026-11-08T10:00:00+08:00">2026-11-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Engineering-Case-Study/" itemprop="url" rel="index"><span itemprop="name">Engineering Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>1.9k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>7 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>The platform's ~1B-document task index moved from one Elasticsearch
+data model to another — no downtime, no rollback, no user-visible
+incident. About four weeks of engineering; 1–3 hours of actual data
+movement. This is how it was done.</p>
+<span id="more"></span>
+<h2 id="background-what-tasks_v1-was-doing-wrong">Background: what
+tasks_v1 was doing wrong</h2>
+<p><code>tasks</code> is the search index behind AI generation task
+lists — text-to-image, image editing, video generation, app tasks —
+queried per user as "my tasks, newest first." The access pattern is
+strictly per-account: a user only ever sees their own tasks, filtered by
+<code>account_no</code>, sorted by <code>create_at</code>.</p>
+<p>At migration time the index held ~1B documents, 800 GB of primary
+storage, with data going back to March 2023 — about three and a half
+years of it.</p>
+<p>v1 had been created without routing and without a sharding plan.
+Documents for one account were scattered across the whole index, so
+every task-list query fanned out to every shard. At small scale nobody
+noticed; at a billion documents the fan-out cost is structural — no
+amount of tuning removes a scatter that the data model requires.</p>
+<img data-src="/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/scatter-vs-routing.png" class="" title="Left: tasks_v1 — one account" alt="s documents scattered by hash, every query fans out to all shards. Right: tasks_v2 — routing by account_no colocates an account on its two-shard routing partition; a query touches that partition instead of every shard.">
+<p>The v2 target shape:</p>
+<ul>
+<li>82 shards, <a
+target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-routing-field.html"><code>_routing</code></a>
+required, routed by <code>account_no</code> — an account's documents
+colocated on its routing partition, so a task-list query touches that
+partition instead of every shard</li>
+<li><code>routing_partition_size: 2</code> — each partition is two
+shards, so a heavy account's write load cannot concentrate on a single
+shard</li>
+<li>an explicit mapping, replacing v1's accumulated dynamic one</li>
+</ul>
+<p>Constraints: live business, no write downtime, no wrong query
+results, ~1B documents to move — every decision had to keep v1 serving
+while v2 came up behind it.</p>
+<p>Two simpler approaches were ruled out. A maintenance-window cutover —
+stop writes, one big <code>_reindex</code>, flip — was rejected up
+front: the business would not accept a write outage. An alias flip after
+a single background reindex avoids the outage but not the tail: an alias
+can be switched atomically, yet the index behind it still converges only
+if something carries the writes that happened during the copy. Either
+way, the delta problem has to be solved — so the plan was a continuous
+CDC feed plus a controlled switch; the copy itself was the routine
+part.</p>
+<h2 id="the-switch-built-before-any-data-moved">The switch: built before
+any data moved</h2>
+<p>Constraints: reads and writes had to switch separately — v2 becoming
+readable says nothing about every write path being able to target it.
+And at this point the direct write APIs did not yet carry the
+<code>account_no</code> routing contract — the guarantee that every
+write carries the field v2 routes by.</p>
+<p>Decision: one global Redis key,
+<code>tasks:index:migration_mode</code>, three modes:</p>
+<img data-src="/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/migration-modes.png" class="" title="The three migration modes as a matrix of reads, direct writes, and CDC per mode, with rollback preconditions and the clamp guard that forces mode 0 until the routing contract exists.">
+<p>The mechanism, piece by piece:</p>
+<ul>
+<li>A clamp function forces mode 0 unless the direct-write routing
+contract flag is enabled, so no Redis value can produce a read/write
+split.</li>
+<li>Redis errors and unparsable values fall back to mode 0 with a
+warning log; mode changes are logged once, on change.</li>
+<li>Rollback preconditions are written in the code comment next to the
+mode enum: 1 → 0 at any time (the v1 mirror is still fully written); 2 →
+rollback requires backfill, because v1 has stopped receiving direct
+writes.</li>
+</ul>
+<p>Cost / not covered at landing: documents without an
+<code>account_no</code>. One fallback, <code>default_routing</code>,
+derived identically by CDC, by business-path deletes, and by the
+bootstrap — so a document lands on the same shard no matter which path
+wrote it. The first week after landing produced the first two patches:
+the CDC no-account fallback and v2 deletes on the business delete path.
+Contract coverage was confirmed path by path.</p>
+<h2 id="the-reindex-runner">The reindex runner</h2>
+<p>Start from the manual version, which was already in the runbook:</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">POST /_reindex?wait_for_completion=<span class="literal">false</span>&amp;slices=2</span><br><span class="line">&#123; <span class="string">&quot;conflicts&quot;</span>: <span class="string">&quot;proceed&quot;</span>,</span><br><span class="line">  <span class="string">&quot;source&quot;</span>: &#123; <span class="string">&quot;index&quot;</span>: <span class="string">&quot;tasks_v1&quot;</span>, <span class="string">&quot;size&quot;</span>: 1000 &#125;,</span><br><span class="line">  <span class="string">&quot;dest&quot;</span>:   &#123; <span class="string">&quot;index&quot;</span>: <span class="string">&quot;tasks_v2&quot;</span>, <span class="string">&quot;op_type&quot;</span>: <span class="string">&quot;create&quot;</span> &#125;,</span><br><span class="line">  <span class="string">&quot;script&quot;</span>: &#123; /* routing = account_no, <span class="keyword">else</span> default_routing */ &#125; &#125;</span><br></pre></td></tr></table></figure>
+<p>then poll the returned task id, then run monthly
+<code>date_histogram</code> aggregations on both indices and
+compare.</p>
+<p>Why not one <a
+target="_blank" rel="noopener" href="https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-reindex.html"><code>_reindex</code></a>
+over the whole index and be done? Two mechanisms get in the way.</p>
+<p>The first is correctness. <code>_reindex</code> copies a
+point-in-time snapshot: it scans the source once, and v1 was taking live
+writes the entire time. Documents created after the scan passed them by
+are simply absent from the copy; documents that changed after being
+copied land stale. Re-running with <code>op_type: create</code> picks up
+the late arrivals, but never repairs the stale ones — create skips
+existing documents. A bulk copy of a live index is a snapshot with a
+tail that a bigger scanner cannot close. This is why reindex was never
+the delivery mechanism here: it moves the bulk, CDC carries the delta,
+and the read switch is gated on CDC health — never on reindex
+completion.</p>
+<img data-src="/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/bulk-vs-tail.png" class="" title="How _reindex works: it takes a point-in-time snapshot of the source and copies it batch by batch (scroll slices into bulk). Documents written after the snapshot edge are not in the scan; documents that changed after the scroll passed them are copied stale; create-only replays pick up late inserts but never repair stale copies.">
+<p>The second is operational. The work unit would be ~1B documents, and
+an ES <code>_reindex</code> task that fails or gets cancelled resumes
+nothing — you restart the entire scan. There is no intermediate
+checkpoint where partial progress can be verified or resumed, so the
+first moment anything can be reconciled is after all of it finishes: all
+of the risk arrives at the end.</p>
+<p>Monthly windows — 2023-03 through 2026-09 is roughly 43 of them —
+address the second problem. Each window can be replayed safely
+(<code>op_type: create</code> + <code>conflicts: proceed</code> make
+replays a no-op for existing documents), reconciled with a
+<code>date_histogram</code> diff, and signed off on its own. Bounded
+work, incremental verification, failure costs one window instead of the
+whole scan. They do not address the first — windows bound the bulk copy,
+CDC closes the tail, and CDC had been writing v2 since before any window
+ran.</p>
+<p>But driving those windows by hand has its own failure surface: manual
+reconciliation for every window, an interruption restarts the month, and
+a lost task response means re-issuing the request blind. Hence the
+runner.</p>
+<p>The runner is a single 894-line script — a resumable state machine.
+Each piece exists to prevent a specific failure:</p>
+<ul>
+<li><strong>Rerun safety.</strong> Month windows as
+<code>[gte, lt)</code> half-open intervals,
+<code>op_type: create</code>, <code>conflicts: proceed</code>. Replaying
+a window is a no-op for documents that already exist, so "just run it
+again" is always safe.</li>
+<li><strong>Lost responses.</strong> The checkpoint is persisted
+<em>before</em> each external action, not after. If the ES response is
+lost, the persisted state is <code>creating_unknown</code>; on restart
+the runner refuses to auto-resend and asks a human to check
+<code>_tasks</code> — because a blind resend is the one action that can
+double-execute.</li>
+<li><strong>Single ownership.</strong> Lock + lease + owned writes: a
+SetNX token, release via Lua script so only the token holder can
+release, and every write path checks ownership before touching ES.
+Starting the script twice does nothing.</li>
+<li><strong>Cluster footnote.</strong> Lock and summary under one
+<code>&#123;run&#125;</code> hashtag so they share a Redis Cluster slot and the
+Lua release stays atomic. A defensive fix found in review, not the
+result of an incident.</li>
+<li><strong>Refresh before counting.</strong> Refresh the target index
+before count-reconciling, so index visibility lag is never booked as a
+data difference.</li>
+</ul>
+<p>Throttle: no <code>requests_per_second</code> was set;
+<code>slices=2</code> was the whole throttle — low parallelism on a live
+cluster.</p>
+<p>Execution: a single run, exclusive on a dedicated script host.
+Monthly diffs: all zero. Checkpoint resume: triggered zero times — the
+recovery path was never exercised in production.</p>
+<h2
+id="the-write-path-sync-stayed-on-v1-until-the-routing-contract-landed">The
+write path: sync stayed on v1 until the routing contract landed</h2>
+<p>v2 requires <code>_routing = account_no</code>. At migration start,
+the direct write APIs — task status updates, full task updates — did not
+carry it. So through modes 0 and 1, direct sync writes kept going to v1
+only. v2 was fed by the CDC consumer (which existed before the
+migration; from the start it wrote both v1 and v2, deriving routing from
+each document's <code>account_no</code> with the
+<code>default_routing</code> fallback).</p>
+<p>The consequence was a known, accepted cost: in mode 1 the serving
+index had exactly one writer, CDC. Freshness of v2 = CDC lag = a
+seconds-level fluctuation. For task-list browsing, fine. For "user
+completes an action, checks the list" flows, the list could lag the
+action by that window.</p>
+<p>One write path that is easy to overlook: deletes. The business delete
+path learned to delete from v2 as well.</p>
+<p>Once the projection layer was reworked to carry
+<code>account_no</code>, sync writes returned to the serving index:</p>
+<ul>
+<li>status updates write v2 directly, with routing — status becomes
+immediately visible</li>
+<li>full updates write the complete task projection, with routing</li>
+<li>one correction along the way: dropped <code>doc_as_upsert</code>
+from full updates. If the document doesn't exist yet, tolerate the 404
+and let CDC/bootstrap write the complete document — sync writes are
+fast, CDC is authoritative.</li>
+</ul>
+<p>In the end state, mode 2: CDC writes v2 only, v1 receives no direct
+writes, and a create-only bootstrap takes over new documents.</p>
+<p>This was the project's one direction change — CDC-only serving, then
+sync restored. The reason is the visibility cost above, and it was a
+sequence dependency rather than an oversight: sync writes to v2 were
+gated on the routing contract, and the routing contract was gated on the
+projection rework.</p>
+<h2 id="cutover">Cutover</h2>
+<p>Mode 1 ran for about a week before anyone touched mode 2. What was
+actually watched — there was no formal checklist, and none was
+retro-fitted — was four signals on dashboards: CDC sync status, v2 query
+error rate, business feedback channels, ES cluster load.</p>
+<p>When the signals stayed quiet, the cutover itself was three
+moves:</p>
+<ol type="1">
+<li>push mode 2</li>
+<li>retire the hot side index (it stopped being queried; one line in the
+deploy, not a project)</li>
+<li>CDC to v2-only, create-only bootstrap for new documents, sync writes
+restored</li>
+</ol>
+<p>Rollbacks: designed per mode, preconditions in the code comments.
+Triggered: zero times.</p>
+<h2 id="numbers">Numbers</h2>
+<ul>
+<li>Engineering: about 4 weeks (Aug 13 → Sep 9). Actual data movement:
+1–3 hours.</li>
+<li>Scale: ~1B documents, 800 GB primary, 82 shards ≈ 10 GB/shard, data
+spanning 2023-03 → 2026-09 (~3.5 years).</li>
+<li>Reindex: <code>slices=2</code>, no <code>requests_per_second</code>
+— parallelism was the throttle.</li>
+<li>Reconciliation: monthly <code>date_histogram</code> diffs all zero;
+count checks zero-diff after refresh-before-count.</li>
+<li>Checkpoint resume: invoked zero times. Rollback: zero times.</li>
+<li>CDC lag while it was v2's only writer: seconds-level
+fluctuation.</li>
+</ul>
+<h2 id="notes-for-next-time">Notes for next time</h2>
+<p>Would do the same:</p>
+<ul>
+<li>Rollback preconditions written next to the mode enum — the rollback
+plan lived where the switch lived.</li>
+<li>The switch clamped to mode 0 until the write path was ready; config
+could not create a read/write split.</li>
+<li>Checkpoint persisted before the external action, not after.</li>
+</ul>
+<p>Would change:</p>
+<ul>
+<li>Reconciliation stopped at count + monthly histogram. Next time:
+content-level checks (field-by-field sample, or full hash comparison)
+and schema-level checks. Count-equal histograms can hide wrong field
+values — the risk was real, and the check did not prove what it was
+meant to prove.</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/data-platform/" rel="tag"># data-platform</a>
+              <a href="/tags/distributed-systems/" rel="tag"># distributed-systems</a>
+              <a href="/tags/cdc/" rel="tag"># cdc</a>
+              <a href="/tags/elasticsearch/" rel="tag"># elasticsearch</a>
+              <a href="/tags/migration/" rel="tag"># migration</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/" rel="prev" title="Designing a Predicate-Driven Audience Pipeline for Lifecycle Email">
+      <i class="fa fa-chevron-left"></i> Designing a Predicate-Driven Audience Pipeline for Lifecycle Email
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#background-what-tasks_v1-was-doing-wrong"><span class="nav-number">1.</span> <span class="nav-text">Background: what
+tasks_v1 was doing wrong</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-switch-built-before-any-data-moved"><span class="nav-number">2.</span> <span class="nav-text">The switch: built before
+any data moved</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-reindex-runner"><span class="nav-number">3.</span> <span class="nav-text">The reindex runner</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#the-write-path-sync-stayed-on-v1-until-the-routing-contract-landed"><span class="nav-number">4.</span> <span class="nav-text">The
+write path: sync stayed on v1 until the routing contract landed</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#cutover"><span class="nav-number">5.</span> <span class="nav-text">Cutover</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#numbers"><span class="nav-number">6.</span> <span class="nav-text">Numbers</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#notes-for-next-time"><span class="nav-number">7.</span> <span class="nav-text">Notes for next time</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">20k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">1:12</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

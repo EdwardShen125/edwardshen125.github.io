@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 740" width="1200" height="740" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="3" data-visual-theme="Blueprint" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="standard" data-max-bends-per-edge="12" data-max-total-bends="100" data-max-route-stretch="5.0" data-max-bridged-crossings="8" data-min-node-gap="0.0" data-min-container-gutter="0.0" data-min-label-clearance="2.0" data-min-segment-length="0.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#67e8f9"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fde047"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c084fc"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#bae6fd"/>
+    </marker>
+    <pattern id="blueprintGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#0ea5e9" stroke-opacity="0.12" stroke-width="1"/>
+    </pattern>
+    <style>
+    text { font-family: 'SF Mono', 'Fira Code', Menlo, 'Noto Sans CJK SC', 'Microsoft YaHei', 'SimHei', monospace; }
+    .title { font-size: 30px; font-weight: 700; fill: #e0f2fe; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #7dd3fc; }
+    .section { font-size: 13px; font-weight: 700; fill: #67e8f9; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #7dd3fc; }
+    .node-title { font-weight: 700; fill: #e0f2fe; }
+    .node-sub { font-weight: 500; fill: #bae6fd; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #7dd3fc; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #e0f2fe; }
+    .legend { font-size: 12px; font-weight: 500; fill: #bae6fd; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #7dd3fc; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #7dd3fc; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #e0f2fe; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1200.0" height="740.0" fill="#082f49"/>
+  <text x="600.0" y="56" text-anchor="middle" class="title"></text>
+  <path id="http" data-graph-role="edge" data-edge-id="http" data-source="clients" data-target="gateway" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="1" data-route-stretch="1.0" data-bridges="" d="M 180,500 L 180,240 L 380,240" fill="none" stroke="#67e8f9" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="grpc" data-graph-role="edge" data-edge-id="grpc" data-source="gateway" data-target="services" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 660,240 L 760,240" fill="none" stroke="#67e8f9" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="notify" data-graph-role="edge" data-edge-id="notify" data-source="services" data-target="wshub" data-edge-kind="flow" data-topic-id="" data-flow="data" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 911,300 L 911,324 L 520,324 L 520,500" fill="none" stroke="#fde047" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowE)"/>
+  <path id="sql" data-graph-role="edge" data-edge-id="sql" data-source="services" data-target="tidb" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="2" data-route-stretch="1.0" data-bridges="" d="M 929,300 L 929,320.4 L 920,320.4 L 920,500" fill="none" stroke="#38bdf8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="ws" data-graph-role="edge" data-edge-id="ws" data-source="wshub" data-target="clients" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 380,555 L 300,555" fill="none" stroke="#fb7185" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <g id="node-clients" data-graph-role="node" data-node-id="clients" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="60,500,300,610">
+  <rect x="60.0" y="500.0" width="240.0" height="110.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Clients" data-text-max-width="216.0" x="180.0" y="555.0" text-anchor="middle" class="node-title" font-size="18">Clients</text>
+  <text data-text-role="subtitle" data-full-text="web · app" data-text-max-width="216.0" x="180.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">web · app</text>
+  </g>
+  <g id="node-gateway" data-graph-role="node" data-node-id="gateway" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="380,180,660,300">
+  <rect x="380.0" y="180.0" width="280.0" height="120.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="2.0"/>
+  <rect x="386.0" y="186.0" width="268.0" height="108.0" rx="5.0" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="API Gateway" data-text-max-width="248.0" x="520.0" y="240.0" text-anchor="middle" class="node-title" font-size="18">API Gateway</text>
+  <text data-text-role="subtitle" data-full-text="i18n · jwt · descriptor sets" data-text-max-width="248.0" x="520.0" y="262.0" text-anchor="middle" class="node-sub" font-size="12">i18n · jwt · descriptor sets</text>
+  </g>
+  <g id="node-services" data-graph-role="node" data-node-id="services" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="760,180,1080,300">
+  <rect x="760.0" y="180.0" width="320.0" height="120.0" rx="8.0" fill="#0a4b78" stroke="#38bdf8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Domain Services ×17" data-text-max-width="296.0" x="920.0" y="240.0" text-anchor="middle" class="node-title" font-size="18">Domain Services ×17</text>
+  <text data-text-role="subtitle" data-full-text="go-zero · onion/DDD" data-text-max-width="296.0" x="920.0" y="262.0" text-anchor="middle" class="node-sub" font-size="12">go-zero · onion/DDD</text>
+  </g>
+  <g id="node-wshub" data-graph-role="node" data-node-id="wshub" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="380,500,660,610">
+  <rect x="380.0" y="500.0" width="280.0" height="110.0" rx="8.0" fill="#0b3b5e" stroke="#94a3b8" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="ws-hub" data-text-max-width="256.0" x="520.0" y="555.0" text-anchor="middle" class="node-title" font-size="18">ws-hub</text>
+  <text data-text-role="subtitle" data-full-text="Kafka consumer · websocket fan-out" data-text-max-width="256.0" x="520.0" y="577.0" text-anchor="middle" class="node-sub" font-size="12">Kafka consumer · websocket fan-out</text>
+  </g>
+  <g id="node-tidb" data-graph-role="node" data-node-id="tidb" data-semantic-role="cylinder" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="760,500,1080,610">
+  <ellipse cx="920.0" cy="513.75" rx="160.0" ry="13.75" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <rect x="760.0" y="513.75" width="320.0" height="82.5" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <ellipse cx="920.0" cy="596.25" rx="160.0" ry="13.75" fill="#0b3b5e" stroke="#06d6a0" stroke-width="2.2"/>
+  <ellipse cx="920.0" cy="541.8" rx="160.0" ry="13.75" fill="none" stroke="#06d6a0" stroke-opacity="0.45" stroke-width="1.2"/>
+  <ellipse cx="920.0" cy="566.0" rx="160.0" ry="13.75" fill="none" stroke="#06d6a0" stroke-opacity="0.25" stroke-width="1.2"/>
+  <text data-text-role="title" data-full-text="TiDB" data-text-max-width="296.0" x="920.0" y="549.0" text-anchor="middle" class="node-title" font-size="18">TiDB</text>
+  <text data-text-role="subtitle" data-full-text="per-service schemas" data-text-max-width="296.0" x="920.0" y="573.0" text-anchor="middle" class="node-sub" font-size="12">per-service schemas</text>
+  </g>
+  <g id="http-label" data-graph-role="label" data-owner="http" data-graph-bounds="128.2,356,177,376">
+  <rect x="128.2" y="356.0" width="48.8" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="152.6" y="370.0" text-anchor="middle" class="arrow-label">HTTPS</text>
+  </g>
+  <g id="grpc-label" data-graph-role="label" data-owner="grpc" data-graph-bounds="689.08,209,730.92,229">
+  <rect x="689.08" y="209.0" width="41.839999999999996" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="710.0" y="223.0" text-anchor="middle" class="arrow-label">gRPC</text>
+  </g>
+  <g id="notify-label" data-graph-role="label" data-owner="notify" data-graph-bounds="664.58,311,766.42,331">
+  <rect x="664.58" y="311.0" width="101.84" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="715.5" y="325.0" text-anchor="middle" class="arrow-label">Kafka pub/sub</text>
+  </g>
+  <g id="sql-label" data-graph-role="label" data-owner="sql" data-graph-bounds="880,396.2,916,416.2">
+  <rect x="880.0" y="396.2" width="36.0" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="898.0" y="410.2" text-anchor="middle" class="arrow-label">SQL</text>
+  </g>
+  <g id="ws-label" data-graph-role="label" data-owner="ws" data-graph-bounds="319.08,524,360.92,544">
+  <rect x="319.08" y="524.0" width="41.839999999999996" height="20" rx="6" fill="#082f49" opacity="0.9"/>
+  <text x="340.0" y="538.0" text-anchor="middle" class="arrow-label">push</text>
+  </g>
+  <g id="blueprint-title-block" data-graph-role="reserved" data-graph-bounds="904,614,1146,702">
+  <rect x="910.0" y="620.0" width="230.0" height="76.0" fill="#0b3552" stroke="#0ea5e9" stroke-width="1.2"/>
+  <line x1="910.0" y1="638.0" x2="1140.0" y2="638.0" stroke="#0ea5e9" stroke-width="1"/>
+  <line x1="910.0" y1="674.0" x2="1140.0" y2="674.0" stroke="#0ea5e9" stroke-width="1"/>
+  <line x1="986.6666666666666" y1="674.0" x2="986.6666666666666" y2="696.0" stroke="#0ea5e9" stroke-width="0.7"/>
+  <line x1="1063.3333333333333" y1="674.0" x2="1063.3333333333333" y2="696.0" stroke="#0ea5e9" stroke-width="0.7"/>
+  <text x="1025.0" y="633.0" text-anchor="middle" font-size="10" font-weight="600" fill="#7dd3fc">API DSL · GATEWAY</text>
+  <text x="1025.0" y="662.0" text-anchor="middle" font-size="18" font-weight="700" fill="#e0f2fe">GO MICROSERVICE</text>
+  <text x="948.3333333333334" y="688.0" text-anchor="middle" font-size="9.5" font-weight="600" fill="#7dd3fc">REV: 1.0</text>
+  <text x="1025.0" y="688.0" text-anchor="middle" font-size="6.55" font-weight="600" fill="#67e8f9">GO · GO-ZERO · TIDB</text>
+  <text x="1101.6666666666667" y="688.0" text-anchor="middle" font-size="8.86" font-weight="600" fill="#7dd3fc">DWG: PLAT-002</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="48,688,517,704">
+  <text x="48.0" y="700.0" class="footnote">Edward Shen · Distributed Systems Series · Go microservice platform</text>
+  </g>
+</svg>
