@@ -21,35 +21,35 @@ I led the architecture selection and ECS implementation. Profiling showed how mu
 
 ## Designing for 10,000 players per instance
 
-Tencent's publishing team planned to roll out access in stages. The service needed to absorb each traffic increase by adding instances. Load tests used a fleet of slightly lower-spec instances running bots through the real client protocol: entering rooms, moving, and collecting. The target was 10,000 real players per server instance: about 667 rooms with fifteen players each, updated at 20 Hz.
+Tencent's publishing team would roll out access in stages, and the service had to absorb each traffic jump by adding instances. Load testing ran bots through the real client protocol — entering rooms, moving, collecting — on a fleet of slightly lower-spec instances. The target: 10,000 real players per server instance, about 667 rooms with fifteen players each, updated at 20 Hz.
 
-Late room-state updates led us to investigate the room's serial update cycle.
+Those late room-state updates pointed at the room's serial update cycle.
 
 Outside rooms, another service handled idle collection through request-response calls. Inside rooms, players shared a grid of up to 200×200 cells for movement, exploration, combat, and collection. Clicking a destination triggered server-side pathfinding. Player movement step size was defined separately from the simulation tick. A room held about fifteen real players, 30+ combat NPCs, and a varying number of bot players, with a room capacity of 30–100, depending on room class. The room service updated shared state on each tick, with three constraints:
 
-- Responsive movement. Delayed server updates were visible to players.
-- A bounded update cycle per room. Each room updated every 50 ms (20 Hz), and all work for that tick had to finish within the interval.
-- Bounded broadcast fanout. Room population and visibility limits had to cap the audience for each update.
+- Players see delayed updates directly — movement had to stay responsive.
+- The update cycle was bounded: each room updated every 50 ms (20 Hz), and all work for that tick had to finish inside the interval.
+- Broadcast fanout was bounded too: room population and visibility limits capped the audience for each update.
 
 ## Choosing the room boundary and its execution model
 
-I made two choices: which state each execution unit would own, and how it would run the simulation. [Actor-style ownership](https://doc.akka.io/docs/akka/2.5/guide/actors-intro.html) determined who held mutable state and how work reached it. [ECS](https://www.richardlord.net/blog/ecs/what-is-an-entity-framework.html) determined how components were stored and systems iterated over them.
+Two choices shaped the design: what state each execution unit owned, and how it ran the simulation. [Actor-style ownership](https://doc.akka.io/docs/akka/2.5/guide/actors-intro.html) decided who held mutable state and how work reached it; [ECS](https://www.richardlord.net/blog/ecs/what-is-an-entity-framework.html) decided how components were stored and how systems iterated them.
 
 ### Keeping shared state within one room
 
-Giving each player its own actor would separate ownership of player state, but interactions involving multiple players and shared room state would require coordination between actors. For example, if two players claimed the same collection cell within one tick, an actor implementation could resolve the conflict by giving a room actor authority over the cell and routing both claims to it. The cost is forwarding requests, returning results, and defining when the player actors apply those results. Visibility queries, movement collisions, and PvP interactions raise the same ownership question. I kept the interacting state under one room owner, so these operations could complete within one simulation pass.
+One actor per player separates ownership of player state, but any interaction that crosses players — or touches shared room state — needs coordination between actors. Take two players claiming the same collection cell in one tick. An actor design resolves that by giving a room actor authority over the cell and routing both claims to it; the cost is the forwarding, the return trip for results, and a rule for when player actors apply those results. Visibility queries, movement collisions, and PvP land on the same question: who owns the state? I kept the interacting state under one room owner, so these operations complete within a single simulation pass.
 
-An actor-based design can also batch inputs and resolve them in a stable order; [Proto.Actor](https://github.com/asynkronit/protoactor-go) provides a Go implementation of actor messaging. When player state is split across actors, the design must also define tick boundaries and coordinate the state used in each tick.
+Actor designs can batch inputs and resolve them in a stable order — [Proto.Actor](https://github.com/asynkronit/protoactor-go) is a Go implementation of the pattern. But with player state split across actors, tick boundaries and per-tick state still need explicit coordination.
 
-A single global simulation loop would couple unrelated rooms: a slow room would delay the others, and the serial loop could not use multiple processors.
+A single global simulation loop couples unrelated rooms: one slow room delays the rest, and a serial loop leaves the other processors idle.
 
 ### Choosing ECS for the room interior
 
-The closest alternative was a room-level actor: one goroutine and mailbox per room, with entities stored as objects and events handled by methods. It provided the same ownership boundary as the shipped design. In the candidate design, handlers processed messages in arrival order and dispatched each event separately. My tick-based design batched the frame's inputs and let systems query components directly for operations such as finding the players within an area of interest (AOI).
+The closest alternative was a room-level actor: one goroutine and mailbox per room, entities stored as objects, events handled by methods. Same ownership boundary as what shipped. But its handlers processed messages in arrival order and dispatched each event separately, while my tick loop batched the frame's inputs and let systems query components directly — finding the players within an area of interest (AOI), for instance.
 
-I chose ECS to support frequent gameplay changes inside existing rooms. Components held buff effects and expiration times; systems applied the effects in tick order. Items could reuse the same components and systems. Adding mechanics this way reduced branching in player objects and message handlers.
+ECS won on the second axis: gameplay changed constantly, even inside existing rooms. Components held buff effects and expiration times, systems applied them in tick order, and items reused the same components and systems. New mechanics stopped meaning more branching in player objects and message handlers.
 
-I could order buff application, movement, damage calculation, and expiration explicitly, with no concurrent writes inside the room. Fixed inputs and simulation time made interactions between mechanics easier to reproduce in tests.
+Buff application, movement, damage calculation, expiration — I could order all of it explicitly, with no concurrent writes inside the room. Fixed inputs and simulation time made interactions between mechanics reproducible in tests.
 
 The speed-item example below uses an array-based ECS. `EntityID` indexes the component arrays, and masks record which components are present on each entity. `Room.Tick` runs item application, buff expiration, and movement serially. Adding or removing a component changes membership while retaining its pre-allocated slot.
 

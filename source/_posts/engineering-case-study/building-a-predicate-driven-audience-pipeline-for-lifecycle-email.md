@@ -15,7 +15,7 @@ description: How reusable predicates, AST compilation, and layered TiDB data let
 seo_image: architecture.png
 ---
 
-Lifecycle campaigns repeatedly combined latest user traits, historical events, and expiring assets. Operations initially assembled those audiences manually; the platform already had transactional services and a [TiDB](https://docs.pingcap.com/tidb/stable/overview)/[TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview)/[Kafka](https://kafka.apache.org/)/[Flink](https://flink.apache.org/) data path, but marketing needed reusable audience definitions and automated email tasks rather than campaign-specific filters.
+Every lifecycle campaign ended up combining the same three kinds of data: a user's latest traits, their event history, and assets that expire. Operations assembled each audience by hand. The platform already ran the transactional services and the [TiDB](https://docs.pingcap.com/tidb/stable/overview)/[TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview)/[Kafka](https://kafka.apache.org/)/[Flink](https://flink.apache.org/) data path from the earlier post in this series; what was missing was a way to define an audience once, reuse it, and let an email task run on it.
 
 I wrote the design document and early core demo for predicate expansion, SQL compilation, segment refresh, and the reach handoff. A colleague implemented the production services with my guidance.
 
@@ -25,37 +25,30 @@ I wrote the design document and early core demo for predicate expansion, SQL com
 
 ## Context and requirements
 
-The work ran on the Go microservice platform described earlier in this series. Product and operations needed lifecycle campaigns for registration, activity, transaction behavior, membership progression, and expiring rewards. The data platform already provided TiDB, TiCDC, Kafka, Flink, and layered analytical tables.
+The Go microservice platform from the earlier post in this series carried the work. The campaign list kept growing — registration, activity, transaction behavior, membership progression, expiring rewards — and every one of them was, at bottom, a query over the same layered analytical tables.
 
-The design treated each predicate as a reusable backend contract. Marketing owned predicates, compilation, segments, lifecycle plans, and reach events. Reach owned message delivery, channel policy, frequency control, fallback, receipts, and message persistence.
+A predicate was a backend contract, not a campaign-specific filter: defined once, owned by marketing, compiled and refreshed by the service. Marketing owned predicates, compilation, segments, lifecycle plans, and reach events. Reach owned message delivery, channel policy, frequency control, fallback, receipts, and message persistence.
 
-Audience conditions came from different data shapes:
+An audience condition could come from any of the data shapes the platform already had:
 
-- latest user traits, such as activity, transaction totals, and membership level;
-- historical events, such as registration or level-up;
-- time-sensitive asset state, such as reward or entitlement expiry;
-- combinations of those conditions.
+- a latest trait — activity, transaction totals, membership level;
+- an event from history — registration, level-up;
+- an expiring asset — reward or entitlement expiry;
+- or several of those combined.
 
-Without a shared predicate model, each campaign would carry its own filter expression, scan, and audience result. That would make audience logic difficult to review and would leave later plans without a stable definition to reuse. Different campaigns could still choose different predicates; the platform made the selected definition explicit and reusable.
+The alternative was a filter expression per campaign: its own scan, its own audience result, nothing stable for the next plan to build on, and no single place to review what an audience actually meant. Campaigns could still pick different predicates; the point was that whatever they picked had one explicit definition.
 
-The pipeline had to reuse that platform rather than introduce another warehouse. It also had to keep changing while feature delivery continued.
+The pipeline had to reuse that platform, not introduce another warehouse. It also had to keep changing while feature delivery continued.
 
-The design had to meet six requirements:
-
-- define audiences with business predicates instead of campaign-specific SQL;
-- keep UI predicates separate from physical table routing;
-- let latest traits, events, assets, and aggregates retain their own storage semantics;
-- reuse an identical audience definition instead of creating another member table;
-- bound segment replacement and event size during refresh;
-- send lifecycle email and retain a per-user delivery record.
+Concretely: audiences would be defined with business predicates, not campaign-specific SQL. The UI layer could not know about physical table routing. Latest traits, events, assets, and aggregates each kept their own storage semantics instead of collapsing into one member table — and an identical audience definition had to be reused, not copied. Segment refresh had to bound both membership replacement and event size. The end of the pipeline sent the lifecycle email and kept a per-user delivery record.
 
 ## Options Considered
 
-The simplest option was to let each campaign own its SQL. That preserved short-term flexibility, but it duplicated the meaning of common predicates and left no canonical place to review audience logic.
+The simplest option: each campaign owns its SQL. Short-term flexibility, yes — but the meaning of common predicates got duplicated, and there was no one place to review audience logic.
 
-A canonical audience table was the second option. Every source event could be transformed into a common user-attribute row. Querying would become uniform, but event history, latest traits, and expiring assets would be forced into one update and freshness model. A row representing "user registered" has different semantics and retention needs from a row representing "reward expires at this timestamp."
+A canonical audience table was the second option: transform every source event into a common user-attribute row, and querying becomes uniform. But event history, latest traits, and expiring assets do not share an update or freshness model. A "user registered" row and a "reward expires at this timestamp" row have different semantics and different retention needs.
 
-We also considered three fixed storage shapes: latest traits, event history, and asset status. That model was easier to explain, but it still pushed source data into a table even when an aggregate or detail table already represented the condition better.
+Three fixed storage shapes — latest traits, event history, asset status — came next. Easier to explain, but that model still pushed source data into a new table even when an aggregate or detail table already represented the condition better.
 
 The selected design kept the warehouse layered and moved physical routing into atomic-predicate metadata. A predicate could target a keyed trait table, an event detail table, an aggregate table, or another DWD table that matched its semantics.
 
