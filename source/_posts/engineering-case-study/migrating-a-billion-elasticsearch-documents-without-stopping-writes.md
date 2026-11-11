@@ -43,12 +43,6 @@ Constraints: reads and writes had to switch separately — v2 becoming readable 
 
 Decision: one global Redis key, `tasks:index:migration_mode`, three modes:
 
-```
-0  read v1   | direct writes → v1, CDC → v1+v2   (default, rollback-safe)
-1  read v2   | direct writes → v1, CDC → v1+v2
-2  read v2   | v2 only
-```
-
 {% asset_img migration-modes.png The three migration modes as a matrix of reads, direct writes, and CDC per mode, with rollback preconditions and the clamp guard that forces mode 0 until the routing contract exists. %}
 
 The mechanism, piece by piece:
