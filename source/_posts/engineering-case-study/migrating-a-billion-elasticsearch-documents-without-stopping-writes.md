@@ -141,3 +141,9 @@ Would do the same:
 Would change:
 
 - Reconciliation stopped at count + monthly histogram. Next time: content-level checks (field-by-field sample, or full hash comparison) and schema-level checks. Count-equal histograms can hide wrong field values — the risk was real, and the check did not prove what it was meant to prove.
+
+---
+
+*Previous in this series: [Designing a Predicate-Driven Audience Pipeline for Lifecycle Email](/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/)*.
+
+*Next in this series: [Cutting Firestore Reads 58% by Moving a Scan off the Request Path](/posts/engineering-case-study/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/)*.
