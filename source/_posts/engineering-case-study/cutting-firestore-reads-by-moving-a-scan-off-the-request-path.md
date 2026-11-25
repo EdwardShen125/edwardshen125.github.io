@@ -14,7 +14,7 @@ description: "A Firestore fallback query ran on every task creation: 347,901 exe
 seo_image: cover.png
 ---
 
-Firestore's Query Insights view, sorted by read operations, put one query shape at the top for the task collection: `account_no = ? AND status_desc IN [?]`. Over 22 hours it ran 347,901 times, cost 31.6 million read operations (Firestore's billing unit, explained below), and returned 0.011 documents per execution at 2.7 seconds each. It was the fallback step of a scan that ran whenever a user created a task and had not created one in the previous five minutes.
+Firestore's [Query Insights](https://cloud.google.com/firestore/docs/query-insights) view, sorted by read operations, put one query shape at the top for the task collection: `account_no = ? AND status_desc IN [?]`. Over 22 hours it ran 347,901 times, cost 31.6 million read operations (Firestore's billing unit, explained below), and returned 0.011 documents per execution at 2.7 seconds each. It was the fallback step of a scan that ran whenever a user created a task and had not created one in the previous five minutes.
 
 <!-- more -->
 
@@ -24,7 +24,7 @@ Firestore's Query Insights view, sorted by read operations, put one query shape 
 
 The scan existed to recycle tasks parked in `waiting` or `processing` by a dead worker, and the cheapest moment to notice was the same user's next creation. On creation, the API server spawned a goroutine that asked Elasticsearch for the identity's task IDs in those two states, fetched the records from Firestore with a batched get, revalidated the statuses, and cancelled anything past its timeout. If Elasticsearch returned nothing or any step errored, it fell back to a Firestore query on the collection filtered by identity and status, with no limit. A five-minute `SET NX` key per identity kept two creations from triggering the same scan.
 
-Executions tracked task-creation traffic: one scan per creation, minus dedup hits. Per execution, the Firestore fallback dominated, because Firestore bills this query shape by the index entries it scans, one read operation per 1,000 entries ([pricing](https://cloud.google.com/firestore/pricing)). Query Insights reported 91,334 index entries read per execution against 0.011 documents returned; 347,901 × 91,334 / 1,000 is 31.8 million, within about half a percent of the 31.6 million in the table. Document reads for the whole window were about 3,800.
+Executions tracked task-creation traffic: one scan per creation, minus dedup hits. Firestore bills a query for what it reads to satisfy it: one read per document returned, and one read operation per batch of up to 1,000 index entries scanned ([pricing](https://cloud.google.com/firestore/pricing)). Per execution, the Firestore fallback dominated because its cost sat in the index entries, not the documents. Query Insights reported 91,334 index entries read per execution against 0.011 documents returned; 347,901 × 91,334 / 1,000 is 31.8 million, within about half a percent of the 31.6 million in the table. Document reads for the whole window were about 3,800.
 
 The expensive branch was also the common one. Most identities have no stuck task, so Elasticsearch returned empty, which is what triggered the fallback; the fallback then scanned the status index across the whole collection and returned nothing. Removing the Elasticsearch step would not have changed the bill; the cost sat in the Firestore query.
 
@@ -40,7 +40,7 @@ The request now only decides that the identity should be checked: it enqueues th
 
 ### Enqueue
 
-Queue members are `a:<account>` or `d:<device>`, and the score is the earliest time the member may be scanned. The dedup key lives for 30 minutes, up from five. One Lua script does the capacity check, the dedup, and the insert:
+Queue members are `a:<account>` or `d:<device>`, and the score is the earliest moment the member may be scanned; it is set to the enqueue time, so the next round can claim it. The dedup key lives for 30 minutes, up from five. One Lua script does the capacity check, the dedup, and the insert:
 
 ```lua
 -- KEYS[1] = dedup key for this identity   KEYS[2] = pending set
@@ -94,13 +94,13 @@ defer func() {
 }()
 ```
 
-The dequeue is unconditional. A member left in the set after a panic is re-claimed when the lease expires and panics again, and a recurring cause turns that into an unbounded retry loop paid for by the consumer. The per-identity context times out at 10 seconds, far below the two-minute lease, so a slow scan cannot overlap a second claim of the same member.
+The dequeue is unconditional. A member left in the set after a panic is re-claimed when the lease expires and panics again, and a recurring cause turns that into an unbounded retry loop paid for by the consumer. The same holds for a scan that fails without a panic, on a resolve error or the 10-second timeout: it is dequeued, not retried, and the identity re-enters the queue only on a later creation once the dedup key has expired. The per-identity context times out at 10 seconds, far below the two-minute lease, so a slow scan cannot overlap a second claim of the same member.
 
 The round itself is guarded by a per-instance `TryLock`. The semaphore bounds in-flight scans but not rounds: when Elasticsearch or Firestore slows down, each tick would claim another batch and park its goroutines on the semaphore, 20 per tick, until memory ran out. The lock turns a slow downstream into skipped ticks. Every round logs a summary: scans, dequeues, queue depth, hit rate, failure rate, duration.
 
 Queue depth is reported as -1 when Redis cannot be read, never 0, because a 0 reads as "nothing left to do" and turns a Redis problem into an apparently idle consumer. The idle round logs a heartbeat as well; without it, an empty queue and a cron that never registered leave the same silence.
 
-The set has a hard cap of 20,000 members. At two per second a full queue drains in about 2.8 hours; past the cap, enqueues are dropped with a warning. Drops are acceptable because this scan is the fallback recycling channel. Progress polling when a user returns and the run queue's own timeout collection carry the primary load.
+The set has a hard cap of 20,000 members and expires after six hours. At two per second a full queue drains in about 2.8 hours; past the cap, enqueues are dropped with a warning, and a backlog above 5,000 is warned about as well. Drops are acceptable because this scan is the fallback recycling channel. Progress polling when a user returns and the run queue's own timeout collection carry the primary load.
 
 ## Trimming what a scan touches
 
@@ -126,9 +126,9 @@ The old in-path dedup key is gone. Left in place, it would have blocked the cons
 | Documents returned per execution | 0.011 | 0.009 |
 | Average latency | 2,712 ms | 3,032 ms |
 
-Executions fell 56 percent and read operations 58 percent. Index entries per execution moved four percent: the change never touched the index, and the saving came from running the query less often, not from making it cheaper. The table cannot separate the queue from the fallback policy, since both show up as fewer executions of this shape; routing and the limit do not appear in it at all, because they change Elasticsearch work and the worst-case document read, not index entries.
+Executions fell 56 percent and read operations 58 percent. Index entries per execution moved four percent: the change never touched the index, and the saving came from running the query less often, not from making it cheaper. The table cannot separate the queue from the fallback policy, since both show up as fewer executions of this shape; routing and the limit do not appear in it at all, because they change Elasticsearch work and the worst-case document read, not index entries. Average latency rose twelve percent; the change did not touch the query, and the cause was not investigated.
 
-Both captures span 22 hours; the after one was taken a day after the rollout. It ran at 1.9 executions per second, within five percent of the ceiling of two, so read operations from this path are now bounded by that ceiling rather than by creation traffic.
+Both captures span 22 hours; the after one was taken a day after the rollout. Executions fell from 4.4 to 1.9 per second, within five percent of the ceiling of two, so read operations from this path are now bounded by that ceiling rather than by creation traffic.
 
 At the published us-central1 Standard rate of $0.03 per 100,000 reads, the 18.4 million reads saved per window come to roughly $180 a month if the windows are typical. That is a small bill. The reason to move the scan was the shape of this cost, not its size: it grew with creation traffic and sat on the request path.
 
@@ -139,16 +139,6 @@ The cost is latency. A stuck task used to be noticed within seconds of the user'
 ## What this does not fix
 
 One execution still reads about 88,000 index entries and takes three seconds to return 0.009 documents. Nothing in this change addressed that, and at the ceiling it is the remaining cost: the 13 million read operations in the after window. The next lever is the query itself. The likely fix is a composite index that lets Firestore seek by identity instead of scanning the status index, but that is a hypothesis; [Query Explain](https://cloud.google.com/firestore/docs/query-explain) shows which index serves the query and whether index entries are billed, so it decides whether the hypothesis holds before any index is changed.
-
-## Numbers
-
-- Scan executions: 347,901 in 22 hours before (4.4 per second); 151,503 in 22 hours after (1.9 per second), within five percent of the two-per-second ceiling
-- Saved reads: 18.4 million per 22-hour window, about $180 a month at $0.03 per 100,000 reads (us-central1, Standard) if the windows are typical
-- Read operations for the query shape: 31,610,090 before, 13,216,491 after, down 58 percent
-- Per execution: index entries read 91,334 to 87,711; documents returned 0.011 to 0.009; latency 2,712 to 3,032 ms
-- Consumer: cron every 10 s, batch 20, 4 workers, two scans per second ceiling, 10 s per-identity timeout, 2 min lease
-- Queue: dedup window 30 min (was 5), cap 20,000, backlog warning at 5,000, set TTL 6 h
-- Fallback query: limit 100 documents
 
 ---
 
