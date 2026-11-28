@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 7.3.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Source Sans 3:300,300italic,400,400italic,700,700italic|Source Code Pro:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"edwardshen125.github.io","root":"/","scheme":"Mist","version":"7.8.0","exturl":true,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":true,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":true,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="A Firestore fallback query ran on every task creation: 347,901 executions and 31.6M read operations in 22 hours for 0.011 documents per run. A rate-limited Redis queue cut both by 58%.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cutting Firestore Reads 58% by Moving a Scan Off the Request Path">
+<meta property="og:url" content="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/">
+<meta property="og:site_name" content="Edward Shen">
+<meta property="og:description" content="A Firestore fallback query ran on every task creation: 347,901 executions and 31.6M read operations in 22 hours for 0.011 documents per run. A rate-limited Redis queue cut both by 58%.">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/cover.png">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/query-insights-before.png">
+<meta property="og:image" content="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/query-insights-after.png">
+<meta property="article:published_time" content="2026-11-25T02:00:00.000Z">
+<meta property="article:modified_time" content="2026-11-25T09:04:19.000Z">
+<meta property="article:author" content="Edward Shen">
+<meta property="article:tag" content="go">
+<meta property="article:tag" content="firestore">
+<meta property="article:tag" content="redis">
+<meta property="article:tag" content="elasticsearch">
+<meta property="article:tag" content="rate-limiting">
+<meta property="article:tag" content="cost-optimization">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/cover.png">
+
+<link rel="canonical" href="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'en'
+  };
+</script>
+<meta name="robots" content="index, follow, max-image-preview:large">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://edwardshen125.github.io/about/#person","name":"Edward Shen","url":"https://edwardshen125.github.io/about/","sameAs":["https://github.com/EdwardShen125"]},{"@type":"WebSite","@id":"https://edwardshen125.github.io/#website","url":"https://edwardshen125.github.io/","name":"Edward Shen","inLanguage":"en","publisher":{"@id":"https://edwardshen125.github.io/about/#person"}},{"@type":"BlogPosting","@id":"https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/#article","mainEntityOfPage":"https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/","url":"https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/","headline":"Cutting Firestore Reads 58% by Moving a Scan Off the Request Path","description":"A Firestore fallback query ran on every task creation: 347,901 executions and 31.6M read operations in 22 hours for 0.011 documents per run. A rate-limited Redis queue cut both by 58%.","datePublished":"2026-11-25T02:00:00.000Z","dateModified":"2026-11-25T09:04:19.000Z","inLanguage":"en","author":{"@id":"https://edwardshen125.github.io/about/#person"},"publisher":{"@id":"https://edwardshen125.github.io/about/#person"},"keywords":"go, firestore, redis, elasticsearch, rate-limiting, cost-optimization","image":["https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/cover.png"]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://edwardshen125.github.io/"},{"@type":"ListItem","position":2,"name":"Cutting Firestore Reads 58% by Moving a Scan Off the Request Path","item":"https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/"}]}]}</script>
+  <title>Cutting Firestore Reads 58% by Moving a Scan Off the Request Path | Edward Shen</title>
+  
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FDS5FETRRB"></script>
+    <script>
+      if (CONFIG.hostname === location.hostname) {
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-FDS5FETRRB');
+      }
+    </script>
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?e421fc62c833dcca215d1c25baf51819";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Edward Shen" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Edward Shen</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">Backend & Distributed Systems Engineer</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://edwardshen125.github.io/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar-cat.jpg">
+      <meta itemprop="name" content="Edward Shen">
+      <meta itemprop="description" content="Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Edward Shen">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Cutting Firestore Reads 58% by Moving a Scan Off the Request Path
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2026-11-25 10:00:00" itemprop="dateCreated datePublished" datetime="2026-11-25T10:00:00+08:00">2026-11-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Case-Study/" itemprop="url" rel="index"><span itemprop="name">Case Study</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">Views: </span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+            <span class="post-meta-item" title="Symbols count in article">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+              <span>2.1k</span>
+            </span>
+            <span class="post-meta-item" title="Reading time">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+              <span>8 mins.</span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>Firestore's <a
+target="_blank" rel="noopener" href="https://cloud.google.com/firestore/docs/query-insights">Query
+Insights</a> view, sorted by read operations, put one query shape at the
+top for the task collection:
+<code>account_no = ? AND status_desc IN [?]</code>. Over 22 hours it ran
+347,901 times, cost 31.6 million read operations (Firestore's billing
+unit, explained below), and returned 0.011 documents per execution at
+2.7 seconds each. It was the fallback step of a scan that ran whenever a
+user created a task and had not created one in the previous five
+minutes.</p>
+<span id="more"></span>
+<img data-src="/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/cover.png" class="" title="One Firestore query shape before and after the change, both 22-hour windows: read operations 31.6M to 13.2M, executions 347,901 to 151,503, after the scan moved into a rate-limited queue">
+<h2 id="where-the-reads-came-from">Where the reads came from</h2>
+<p>The scan existed to recycle tasks parked in <code>waiting</code> or
+<code>processing</code> by a dead worker, and the cheapest moment to
+notice was the same user's next creation. On creation, the API server
+spawned a goroutine that asked Elasticsearch for the identity's task IDs
+in those two states, fetched the records from Firestore with a batched
+get, revalidated the statuses, and cancelled anything past its timeout.
+If Elasticsearch returned nothing or any step errored, it fell back to a
+Firestore query on the collection filtered by identity and status, with
+no limit. A five-minute <code>SET NX</code> key per identity kept two
+creations from triggering the same scan.</p>
+<p>Executions tracked task-creation traffic: one scan per creation,
+minus dedup hits. Firestore bills a query for what it reads to satisfy
+it: one read per document returned, and one read operation per batch of
+up to 1,000 index entries scanned (<a
+target="_blank" rel="noopener" href="https://cloud.google.com/firestore/pricing">pricing</a>). Per
+execution, the Firestore fallback dominated because its cost sat in the
+index entries, not the documents. Query Insights reported 91,334 index
+entries read per execution against 0.011 documents returned; 347,901 ×
+91,334 / 1,000 is 31.8 million, within about half a percent of the 31.6
+million in the table. Document reads for the whole window were about
+3,800.</p>
+<p>The expensive branch was also the common one. Most identities have no
+stuck task, so Elasticsearch returned empty, which is what triggered the
+fallback; the fallback then scanned the status index across the whole
+collection and returned nothing. Removing the Elasticsearch step would
+not have changed the bill; the cost sat in the Firestore query.</p>
+<img data-src="/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/query-insights-before.png" class="" title="Firestore Query Insights before the change, sorted by read operations: the account-shaped status query ran 347,901 times with 31,610,090 read operations, 91,334 index entries and 0.011 documents per execution, at 2,712 ms average latency.">
+<h2 id="moving-the-schedule-out-of-the-request-path">Moving the schedule
+out of the request path</h2>
+<p>Even with the fallback restricted to errors, one scan per creation
+still put an Elasticsearch query and a Firestore batched get on the
+request path at creation rate, and the five-minute window let a busy
+identity be scanned up to 288 times a day.</p>
+<p>Rescanning every identity that ever created a task on a schedule
+would have closed the one gap in scanning only on creation, the
+dependency on the user coming back, but it runs more queries than
+scanning on creation, the opposite of the goal. That gap is left to the
+run queue's own timeout collection.</p>
+<p>The request now only decides that the identity should be checked: it
+enqueues the identity and returns, and a cron-driven consumer decides
+when the check runs and caps how many run per second. The queue is a
+Redis sorted set plus one dedup key per identity.</p>
+<h3 id="enqueue">Enqueue</h3>
+<p>Queue members are <code>a:&lt;account&gt;</code> or
+<code>d:&lt;device&gt;</code>, and the score is the earliest moment the
+member may be scanned; it is set to the enqueue time, so the next round
+can claim it. The dedup key lives for 30 minutes, up from five. One Lua
+script does the capacity check, the dedup, and the insert:</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- KEYS[1] = dedup key for this identity   KEYS[2] = pending set</span></span><br><span class="line"><span class="comment">-- ARGV[1] = dedup TTL (ms)   ARGV[2] = score (ms)   ARGV[3] = set TTL (s)</span></span><br><span class="line"><span class="comment">-- ARGV[4] = member           ARGV[5] = max members</span></span><br><span class="line"><span class="keyword">if</span> redis.call(<span class="string">&#x27;ZCARD&#x27;</span>, KEYS[<span class="number">2</span>]) &gt;= <span class="built_in">tonumber</span>(ARGV[<span class="number">5</span>]) <span class="keyword">then</span></span><br><span class="line">  <span class="keyword">return</span> <span class="number">-1</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">if</span> redis.call(<span class="string">&#x27;SET&#x27;</span>, KEYS[<span class="number">1</span>], <span class="string">&#x27;1&#x27;</span>, <span class="string">&#x27;NX&#x27;</span>, <span class="string">&#x27;PX&#x27;</span>, ARGV[<span class="number">1</span>]) == <span class="literal">false</span> <span class="keyword">then</span></span><br><span class="line">  <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br><span class="line">redis.call(<span class="string">&#x27;ZADD&#x27;</span>, KEYS[<span class="number">2</span>], <span class="string">&#x27;GT&#x27;</span>, ARGV[<span class="number">2</span>], ARGV[<span class="number">4</span>])</span><br><span class="line">redis.call(<span class="string">&#x27;EXPIRE&#x27;</span>, KEYS[<span class="number">2</span>], ARGV[<span class="number">3</span>])</span><br><span class="line"><span class="keyword">return</span> <span class="number">1</span></span><br></pre></td></tr></table></figure>
+<p>The script has to be one step: as two round trips, a failure after
+<code>SET NX</code> but before <code>ZADD</code> leaves the dedup key
+set with nothing in the queue, and the identity is not scanned for a
+whole window; in the other order, a failure duplicates the member.</p>
+<p>The capacity check runs before the dedup so that a full queue drops
+the enqueue without locking the identity out: the key is only set once
+the member is in the queue. <code>ZADD GT</code> keeps a later enqueue
+from pulling a queued identity forward. Both keys carry the same <a
+target="_blank" rel="noopener" href="https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/">hash
+tag</a> (<code>&#123;scan&#125;</code>), which keeps the script valid on Redis
+Cluster, where a script may only touch keys in one slot.</p>
+<p>The script returns 1 for a new member, 0 for a dedup hit, and -1 for
+a dropped enqueue, logged at different levels because a new member is
+rare and a dedup hit is the steady state.</p>
+<h3 id="claim">Claim</h3>
+<p>Every consumer instance runs the cron every 10 seconds. Claiming is a
+second script:</p>
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">-- KEYS[1] = pending set</span></span><br><span class="line"><span class="comment">-- ARGV[1] = now (ms)   ARGV[2] = limit   ARGV[3] = lease until (ms)</span></span><br><span class="line"><span class="keyword">local</span> due = redis.call(<span class="string">&#x27;ZRANGEBYSCORE&#x27;</span>, KEYS[<span class="number">1</span>], <span class="string">&#x27;-inf&#x27;</span>, ARGV[<span class="number">1</span>], <span class="string">&#x27;LIMIT&#x27;</span>, <span class="number">0</span>, ARGV[<span class="number">2</span>])</span><br><span class="line"><span class="keyword">for</span> _, member <span class="keyword">in</span> <span class="built_in">ipairs</span>(due) <span class="keyword">do</span></span><br><span class="line">  redis.call(<span class="string">&#x27;ZADD&#x27;</span>, KEYS[<span class="number">1</span>], ARGV[<span class="number">3</span>], member)</span><br><span class="line"><span class="keyword">end</span></span><br><span class="line"><span class="keyword">return</span> due</span><br></pre></td></tr></table></figure>
+<p><code>ZRANGEBYSCORE</code> then a separate <code>ZADD</code> would
+let two pods read the same due members before either writes a lease. The
+lease moves each claimed member's score two minutes ahead, so the next
+claim skips it; a consumer that dies mid-scan leaves the member to be
+re-claimed once it expires.</p>
+<h3 id="consume">Consume</h3>
+<p>Each round claims at most 20 identities and scans four at a time.
+Twenty per 10 seconds caps the deployment at two scans per second
+regardless of creation traffic; the four workers shorten the round
+without moving the ceiling. Three deferred calls wrap every scan:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; &lt;-sem; wg.Done() &#125;()            <span class="comment">// runs last: release the slot</span></span><br><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; svc.dequeue(member) &#125;()          <span class="comment">// runs even when the scan panics</span></span><br><span class="line"><span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="keyword">if</span> r := <span class="built_in">recover</span>(); r != <span class="literal">nil</span> &#123;</span><br><span class="line">        panicked.Add(<span class="number">1</span>)</span><br><span class="line">        logger.Error(context.Background(), fmt.Errorf(<span class="string">&quot;panic: %v&quot;</span>, r), <span class="string">&quot;scan panic&quot;</span>)</span><br><span class="line">    &#125;</span><br><span class="line">&#125;()</span><br></pre></td></tr></table></figure>
+<p>The dequeue is unconditional. A member left in the set after a panic
+is re-claimed when the lease expires and panics again, and a recurring
+cause turns that into an unbounded retry loop paid for by the consumer.
+The same holds for a scan that fails without a panic, on a resolve error
+or the 10-second timeout: it is dequeued, not retried, and the identity
+re-enters the queue only on a later creation once the dedup key has
+expired. The per-identity context times out at 10 seconds, far below the
+two-minute lease, so a slow scan cannot overlap a second claim of the
+same member.</p>
+<p>The round itself is guarded by a per-instance <code>TryLock</code>.
+The semaphore bounds in-flight scans but not rounds: when Elasticsearch
+or Firestore slows down, each tick would claim another batch and park
+its goroutines on the semaphore, 20 per tick, until memory ran out. The
+lock turns a slow downstream into skipped ticks. Every round logs a
+summary: scans, dequeues, queue depth, hit rate, failure rate,
+duration.</p>
+<p>Queue depth is reported as -1 when Redis cannot be read, never 0,
+because a 0 reads as "nothing left to do" and turns a Redis problem into
+an apparently idle consumer. The idle round logs a heartbeat as well;
+without it, an empty queue and a cron that never registered leave the
+same silence.</p>
+<p>The set has a hard cap of 20,000 members and expires after six hours.
+At two per second a full queue drains in about 2.8 hours; past the cap,
+enqueues are dropped with a warning, and a backlog above 5,000 is warned
+about as well. Drops are acceptable because this scan is the fallback
+recycling channel. Progress polling when a user returns and the run
+queue's own timeout collection carry the primary load.</p>
+<h2 id="trimming-what-a-scan-touches">Trimming what a scan touches</h2>
+<p>Rate limiting bounds how often the scan runs. Four smaller changes
+trim what one scan touches; the Firestore fallback's cost per scan is
+not among them.</p>
+<p>Elasticsearch now receives the identity as routing. The task index is
+written with the account as its routing key, so the search hits one
+shard instead of every shard. Guest documents are indexed under a fixed
+default routing value, and the guest query mirrors that.</p>
+<p>For account identities, an empty Elasticsearch result is now the
+answer: the index is routed by account and complete for accounts, so no
+candidate IDs means no active task, and the fallback runs only on an
+error. Guest identities keep the fallback on empty, because historical
+guest documents were indexed without the device field and their query
+cannot see older tasks. The cost is a dependency on the index: a task
+missing from Elasticsearch is not recycled by this scan. The primary
+channels do not read the index, so the dependency stays inside the
+fallback's remit.</p>
+<p>The fallback query gets a limit of 100 documents. Its filter targets
+one identity, whose active tasks are normally single digits; the limit
+only matters when one identity has piled up stuck tasks, where reading
+the whole pile is the wrong response anyway.</p>
+<p>The old in-path dedup key is gone. Left in place, it would have
+blocked the consumer's first scan of an identity right after a creation,
+because the key was set by the very request that enqueued it.</p>
+<h2 id="result">Result</h2>
+<img data-src="/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/query-insights-after.png" class="" title="Firestore Query Insights after the change: the same account-shaped status query ran 151,503 times with 13,216,491 read operations, 87,711 index entries and 0.009 documents per execution, at 3,032 ms average latency.">
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Executions</td>
+<td>347,901</td>
+<td>151,503</td>
+</tr>
+<tr>
+<td>Read operations</td>
+<td>31,610,090</td>
+<td>13,216,491</td>
+</tr>
+<tr>
+<td>Index entries read per execution</td>
+<td>91,334</td>
+<td>87,711</td>
+</tr>
+<tr>
+<td>Documents returned per execution</td>
+<td>0.011</td>
+<td>0.009</td>
+</tr>
+<tr>
+<td>Average latency</td>
+<td>2,712 ms</td>
+<td>3,032 ms</td>
+</tr>
+</tbody>
+</table>
+<p>Executions fell 56 percent and read operations 58 percent. Index
+entries per execution moved four percent: the change never touched the
+index, and the saving came from running the query less often, not from
+making it cheaper. The table cannot separate the queue from the fallback
+policy, since both show up as fewer executions of this shape; routing
+and the limit do not appear in it at all, because they change
+Elasticsearch work and the worst-case document read, not index entries.
+Average latency rose twelve percent; the change did not touch the query,
+and the cause was not investigated.</p>
+<p>Both captures span 22 hours; the after one was taken a day after the
+rollout. Executions fell from 4.4 to 1.9 per second, within five percent
+of the ceiling of two, so read operations from this path are now bounded
+by that ceiling rather than by creation traffic.</p>
+<p>At the published us-central1 Standard rate of $0.03 per 100,000
+reads, the 18.4 million reads saved per window come to roughly $180 a
+month if the windows are typical. That is a small bill. The reason to
+move the scan was the shape of this cost, not its size: it grew with
+creation traffic and sat on the request path.</p>
+<p>The queue, the longer dedup window, routing, the fallback policy, and
+the limit shipped together, so the share of each is not measured.</p>
+<p>The cost is latency. A stuck task used to be noticed within seconds
+of the user's next creation; it is now noticed within 30 minutes plus
+queue wait, up to about 2.8 hours behind a full queue, which is
+acceptable for a channel that exists for users who never return.</p>
+<h2 id="what-this-does-not-fix">What this does not fix</h2>
+<p>One execution still reads about 88,000 index entries and takes three
+seconds to return 0.009 documents. Nothing in this change addressed
+that, and at the ceiling it is the remaining cost: the 13 million read
+operations in the after window. The next lever is the query itself. The
+likely fix is a composite index that lets Firestore seek by identity
+instead of scanning the status index, but that is a hypothesis; <a
+target="_blank" rel="noopener" href="https://cloud.google.com/firestore/docs/query-explain">Query
+Explain</a> shows which index serves the query and whether index entries
+are billed, so it decides whether the hypothesis holds before any index
+is changed.</p>
+<hr />
+<p><em>Previous in this series: <a
+href="/posts/migrating-a-billion-elasticsearch-documents-without-stopping-writes/">Migrating
+a Billion Elasticsearch Documents Without Stopping Writes</a></em>.</p>
+
+    </div>
+
+    
+    
+    
+        
+
+  <div class="followme">
+    <p>Welcome to my other publishing channels</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/go/" rel="tag"># go</a>
+              <a href="/tags/firestore/" rel="tag"># firestore</a>
+              <a href="/tags/redis/" rel="tag"># redis</a>
+              <a href="/tags/elasticsearch/" rel="tag"># elasticsearch</a>
+              <a href="/tags/rate-limiting/" rel="tag"># rate-limiting</a>
+              <a href="/tags/cost-optimization/" rel="tag"># cost-optimization</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/posts/migrating-a-billion-elasticsearch-documents-without-stopping-writes/" rel="prev" title="Migrating a Billion Elasticsearch Documents Without Stopping Writes">
+      <i class="fa fa-chevron-left"></i> Migrating a Billion Elasticsearch Documents Without Stopping Writes
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#where-the-reads-came-from"><span class="nav-number">1.</span> <span class="nav-text">Where the reads came from</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#moving-the-schedule-out-of-the-request-path"><span class="nav-number">2.</span> <span class="nav-text">Moving the schedule
+out of the request path</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#enqueue"><span class="nav-number">2.1.</span> <span class="nav-text">Enqueue</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#claim"><span class="nav-number">2.2.</span> <span class="nav-text">Claim</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#consume"><span class="nav-number">2.3.</span> <span class="nav-text">Consume</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#trimming-what-a-scan-touches"><span class="nav-number">3.</span> <span class="nav-text">Trimming what a scan touches</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#result"><span class="nav-number">4.</span> <span class="nav-text">Result</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#what-this-does-not-fix"><span class="nav-number">5.</span> <span class="nav-text">What this does not fix</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Edward Shen"
+      src="/images/avatar-cat.jpg">
+  <p class="site-author-name" itemprop="name">Edward Shen</p>
+  <div class="site-description" itemprop="description">Go backend and distributed systems engineer. Case studies in service architecture, scheduling, and data platforms.</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <span class="exturl" data-url="aHR0cHM6Ly9naXRodWIuY29tL0Vkd2FyZFNoZW4xMjU=" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;EdwardShen125"><i class="fab fa-github fa-fw"></i>GitHub</span>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2015 – 
+  <span itemprop="copyrightYear">2026</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Edward Shen</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="Symbols count total">22k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="Reading time total">1:19</span>
+</div>
+  <div class="powered-by">Powered by <span class="exturl theme-link" data-url="aHR0cHM6Ly9oZXhvLmlv">Hexo</span> & <span class="exturl theme-link" data-url="aHR0cHM6Ly9taXN0LnRoZW1lLW5leHQub3Jn">NexT.Mist</span>
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/medium-zoom@1/dist/medium-zoom.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/lozad@1/dist/lozad.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+if (document.querySelectorAll('pre.mermaid').length) {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/mermaid@8/dist/mermaid.min.js', () => {
+    mermaid.initialize({
+      theme    : 'neutral',
+      logLevel : 3,
+      flowchart: { curve     : 'linear' },
+      gantt    : { axisFormat: '%m/%d/%Y' },
+      sequence : { actorMargin: 50 }
+    });
+  }, window.mermaid);
+}
+</script>
+
+
+  
+
+  
+
+  
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const headingSelector = ".post-body h2[id]";
+
+    document.querySelectorAll(headingSelector).forEach(function(heading) {
+      if (heading.querySelector(".heading-anchor")) return;
+      heading.classList.add("has-anchor");
+
+      const anchor = document.createElement("a");
+      anchor.className = "heading-anchor";
+      anchor.href = `#${heading.id}`;
+      anchor.textContent = "#";
+      anchor.setAttribute("aria-label", `Anchor link to ${heading.textContent.trim()}`);
+      anchor.title = "Copy section link";
+      anchor.rel = "bookmark";
+
+      anchor.addEventListener("click", function(event) {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(anchor.href).catch(() => {});
+        }
+        history.replaceState(null, "", anchor.href);
+        event.preventDefault();
+      });
+
+      heading.appendChild(anchor);
+    });
+  });
+</script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const tableContainers = document.querySelectorAll(".table-container");
+
+    tableContainers.forEach(function(tableContainer) {
+      const spanCount = tableContainer.querySelectorAll("tbody > tr > td.code > pre > span").length;
+
+      if (spanCount >= 3) {
+        const prevElement = tableContainer.previousElementSibling;
+        let figcaption;
+
+        if (!prevElement || prevElement.tagName.toLowerCase() !== "figcaption") {
+          figcaption = document.createElement("figcaption");
+          tableContainer.parentNode.insertBefore(figcaption, tableContainer);
+        } else {
+          figcaption = prevElement;
+        }
+
+        const iElement = document.createElement("i");
+        iElement.className = "fas fa-angle-down";
+        iElement.innerHTML = "&nbsp;&nbsp;&nbsp;";
+        figcaption.insertBefore(iElement, figcaption.firstChild);
+
+        iElement.addEventListener("click", function() {
+          tableContainer.classList.toggle("code-hidden");
+
+          if (iElement.classList.contains("fa-angle-down")) {
+            iElement.classList.remove("fa-angle-down");
+            iElement.classList.add("fa-angle-right");
+          } else {
+            iElement.classList.remove("fa-angle-right");
+            iElement.classList.add("fa-angle-down");
+          }
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
