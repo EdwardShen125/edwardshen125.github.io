@@ -2,7 +2,7 @@
 title: "Debugging a Sporadic Go OOM in a Recursive JSON Encode Path"
 date: 2024-10-01 10:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - go
   - json
@@ -229,6 +229,6 @@ The production OOM stopped after the migration and never recurred through the mo
 
 ---
 
-*Previous in this series: [Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary](/posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/)*.
+*Previous in this series: [Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary](/posts/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary/)*.
 
-*Next in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/engineering-case-study/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/)*.
+*Next in this series: [Building a Production Go Scheduler for 200K+ Delayed Jobs per Second](/posts/building-a-production-go-scheduler-for-200k-delayed-jobs-per-second/)*.

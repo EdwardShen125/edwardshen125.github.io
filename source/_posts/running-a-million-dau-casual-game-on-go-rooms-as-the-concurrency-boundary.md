@@ -2,7 +2,7 @@
 title: "Running a Million-DAU Casual Game on Go: Rooms as the Concurrency Boundary"
 date: 2020-01-25 10:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - go
   - game-server
@@ -243,4 +243,4 @@ Concurrency outside activity peaks was in the tens of thousands. A single instan
 
 *The talk [Overwatch Gameplay Architecture and Netcode](https://www.youtube.com/watch?v=W3aieHjyNvw) gave me many of the ideas behind this design, especially separating component state from system behavior and organizing data for sequential access.*
 
-**Next in this series: [One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System](/posts/engineering-case-study/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/).*.*
+**Next in this series: [One Queue for Every State Change: Fixing Silent Over-Assignment in a Live QR Code System](/posts/one-queue-for-every-state-change-fixing-silent-over-assignment-in-a-live-qr-code-system/).*.*

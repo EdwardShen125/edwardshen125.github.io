@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 HERE = Path(__file__).parent
 DL = Path("/Users/mac1178/Downloads")
 OUT = Path("/Users/mac1178/Documents/github.com/EdwardShen125/edwardshen125.github.io/"
-           "source/_posts/engineering-case-study/"
+           "source/_posts/"
            "cutting-firestore-reads-by-moving-a-scan-off-the-request-path/cover.png")
 
 BEFORE = DL / "63f704d2-f560-490b-a4d4-84d15d28f0eb-redacted.png"

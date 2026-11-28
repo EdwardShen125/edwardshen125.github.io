@@ -2,7 +2,7 @@
 title: Migrating a Billion Elasticsearch Documents Without Stopping Writes
 date: 2026-11-08 10:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - elasticsearch
   - go
@@ -144,6 +144,6 @@ Would change:
 
 ---
 
-*Previous in this series: [Designing a Predicate-Driven Audience Pipeline for Lifecycle Email](/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/)*.
+*Previous in this series: [Designing a Predicate-Driven Audience Pipeline for Lifecycle Email](/posts/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/)*.
 
-*Next in this series: [Cutting Firestore Reads 58% by Moving a Scan off the Request Path](/posts/engineering-case-study/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/)*.
+*Next in this series: [Cutting Firestore Reads 58% by Moving a Scan off the Request Path](/posts/cutting-firestore-reads-by-moving-a-scan-off-the-request-path/)*.

@@ -2,7 +2,7 @@
 title: "Cutting Firestore Reads 58% by Moving a Scan off the Request Path"
 date: 2026-11-25 10:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - go
   - firestore
@@ -142,4 +142,4 @@ One execution still reads about 88,000 index entries and takes three seconds to 
 
 ---
 
-*Previous in this series: [Migrating a Billion Elasticsearch Documents Without Stopping Writes](/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/)*.
+*Previous in this series: [Migrating a Billion Elasticsearch Documents Without Stopping Writes](/posts/migrating-a-billion-elasticsearch-documents-without-stopping-writes/)*.

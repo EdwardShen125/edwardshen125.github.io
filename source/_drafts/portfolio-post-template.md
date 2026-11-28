@@ -2,7 +2,7 @@
 title: Draft
 date: 2026-10-01 10:55:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - distributed-systems
   - high-availability

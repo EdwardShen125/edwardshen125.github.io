@@ -2,7 +2,7 @@
 title: Building a Production Go Scheduler for 200K+ Delayed Jobs per Second
 date: 2025-01-01 14:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - distributed-systems
   - go
@@ -226,6 +226,6 @@ I would keep durable triggers in TiDB and admitted commands in Pulsar, with per-
 
 ---
 
-*Previous in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/engineering-case-study/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/)*.
+*Previous in this series: [Debugging a Sporadic Go OOM in a Recursive JSON Encode Path](/posts/debugging-a-sporadic-go-oom-in-a-recursive-json-encode-path/)*.
 
-*Next in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/)*.
+*Next in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/)*.

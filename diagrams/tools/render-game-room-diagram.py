@@ -2,7 +2,7 @@ from pathlib import Path
 import json, html
 root=Path('/Users/mac1178/Documents/github.com/EdwardShen125/edwardshen125.github.io')
 base=root/'diagrams/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary-c4'
-asset=root/'source/_posts/engineering-case-study/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary'
+asset=root/'source/_posts/running-a-million-dau-casual-game-on-go-rooms-as-the-concurrency-boundary'
 W,H=1500,1030
 nodes=[
 ('clients',40,350,220,150,'Game clients',['Player commands','Per-view state updates'],'#356a8a'),

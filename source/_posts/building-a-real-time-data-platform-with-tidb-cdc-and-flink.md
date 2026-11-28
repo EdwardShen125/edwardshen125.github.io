@@ -2,7 +2,7 @@
 title: Building a Real-Time Data Platform with TiDB CDC and Flink
 date: 2026-02-07 12:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - tidb
   - flink
@@ -23,7 +23,7 @@ Four Go engineers had to build the data platform alongside feature delivery. We 
 
 ## Context and requirements
 
-The backend foundation came from [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/). From June through November 2025, I **initiated and led** the architecture and rollout for the CDC path, warehouse layering, and query serving in a separate data-platform workstream. ConfigHub was part of that workstream.
+The backend foundation came from [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/). From June through November 2025, I **initiated and led** the architecture and rollout for the CDC path, warehouse layering, and query serving in a separate data-platform workstream. ConfigHub was part of that workstream.
 
 Product managers needed transaction, settlement, and promotion metrics. Operations needed to detect abuse while a campaign was still active. Finance needed reconciliation. The production schemas were optimized for writes, not analytical reads.
 
@@ -160,6 +160,6 @@ If analytical scans or production-latency risk kept growing, I would move analyt
 
 ---
 
-*Previous in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/engineering-case-study/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/)*.
+*Previous in this series: [Scaling Four Engineers to Eighteen Go Services with Generated Contracts](/posts/scaling-four-engineers-to-eighteen-go-services-with-generated-contracts/)*.
 
-*Next in this series: [Building a Predicate-Driven Audience Pipeline for Lifecycle Email](/posts/engineering-case-study/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/)*.
+*Next in this series: [Building a Predicate-Driven Audience Pipeline for Lifecycle Email](/posts/building-a-predicate-driven-audience-pipeline-for-lifecycle-email/)*.

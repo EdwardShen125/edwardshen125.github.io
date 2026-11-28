@@ -2,7 +2,7 @@
 title: Designing a Predicate-Driven Audience Pipeline for Lifecycle Email
 date: 2026-02-14 12:00:00
 categories:
-  - Engineering Case Study
+  - Case Study
 tags:
   - go
   - flink
@@ -171,6 +171,6 @@ The remaining design work was at the event boundary. Segment reuse and individua
 
 ---
 
-*Previous in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/engineering-case-study/building-a-real-time-data-platform-with-tidb-cdc-and-flink/)*.
+*Previous in this series: [Building a Real-Time Data Platform with TiDB CDC and Flink](/posts/building-a-real-time-data-platform-with-tidb-cdc-and-flink/)*.
 
-*Next in this series: [Migrating a Billion Elasticsearch Documents Without Stopping Writes](/posts/engineering-case-study/migrating-a-billion-elasticsearch-documents-without-stopping-writes/)*.
+*Next in this series: [Migrating a Billion Elasticsearch Documents Without Stopping Writes](/posts/migrating-a-billion-elasticsearch-documents-without-stopping-writes/)*.

@@ -2,7 +2,7 @@
 title: Designing a High-Concurrency Game Server with Go
 date: 2027-03-01 10:00:00
 categories:
-  - Engineering Case Study
+  - Design
 tags:
   - go
   - game-server

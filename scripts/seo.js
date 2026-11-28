@@ -14,7 +14,10 @@ hexo.extend.filter.register('theme_inject', injects => {
 hexo.extend.filter.register('before_post_render', data => {
   if (!data.source || (data.raw || '').split('---')[1]?.match(/^updated:/m)) return data;
   try {
-    const date = execFileSync('git', ['log', '-1', '--format=%cI', '--', `source/${data.source}`], { cwd: hexo.base_dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    // Last commit that modified the file in place. Renames are excluded on
+    // purpose: git reports a move with a frontmatter tweak as R099, and a
+    // directory move must not reset every post's dateModified.
+    const date = execFileSync('git', ['log', '-1', '--follow', '--diff-filter=M', '--format=%cI', '--', `source/${data.source}`], { cwd: hexo.base_dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
     if (date) data.updated = date;
   } catch (_) {
     // Files without Git history retain Hexo's date handling.
@@ -41,8 +44,11 @@ hexo.extend.helper.register('seo_json_ld', function() {
 
 hexo.extend.generator.register('discovery', locals => {
   const posts = locals.posts.toArray().filter(published).sort((a, b) => b.date.valueOf() - a.date.valueOf());
-  const entries = [{ url: absolute('/') }, { url: absolute('about/') }, ...posts.map(post => ({ url: absolute(post.path), modified: post.updated.toISOString() }))];
+  const categories = locals.categories.toArray().filter(category => category.posts.toArray().some(published)).map(category => ({ url: absolute(category.path) }));
+  const entries = [{ url: absolute('/') }, { url: absolute('about/') }, ...categories, ...posts.map(post => ({ url: absolute(post.path), modified: post.updated.toISOString() }))];
   const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + entries.map(entry => `  <url><loc>${xml(entry.url)}</loc>${entry.modified ? `<lastmod>${xml(entry.modified)}</lastmod>` : ''}</url>`).join('\n') + '\n</urlset>\n';
-  const llms = `# ${hexo.config.author}\n\n> Engineering case studies on Go backends, distributed scheduling, data platforms, and lifecycle audience pipelines.\n\nThese articles describe project decisions, production observations, and implementation limits. Proposed changes are identified in the articles.\n\n## Author\n\n- [About ${hexo.config.author}](${absolute('about/')}): Career background and systems owned.\n\n## Engineering case studies\n\n` + posts.map(post => `- [${post.title}](${absolute(post.path)}): ${post.description}`).join('\n') + '\n';
+  const categoryName = post => (post.categories.toArray()[0] || {}).name;
+  const sections = locals.categories.toArray().filter(category => posts.some(post => categoryName(post) === category.name)).map(category => `## ${category.name}\n\n${posts.filter(post => categoryName(post) === category.name).map(post => `- [${post.title}](${absolute(post.path)}): ${post.description}`).join('\n')}`);
+  const llms = `# ${hexo.config.author}\n\n> Case studies, essays and notes on Go backends, distributed scheduling, data platforms, and the systems around them.\n\nThese articles describe project decisions, production observations, and implementation limits. Proposed changes are identified in the articles.\n\n## Author\n\n- [About ${hexo.config.author}](${absolute('about/')}): Career background and systems owned.\n\n${sections.join('\n\n')}\n`;
   return [{ path: 'sitemap.xml', data: sitemap }, { path: 'robots.txt', data: `User-agent: *\nAllow: /\n\nSitemap: ${absolute('sitemap.xml')}\n` }, { path: 'llms.txt', data: llms }];
 });
